@@ -1,0 +1,72 @@
+@{
+    ViewBag.Title = "Câu Hỏi Đề Thi";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@model List<ManageQuestionValidation>
+
+<div class="app-main__outer">
+    <div class="app-main__inner">
+
+        <div class="app-page-title">
+            <div class="page-title-wrapper">
+                <div class="page-title-heading">
+                    <div class="page-title-icon">
+                        <i class="pe-7s-id icon-gradient bg-grow-early"></i>
+                    </div>
+                    <div>
+                        Danh Sách Câu Hỏi
+                        <div class="page-title-subheading"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <div class="col-md-9">
+                    <span>TÊN ĐỀ: @ViewBag.TenDe<br />NỘI DUNG: @ViewBag.NoiDung</span>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="table" width="100%" cellpadding="0">
+                        <thead class="thead-light">
+                            <tr>
+                                <th class="text-center" width="30px">STT</th>
+                                <th class="text-center">Nội Dung Câu Hỏi</th>
+                                <th class="text-center">Đáp Án A</th>
+                                <th class="text-center">Đáp Án B</th>
+                                <th class="text-center">Đáp Án C</th>
+                                <th class="text-center">Đáp Án D</th>
+                                <th class="text-center">Điểm</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{ int RowNo = 1; }
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td class="text-center">@RowNo@{ RowNo++; }</td>
+                                    <td>@Html.Raw(item.NoiDungCH)</td>
+                                    <td>@item.DapAnA</td>
+                                    <td>@item.DapAnB</td>
+                                    <td>@item.DapAnC</td>
+                                    <td>@item.DapAnD</td>
+                                    <td class="text-center">@item.Diem</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="app-wrapper-footer">
+        <div class="app-footer">
+            <div class="app-footer__inner"></div>
+        </div>
+    </div>
+</div>

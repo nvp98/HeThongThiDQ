@@ -1,0 +1,56 @@
+@model ConfirmEStudyValidation
+
+<form asp-action="Create" asp-controller="ConfirmEStudy" method="post">
+    <div class="modal-dialog" id="form">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 id="ModalTitle">Thêm mới Học Viên</h5>
+                <a href="#" class="close" data-dismiss="modal">&times;</a>
+            </div>
+            <div class="modal-body">
+                <fieldset id="SubmitForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="small mb-1">Lớp Học</label>
+                                <select asp-for="LHID" asp-items="(SelectList)ViewBag.LHList" class="form-control" id="LHID"></select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="small mb-1">Phòng Ban</label>
+                                <select asp-for="PBID" asp-items="(SelectList)ViewBag.PBList" class="form-control" id="PBID"></select>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="small mb-1">Nhân Viên</label>
+                                <select asp-for="NVID" class="form-control" id="NVID">
+                                    <option value="">--Chọn nhân viên--</option>
+                                </select>
+                                <span asp-validation-for="NVID" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="btn-margin-top text-center">
+                        <input type="submit" value="Xác nhận" class="btn btn-success button_submit" />
+                    </div>
+                </fieldset>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+    $(document).ready(function () {
+        $('#PBID').change(function () {
+            $.get('/ConfirmEStudy/GetNhanVien', { id: $(this).val() }, function (data) {
+                $('#NVID').empty().append('<option value="">--Chọn nhân viên--</option>');
+                $.each(data, function (i, row) {
+                    $('#NVID').append('<option value="' + row.Id + '">' + row.MaNv + ' - ' + row.HoTen + '</option>');
+                });
+            });
+        });
+        $('#PBID').chosen({ width: "100%" });
+    });
+</script>

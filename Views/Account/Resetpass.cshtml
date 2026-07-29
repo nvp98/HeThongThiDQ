@@ -1,0 +1,47 @@
+@model LoginValidation
+
+<form asp-action="Resetpass" asp-controller="Account" method="post">
+    @Html.AntiForgeryToken()
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 id="ModalTitle">Thay đổi mật khẩu</h5>
+                <a href="#" class="close" data-dismiss="modal">&times;</a>
+            </div>
+            <div class="modal-body">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <input asp-for="ID" type="hidden" />
+                <fieldset id="SubmitForm">
+                    <div class="form-row">
+                        <div class="form-group col-md-12">
+                            <label class="small mb-1">Họ tên</label>
+                            <input asp-for="HoTen" class="form-control" readonly="readonly" id="HoTen" />
+                            <span asp-validation-for="HoTen" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-12">
+                            <label class="small mb-1">Mật khẩu</label>
+                            <input asp-for="MatKhau" type="password" class="form-control" id="MatKhau" />
+                            <span asp-validation-for="MatKhau" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-12">
+                            <button class="btn btn-primary pull-right" id="btncreate"><i class="fa fa-check-circle"></i> Cập nhật</button>
+                        </div>
+                    </div>
+                </fieldset>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+    $('#btncreate').click(function () {
+        if ($('#MatKhau').val().length == 0) {
+            alert('Vui lòng nhập mật khẩu');
+            return false;
+        }
+    });
+</script>

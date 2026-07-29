@@ -1,0 +1,150 @@
+@model ManageClassValidation
+
+<form asp-action="Create" asp-controller="ManageClass" method="post" enctype="multipart/form-data">
+    @Html.AntiForgeryToken()
+    <div class="modal-dialog" id="form">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 id="ModalTitle"></h5>
+                <a href="#" class="close" data-dismiss="modal">&times;</a>
+            </div>
+            <div class="modal-body">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <fieldset id="SubmitForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="small mb-1">Mã Lớp Học</label>
+                                <input type="text" name="MaLH" id="MaLH" value="@ViewBag.MaLH" class="form-control" readonly="readonly" />
+                                <span asp-validation-for="MaLH" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="small mb-1">Tên Lớp Học</label>
+                                <input asp-for="TenLH" class="form-control" placeholder="Tên Lớp Học" id="TenLH" />
+                                <span asp-validation-for="TenLH" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="small mb-1">Nội Dung Đào Tạo</label>
+                                <select asp-for="NDID" asp-items="(SelectList)ViewBag.NDList" class="form-control" id="NDID">
+                                    <option value="">--Chọn nội dung--</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="small mb-1">Đề Thi</label>
+                                <script>
+                                    $(document).ready(function () {
+                                        $("#NDID").change(function () {
+                                            $.get("/ManageClass/GetDeThi", { id: $("#NDID").val() }, function (data) {
+                                                $("#IDDeThi").empty();
+                                                $.each(data, function (index, row) {
+                                                    $("#IDDeThi").append("<option value='" + row.IDDeThi + "'>" + row.TenDe + "</option>");
+                                                });
+                                            });
+                                        });
+                                    });
+                                </script>
+                                <select asp-for="IDDeThi" class="form-control" id="IDDeThi">
+                                    <option value="">--Chọn Đề Thi--</option>
+                                </select>
+                                <span asp-validation-for="IDDeThi" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="small mb-1">Quý Đào Tạo</label>
+                                <input asp-for="QuyDT" class="form-control" placeholder="Quý" id="QuyDT" />
+                                <span asp-validation-for="QuyDT" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="small mb-1">Năm Đào Tạo</label>
+                                <input asp-for="NamDT" class="form-control" placeholder="Năm" id="NamDT" />
+                                <span asp-validation-for="NamDT" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="small mb-1">Thời gian Bắt Đầu</label>
+                                <input asp-for="TGBDLH" type="datetime-local" class="form-control" placeholder="Chọn ngày" id="TGBDLH" />
+                                <span asp-validation-for="TGBDLH" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="small mb-1">Thời Gian Kết Thúc</label>
+                                <input asp-for="TGKTLH" type="datetime-local" class="form-control" placeholder="Chọn ngày" id="TGKTLH" />
+                                <span asp-validation-for="TGKTLH" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="small mb-1">Có thi nhiều lần không?</label>
+                                <input asp-for="IsThiNhieuLan" type="checkbox" class="form-check-input" id="IsThiNhieuLan" />
+                                <span asp-validation-for="IsThiNhieuLan" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="small mb-1">Tải lên Danh sách Học viên</label>
+                                <input type="file" id="FileUpload" name="FileUpload" class="form-control" onchange="checkfile(this);" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="btn-margin-top text-center">
+                        <input type="submit" value="Xác nhận" id="btnSubmit" class="btn btn-success button_submit" />
+                    </div>
+                </fieldset>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+    function checkfile(sender) {
+        var validExts = [".xlsx", ".xls"];
+        var fileExt = sender.value.substring(sender.value.lastIndexOf('.'));
+        if (validExts.indexOf(fileExt) < 0) {
+            alert("Vui lòng chọn file Excel: " + validExts.toString());
+            sender.value = '';
+            return false;
+        }
+        return true;
+    }
+
+    $("#btnSubmit").on('click', function () {
+        var file = $('#FileUpload').val();
+        if (file.length == 0) {
+            alert('Vui lòng chọn file Import.');
+            return false;
+        }
+        var validExts = [".xlsx", ".xls"];
+        var fileExt = file.substring(file.lastIndexOf('.'));
+        if (validExts.indexOf(fileExt) < 0) {
+            alert("Vui lòng chọn file Excel: " + validExts.toString());
+            return false;
+        }
+        var begind = Date.parse($('#TGBDLH').val());
+        var endd = Date.parse($('#TGKTLH').val());
+        if (begind > endd) {
+            alert('Vui lòng chọn Thời gian Bắt đầu phải nhỏ hơn Thời gian Kết thúc');
+            return false;
+        }
+        return true;
+    });
+
+    $("#NDID").chosen({ width: "100%" });
+</script>

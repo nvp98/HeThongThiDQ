@@ -1,0 +1,181 @@
+@{
+    ViewBag.Title = "Quản Lý Nội Dung Đào Tạo";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@using X.PagedList
+@using X.PagedList.Mvc.Core
+@model IPagedList<ManageETContentValidation>
+
+<link href="~/Content/assets/css/PagedList.css" rel="stylesheet" />
+
+@if (TempData["msgSuccess"] != null)
+{
+    @Html.Raw(TempData["msgSuccess"])
+}
+@if (TempData["msgError"] != null)
+{
+    @Html.Raw(TempData["msgError"])
+}
+
+<div class="app-main__outer">
+    <div class="app-main__inner">
+
+        <div class="app-page-title">
+            <div class="page-title-wrapper">
+                <div class="page-title-heading">
+                    <div class="page-title-icon">
+                        <i class="pe-7s-portfolio icon-gradient bg-grow-early"></i>
+                    </div>
+                    <div>
+                        Quản Lý Nội Dung Đào Tạo
+                        <div class="page-title-subheading"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content">
+            <div class="row">
+                <div class="card col-lg-12">
+                    <div class="card-header">
+                        <div class="col-md-8 col-lg-10">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <input type="text" id="txtsearch" name="" placeholder="Tìm kiếm" class="form-control" value="@ViewBag.search">
+                                </div>
+                                <div class="col-md-3">
+                                    <select name="IDLVDT" id="IDLVDT" asp-items="(SelectList)ViewBag.IDLVDT" class="form-control marginTB5" style="width:100%">
+                                        <option value="">--LVDT--</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <select name="CTLVDTID" id="CTLVDTID" asp-items="(SelectList)ViewBag.CTLVDTID" class="form-control marginTB5" style="width:100%">
+                                        <option value="">--CTLVDT--</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-2">
+                                    <button class="btn btn-primary" id="btn-search"><i class="fa fa-search"></i> Tìm kiếm</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        @if ((ViewBag.QUYENCN as List<string>).Contains(CONSTKEY.ADD))
+                        {
+                            <div class="col-md-2">
+                                <button type="button" id="btn-add" class="btn btn-primary m-l-auto pull-right"><i class="fa fa-plus">&nbsp;</i>&nbsp;Thêm mới</button>
+                                <div class="modal fade" id="myModal" role="dialog" data-url="@Url.Action("Create","ManageETContent")"></div>
+                            </div>
+                        }
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover" id="table" width="100%" cellpadding="0">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th width="30px" class="text-center">STT</th>
+                                        <th width="120px" class="text-center">Mã NDĐT</th>
+                                        <th class="text-center">BP Lập Nhu Cầu</th>
+                                        <th class="text-center">Lĩnh Vực</th>
+                                        <th class="text-center">Lĩnh Vực Chi Tiết</th>
+                                        <th class="text-center">Nội Dung Đào Tạo</th>
+                                        <th width="130px" class="text-center">Thời lượng</th>
+                                        <th width="70px" class="text-center">SL Lớp học</th>
+                                        <th class="text-center">File CTĐT</th>
+                                        <th width="120px" class="text-center">Ngày tạo</th>
+                                        <th width="80px" class="text-center">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @{
+                                        int pageno = Model.PageNumber;
+                                        int itemperpage = Model.PageSize;
+                                        int RowNo = ((pageno - 1) * itemperpage) + 1;
+                                    }
+                                    @foreach (var item in Model)
+                                    {
+                                        <tr>
+                                            <td class="text-center">@RowNo@{ RowNo++; }</td>
+                                            <td class="text-center">@item.MaND</td>
+                                            <td class="text-center">@item.BPLNC</td>
+                                            <td class="text-center">@item.LinhVuc</td>
+                                            <td class="text-center">@item.LVChiTiet</td>
+                                            <td>@item.NoiDung</td>
+                                            <td class="text-center">@item.ThoiLuongDT phút</td>
+                                            <td class="text-center">@item.SLLH</td>
+                                            <td class="text-center">
+                                                @if (item.FileDinhKem != null && item.FileDinhKem.Length > 0)
+                                                {
+                                                    <a href="@item.FileDinhKem" target="_blank"><i class="fa fa-download mr-3"></i>Tải về</a>
+                                                }
+                                            </td>
+                                            <td class="text-center">
+                                                @if (item.NgayTao != null)
+                                                {
+                                                    @(item.NgayTao?.ToString("dd-MM-yyyy"))
+                                                }
+                                            </td>
+                                            <td class="text-center">
+                                                @if ((ViewBag.QUYENCN as List<string>).Contains(CONSTKEY.EDIT))
+                                                {
+                                                    <a id="btn-edit_@item.IDND" title="Sửa" class="fa fa-edit icon_action"></a>
+                                                    <div class="modal fade" id="myModale_@item.IDND" role="dialog" data-url="@Url.Action("Edit","ManageETContent", new { id = item.IDND })"></div>
+                                                    <script type="text/javascript">
+                                                        $("#btn-edit_@item.IDND").click(function () {
+                                                            var url = $('#myModale_@item.IDND').data('url');
+                                                            $.get(url, function (data) {
+                                                                $("#myModal").html(data);
+                                                                $("#ModalTitle").html("Cập nhật Nội dung");
+                                                                $("#myModal").modal('show');
+                                                            });
+                                                        });
+                                                    </script>
+                                                }
+                                                @if ((ViewBag.QUYENCN as List<string>).Contains(CONSTKEY.DEL))
+                                                {
+                                                    <a class="fa fa-trash icon_action" title="Xóa"
+                                                       href="@Url.Action("Delete", "ManageETContent", new { id = item.IDND })"
+                                                       onclick="return confirm('Bạn muốn xóa Nội dung: @item.NoiDung')">
+                                                    </a>
+                                                }
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                            <div class="pager">
+                                @Html.PagedListPager(Model, page => Url.Action("Index", "ManageETContent", new { page, IDLVDT = Context.Request.Query["IDLVDT"], IDCTLVDT = Context.Request.Query["CTLVDTID"] }))
+                                <span class="pageoff">Trang @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) / @Model.PageCount</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="app-wrapper-footer">
+        <div class="app-footer">
+            <div class="app-footer__inner"></div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $('#btn-add').click(function () {
+        var url = $('#myModal').data('url');
+        $.get(url, function (data) {
+            $("#myModal").html(data);
+            $("#ModalTitle").html("Thêm mới Nội dung");
+            $("#myModal").modal('show');
+        });
+    });
+
+    $("#IDLVDT, #CTLVDTID").chosen({ width: "100%" });
+
+    $("#btn-search").on('click', function () {
+        var search = $('#txtsearch').val();
+        window.location.href = '@Url.Action("Index", "ManageETContent")?search=' + search + '&IDLVDT=' + $('#IDLVDT').val() + '&IDCTLVDT=' + $('#CTLVDTID').val();
+    });
+</script>

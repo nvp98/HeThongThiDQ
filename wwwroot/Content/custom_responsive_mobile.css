@@ -1,0 +1,12 @@
+﻿body {
+}
+
+
+@media (max-width: 576px) {
+    .bg-landing {
+        background: url('/Content/assets/images/bg4_mobile.jpg') no-repeat center center;
+    }
+    .bg-login {
+        background: url('/Content/assets/images/bg4_mobile_1.jpg') no-repeat center center;
+    }
+}

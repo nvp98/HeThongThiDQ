@@ -1,0 +1,50 @@
+@model NotificationView
+
+<script type="text/javascript">
+    tinymce.init({
+        selector: '.myTextarea',
+        plugins: 'image paste',
+        images_file_types: 'jpg,svg,webp,png',
+        a_configuration_option: 400,
+        paste_data_images: true,
+        automatic_uploads: true,
+        images_upload_url: '/Question/Upload',
+        images_upload_credentials: true,
+        relative_urls: false,
+        remove_script_host: true,
+        promotion: false,
+        resize: true
+    });
+    $(document).on('submit', 'form', function () {
+        if (typeof tinymce !== 'undefined') tinymce.triggerSave();
+    });
+</script>
+
+<form asp-action="Create" asp-controller="Notification" method="post">
+    @Html.AntiForgeryToken()
+    <div class="modal-dialog" id="form">
+        <div class="modal-content" style="width:800px">
+            <div class="modal-header">
+                <h5 id="ModalTitle"></h5>
+                <a href="#" class="close" data-dismiss="modal">&times;</a>
+            </div>
+            <div class="modal-body">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <fieldset id="SubmitForm">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="small mb-1">Nội Dung Thông báo</label>
+                                <textarea asp-for="NoiDungTB" class="form-control myTextarea" rows="6" placeholder="Nội Dung Thông báo" id="NoiDungTB"></textarea>
+                                <span asp-validation-for="NoiDungTB" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="btn-margin-top text-center">
+                        <input type="submit" value="Xác nhận" class="btn btn-primary pull-right" />
+                    </div>
+                </fieldset>
+            </div>
+        </div>
+    </div>
+</form>

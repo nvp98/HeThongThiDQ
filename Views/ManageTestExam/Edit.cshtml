@@ -1,0 +1,64 @@
+@model ManageTestExamValidation
+
+<form asp-action="Edit" asp-controller="ManageTestExam" method="post">
+    @Html.AntiForgeryToken()
+    <input asp-for="IDDeThi" type="hidden" />
+    <div class="modal-dialog" id="form">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 id="ModalTitle"></h5>
+                <a href="#" class="close" data-dismiss="modal">&times;</a>
+            </div>
+            <div class="modal-body">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <fieldset id="SubmitForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="small mb-1">Mã Đề Thi</label>
+                                <input asp-for="MaDe" class="form-control" readonly="readonly" />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="small mb-1">Tổng Số Câu</label>
+                                <input asp-for="TongSoCau" class="form-control" placeholder="Tổng Số Câu" id="TongSoCau" />
+                                <span asp-validation-for="TongSoCau" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="small mb-1">Tên Đề Thi</label>
+                                <input asp-for="TenDe" class="form-control" placeholder="Tên Đề Thi" id="TenDe" />
+                                <span asp-validation-for="TenDe" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="small mb-1">Nội dung đào tạo</label>
+                                <select asp-for="IDND" asp-items="(SelectList)ViewBag.BDList" class="form-control" id="IDND"></select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="small mb-1">Điểm Chuẩn</label>
+                                <input asp-for="DiemChuan" class="form-control" placeholder="Điểm Chuẩn" id="DiemChuan" readonly="readonly" />
+                                <span asp-validation-for="DiemChuan" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="small mb-1">Thời Gian Làm Bài</label>
+                                <input asp-for="ThoiGianLamBai" class="form-control" placeholder="Thời gian Làm Bài" id="ThoiGianLamBai" />
+                                <span asp-validation-for="ThoiGianLamBai" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="btn-margin-top text-center">
+                        <input type="submit" value="Xác nhận" id="btnSubmit" class="btn btn-success button_submit" />
+                    </div>
+                </fieldset>
+            </div>
+        </div>
+    </div>
+</form>

@@ -1,0 +1,88 @@
+@model HeThongThiDQ.Models.LoginValidation
+@{
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
+    <title>Đăng nhập</title>
+    <link href="~/Content/main.css" rel="stylesheet" />
+    <script src="~/Content/jquery-3.0.0.min.js"></script>
+    <script src="~/Content/bootstrap.min.js"></script>
+</head>
+<body class="bg-login">
+    @if (TempData["msglg"] != null)
+    {
+        @Html.Raw(TempData["msglg"])
+    }
+
+    <div class="container" style="height:100%">
+        <div class="main-content">
+            <div class="content-centered">
+                <div class="card shadow-lg border-0 rounded-lg">
+                    <div class="card-header">
+                        <img src="~/Content/assets/images/logo-inverse.png" style="width:100%; height:auto; max-width:230px; margin: 0 auto;" />
+                    </div>
+                    <div class="card-body">
+                        <p class="text-center font-weight-light">Hội thi tay nghề giỏi tập đoàn 2025</p>
+
+                        <form asp-action="LoginUser" asp-controller="Login" id="myForm" method="post">
+                            <div class="form-group">
+                                <input asp-for="SoDienThoai" class="form-control" placeholder="Số điện thoại" />
+                                <span asp-validation-for="SoDienThoai" class="text-danger"></span>
+                                <div id="show_error_user"></div>
+                            </div>
+                            <div class="form-group">
+                                <input asp-for="MatKhau" type="password" class="form-control" placeholder="Mật khẩu" />
+                                <span asp-validation-for="MatKhau" class="text-danger"></span>
+                                <div id="show_error_pass"></div>
+                            </div>
+                            <div class="form-group">
+                                <button id="LoginUser" type="submit" class="form-control btn btn-primary submit px-3">
+                                    <strong>Đăng Nhập</strong>
+                                </button>
+                            </div>
+                            <div class="form-group">
+                                <div class="custom-control custom-checkbox">
+                                    <input class="custom-control-input" id="rememberPasswordCheck" type="checkbox" />
+                                    <label class="custom-control-label" for="rememberPasswordCheck">Nhớ tài khoản</label>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <link href="~/Content/custom_responsive_mobile.css" rel="stylesheet" />
+</body>
+</html>
+
+<script>
+    localStorage.removeItem("IDNV");
+    localStorage.removeItem("IDLH");
+
+    $("#MatKhau").keyup(function (event) {
+        if (event.keyCode === 13) {
+            $("#LoginUser").click();
+        }
+    });
+
+    $("#LoginUser").on('click', function () {
+        var tendangnhap = $('#SoDienThoai').val();
+        var matkhau = $('#MatKhau').val();
+        if (tendangnhap === "") {
+            $('#show_error_user').html('Nhập tài khoản!').css('color', 'red');
+            return false;
+        }
+        if (matkhau === "") {
+            $('#show_error_pass').html('Nhập mật khẩu!').css('color', 'red');
+            return false;
+        }
+        return true;
+    });
+</script>

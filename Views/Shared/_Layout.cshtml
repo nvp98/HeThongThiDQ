@@ -1,0 +1,274 @@
+@using HeThongThiDQ.Common
+@using HeThongThiDQ.Data
+@using Microsoft.Extensions.Caching.Memory
+@inject MyAuthentication Auth
+@inject ELEARNINGEntities Db
+@inject IMemoryCache _cache
+@{
+    int idQuyen = Auth.IDQuyen;
+
+    var ListControll = _cache.GetOrCreate($"perm_ctrl_{idQuyen}", entry =>
+    {
+        entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
+        return (from a in Db.QuyenDetails.Where(x => x.Idquyen == idQuyen && x.IdquyenCn == 1 && x.IsActive == 1)
+                join b in Db.ListControllers.Where(x => x.IsActive == 1) on a.Idcontroller equals b.Id
+                select b.Controller).ToList();
+    }) ?? new List<string>();
+
+    var showQuanTriKNL = 0;
+    var showKNL        = 0;
+    var showQuanTri    = 0;
+    var showQTriKNL    = 0;
+    var showQTriHV     = 0;
+    var showQTriCHDT   = 0;
+}
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta http-equiv="Content-Language" content="en">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>E-Learning Hòa Phát</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, shrink-to-fit=no" />
+    <link href="~/Content/main.css" rel="stylesheet" />
+    <link href="~/Content/assets/Chonse/chosen.css" rel="stylesheet" />
+    <script src="~/Content/assets/plotly-latest.min.js"></script>
+    <script src="~/Content/jquery-3.0.0.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/2.11.8/umd/popper.min.js"></script>
+    <script src="~/Content/bootstrap.min.js"></script>
+    <script src="~/Content/assets/Chonse/chosen.jquery.js"></script>
+    <link href="~/Content/assets/font-awesome/css/font-awesome.min.css" rel="stylesheet" />
+    <link rel="stylesheet" type="text/css" href="~/Content/assets/DataTables/datatables.min.css" />
+    <script type="text/javascript" src="~/Content/assets/DataTables/datatables.min.js"></script>
+    <script src="~/Content/assets/TinyMCE/js/tinymce/tinymce.min.js"></script>
+</head>
+<body style="padding-right:0px !important">
+
+    <div class="app-container app-theme-white body-tabs-shadow fixed-sidebar fixed-header">
+        <div class="app-header header-shadow">
+            <div class="app-header__logo">
+                <div class="logo-src"></div>
+                <div class="header__pane ml-auto">
+                    <div>
+                        <button type="button" class="hamburger close-sidebar-btn hamburger--elastic" data-class="closed-sidebar">
+                            <span class="hamburger-box"><span class="hamburger-inner"></span></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="app-header__mobile-menu">
+                <div>
+                    <button type="button" class="hamburger hamburger--elastic mobile-toggle-nav">
+                        <span class="hamburger-box"><span class="hamburger-inner"></span></span>
+                    </button>
+                </div>
+            </div>
+            <div class="app-header__menu">
+                <span>
+                    <button type="button" class="btn-icon btn-icon-only btn btn-primary btn-sm mobile-toggle-header-nav">
+                        <span class="btn-icon-wrapper"><i class="fa fa-ellipsis-v fa-w-6"></i></span>
+                    </button>
+                </span>
+            </div>
+            <div class="app-header__content">
+                <div class="header-slogan">
+                    <div class="widget-content">
+                        <div class="slogan">TRI THỨC LÀ SỨC MẠNH</div>
+                    </div>
+                </div>
+                <div class="app-header-right">
+                    <div class="header-btn-lg pr-0">
+                        <div class="widget-content p-0">
+                            <div class="widget-content-wrapper">
+                                <div class="widget-content-left">
+                                    <div class="btn-group">
+                                        <a data-toggle="dropdown" aria-haspopup="true" aria-expanded="false" class="p-0 btn">
+                                            <img width="42" class="rounded-circle" src="~/Content/assets/images/avatars/adminlogo.jpg" alt="">
+                                            <i class="fa fa-angle-down ml-2 opacity-8"></i>
+                                        </a>
+                                        <div tabindex="-1" role="menu" aria-hidden="true" class="dropdown-menu dropdown-menu-right">
+                                            <a class="dropdown-item" onclick="logoutAndClearStorage()" href="#">Đăng xuất</a>
+                                            <a class="dropdown-item" asp-controller="Login" asp-action="ChangePassword">Đổi mật khẩu</a>
+                                        </div>
+                                        <script>
+                                            function logoutAndClearStorage() {
+                                                var unfinishedIDLH = localStorage.getItem("IDLH");
+                                                var unfinishedIDNV = localStorage.getItem("IDNV");
+                                                var IDNV = "@Auth.ID";
+                                                if (unfinishedIDLH && IDNV == unfinishedIDNV) {
+                                                    alert('Bạn cần hoàn thành bài đang thi trước khi đăng xuất !');
+                                                } else {
+                                                    localStorage.clear();
+                                                    window.location.href = '/Login/Logout';
+                                                }
+                                            }
+                                        </script>
+                                    </div>
+                                </div>
+                                <div class="widget-content-left ml-3 header-user-info">
+                                    <div class="widget-heading">@Auth.TenNV</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="app-main bg-main">
+            <div class="app-sidebar sidebar-shadow" style="z-index:9999">
+                <div class="app-header__logo">
+                    <div class="logo-src"></div>
+                    <div class="header__pane ml-auto">
+                        <div>
+                            <button type="button" class="hamburger close-sidebar-btn hamburger--elastic" data-class="closed-sidebar">
+                                <span class="hamburger-box"><span class="hamburger-inner"></span></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div class="app-header__mobile-menu">
+                    <div>
+                        <button type="button" class="hamburger hamburger--elastic mobile-toggle-nav">
+                            <span class="hamburger-box"><span class="hamburger-inner"></span></span>
+                        </button>
+                    </div>
+                </div>
+                <div class="scrollbar-sidebar overflow-auto">
+                    <div class="app-sidebar__inner">
+                        <ul class="vertical-nav-menu">
+                            <li class="app-sidebar__heading">Tổng quan</li>
+                            <li>
+                                <a asp-controller="EClassroom" asp-action="Index">
+                                    <i class="metismenu-icon pe-7s-display1"></i>
+                                    Khóa thi của bạn
+                                </a>
+                            </li>
+
+                            @if (ListControll.Contains("Statistic"))
+                            {
+                                <li>
+                                    <a href="#" id="IDTK">
+                                        <i class="metismenu-icon pe-7s-graph"></i>Thống kê
+                                        <i class="metismenu-state-icon pe-7s-angle-down caret-left"></i>
+                                    </a>
+                                    <ul id="LSTK">
+                                        <li>
+                                            <a asp-controller="Statistic" asp-action="Index">
+                                                <i class="fa fa-pie-chart" aria-hidden="true"></i>&nbsp; Thống kê Học tập
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </li>
+                            }
+
+                            <li id="QuanTri" style="display: none" class="app-sidebar__heading">Quản trị</li>
+                            @if (ListControll.Contains("Account"))
+                            {
+                                <li>
+                                    <a asp-controller="Account" asp-action="Index">
+                                        <i class="metismenu-icon pe-7s-users"></i>
+                                        Tài khoản
+                                    </a>
+                                </li>
+                                showQuanTri = 1;
+                            }
+                            @if (ListControll.Contains("FPermision"))
+                            {
+                                <li>
+                                    <a asp-controller="FPermision" asp-action="Index">
+                                        <i class="metismenu-icon pe-7s-config"></i>Phân Quyền
+                                    </a>
+                                </li>
+                                showQuanTri = 1;
+                            }
+                            @if (ListControll.Contains("Notification"))
+                            {
+                                <li>
+                                    <a asp-controller="Notification" asp-action="Index">
+                                        <i class="metismenu-icon pe-7s-volume2"></i>Cấu hình thông báo
+                                    </a>
+                                </li>
+                                showQuanTri = 1;
+                            }
+
+                            @if (User.Identity!.IsAuthenticated && Auth.IDQuyen == 1)
+                            {
+                                <li class="app-sidebar__heading">Quản lý Học Vụ</li>
+                                <li>
+                                    <a asp-controller="ManageETContent" asp-action="Index">
+                                        <i class="metismenu-icon pe-7s-portfolio"></i>
+                                        Quản lý NDĐT
+                                    </a>
+                                </li>
+                                <li>
+                                    <a asp-controller="ManageClass" asp-action="Index" asp-route-IDPB="@Auth.IDPhongban">
+                                        <i class="metismenu-icon pe-7s-id"></i>
+                                        Quản lý Chủ đề thi
+                                    </a>
+                                </li>
+                                <li class="app-sidebar__heading">Quản lý câu hỏi đề thi</li>
+                                <li>
+                                    <a asp-controller="Question" asp-action="Index" asp-route-IDND="1">
+                                        <i class="metismenu-icon pe-7s-display2"></i>
+                                        Ngân hàng câu hỏi
+                                    </a>
+                                </li>
+                                <li>
+                                    <a asp-controller="ManageTestExam" asp-action="Index" asp-route-IDND="1">
+                                        <i class="metismenu-icon pe-7s-display2"></i>
+                                        Ngân hàng đề thi
+                                    </a>
+                                </li>
+                            }
+
+                            <li id="QuanTriKNL" style="display: none" class="app-sidebar__heading">Quản trị tổ chức</li>
+
+                            @if (ListControll.Contains("FDepartment"))
+                            {
+                                <li>
+                                    <a asp-controller="FDepartment" asp-action="Index">
+                                        <i class="metismenu-icon pe-7s-tools"></i>Phòng Ban
+                                    </a>
+                                </li>
+                                showQuanTriKNL = 1;
+                            }
+
+                        </ul>
+                    </div>
+                    <div class="app-sidebar__inner">
+                        <ul class="vertical-nav-menu">
+                            <li class="app-sidebar__heading">Trợ giúp</li>
+                            <li>
+                                <a style="padding-left:0" href="tel:0946455576">
+                                    <i class="metismenu-icon"></i>
+                                    <strong>Mr. Trần Quang Huy</strong> - 0946455576
+                                </a>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+
+            @RenderBody()
+
+        </div>
+    </div>
+
+    <link href="~/Content/custom_responsive_mobile.css" rel="stylesheet" />
+    <script type="text/javascript" src="~/Content/assets/scripts/main.js"></script>
+    <script>
+        $(document).ready(function () {
+            if (@showQuanTriKNL == 1) { $("#QuanTriKNL").css("display", "block"); }
+            if (@showKNL        == 1) { $("#KNL").css("display", "block"); }
+            if (@showQuanTri    == 1) { $("#QuanTri").css("display", "block"); }
+            if (@showQTriKNL    == 1) { $("#QTriKNL").css("display", "block"); }
+            if (@showQTriHV     == 1) { $("#QTriHV").css("display", "block"); }
+            if (@showQTriCHDT   == 1) { $("#QTriCHDT").css("display", "block"); }
+        });
+    </script>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

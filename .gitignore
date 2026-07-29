@@ -1,0 +1,80 @@
+## .NET / ASP.NET Core
+
+# Build output
+[Bb]in/
+[Oo]bj/
+
+# Visual Studio
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# User-specific files
+*.rsuser
+
+# MSTest
+TestResult.xml
+TestResults/
+
+# Publish output
+[Pp]ublish/
+PublishProfiles/
+
+# ASP.NET Scaffolding
+ScaffoldingReadMe.txt
+
+# Rider
+.idea/
+*.sln.iml
+
+# JetBrains
+.idea/
+*.iml
+.fleet/
+
+## Environment & Secrets
+
+appsettings.*.json
+!appsettings.Development.json.example
+
+## Database
+
+*.mdf
+*.ldf
+*.ndf
+App_Data/*.db
+App_Data/*.sqlite
+
+## OS
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+## Logs
+
+*.log
+logs/
+
+## Temporary files
+
+*.tmp
+*.temp
+~$*

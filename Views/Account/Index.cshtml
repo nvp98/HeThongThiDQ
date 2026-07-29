@@ -1,0 +1,187 @@
+@{
+    ViewBag.Title = "Tài khoản";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@using X.PagedList
+@using X.PagedList.Mvc.Core
+@model IPagedList<EmployeeValidation>
+
+<link href="~/Content/assets/css/PagedList.css" rel="stylesheet" />
+
+@if (TempData["msgSuccess"] != null)
+{
+    @Html.Raw(TempData["msgSuccess"])
+}
+@if (TempData["msgError"] != null)
+{
+    @Html.Raw(TempData["msgError"])
+}
+
+<div class="app-main__outer">
+    <div class="app-main__inner">
+
+        <div class="app-page-title">
+            <div class="page-title-wrapper">
+                <div class="page-title-heading">
+                    <div class="page-title-icon">
+                        <i class="pe-7s-portfolio icon-gradient bg-grow-early"></i>
+                    </div>
+                    <div>
+                        Tài khoản
+                        <div class="page-title-subheading"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content">
+            <div class="row">
+                <div class="card col-lg-12">
+                    <div class="card-header">
+                        <div class="row" style="width:100%">
+                            <div class="col-md-5 col-lg-5">
+                                <div class="row"></div>
+                            </div>
+                            @if ((ViewBag.QUYENCN as List<string>).Contains(CONSTKEY.R_PASS))
+                            {
+                                <div class="col-md-3 m-l-auto">
+                                    <button type="button" id="btn-re" class="btn btn-success m-l-auto"><i class="fa fa-key">&nbsp;</i>&nbsp;Reset Password</button>
+                                    <div class="modal fade" id="myModalRe" role="dialog" data-url="@Url.Action("ResetListPass","Account")"></div>
+                                </div>
+                            }
+                            <div class="col-md-3 m-l-auto">
+                                <button type="button" id="btn-add" class="btn btn-primary m-l-auto"><i class="fa fa-plus">&nbsp;</i>&nbsp;Thêm mới</button>
+                                <div class="modal fade" id="myModal" role="dialog" data-url="@Url.Action("Create","Account")"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover" id="table" width="100%" cellpadding="0">
+                                <thead>
+                                    <tr>
+                                        <th width="30px" class="text-center">STT</th>
+                                        <th class="text-center" width="50px">Thao tác</th>
+                                        <th class="text-center">Chủ đề thi</th>
+                                        <th class="text-center">Tổng công ty</th>
+                                        <th class="text-center">Công ty cấp C2</th>
+                                        <th class="text-center">Đơn vị tổ chức Cấp C4</th>
+                                        <th class="text-center" width="50px">Mã NV của Công ty</th>
+                                        <th class="text-center">Họ tên thí sinh</th>
+                                        <th class="text-center">Chức vụ</th>
+                                        <th class="text-center">Ngày sinh</th>
+                                        <th class="text-center">Email</th>
+                                        <th class="text-center">Số điện thoại</th>
+                                        <th class="text-center">Quyền</th>
+                                    </tr>
+                                </thead>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="app-wrapper-footer">
+        <div class="app-footer">
+            <div class="app-footer__inner"></div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $('#btn-add').click(function () {
+        var url = $('#myModal').data('url');
+        $.get(url, function (data) {
+            $("#myModal").html(data);
+            $("#ModalTitle").html("Thêm tài khoản");
+            $("#myModal").modal('show');
+        });
+    });
+
+    $('#btn-re').click(function () {
+        var url = $('#myModalRe').data('url');
+        $.get(url, function (data) {
+            $("#myModalRe").html(data);
+            $("#ModalTitle").html("Reset Pass List");
+            $("#myModalRe").modal('show');
+        });
+    });
+
+    $(document).ready(function () {
+        var checkRS = '@((ViewBag.QUYENCN as List<string>).Contains(CONSTKEY.R_PASS))'.toLowerCase();
+        var checkED = '@((ViewBag.QUYENCN as List<string>).Contains(CONSTKEY.EDIT))'.toLowerCase();
+
+        $('#table').DataTable({
+            "sAjaxSource": "/Account/GetData",
+            "bServerSide": true,
+            "bProcessing": true,
+            "bSearchable": true,
+            "oLanguage": { "sSearch": "Tìm kiếm:" },
+            "iDisplayLength": 50,
+            "order": [[1, 'asc']],
+            "language": {
+                "emptyTable": "No record found.",
+                "processing": '<i class="fa fa-spinner fa-spin fa-3x fa-fw"></i>'
+            },
+            "columns": [
+                {
+                    "render": function (data, type, full, meta) {
+                        return meta.settings._iDisplayStart + meta.row + 1;
+                    },
+                    "autoWidth": true, "searchable": false, "className": 'text-center'
+                },
+                {
+                    "data": "ID",
+                    "render": function (data) {
+                        var rs = "";
+                        if (checkRS == "true") {
+                            rs = `<a id="btn-reset_${data}" href="#" title="Reset password" class="btn-action Reset"><i class="fa fa-key"></i></a>
+                                  <div class="modal fade" id="myModale_${data}" role="dialog" data-url='/Account/Resetpass/${data}'></div>`;
+                        }
+                        if (checkED == "true") {
+                            rs += `<a id="btn-edit_${data}" href="#" title="Phân quyền" class="btn-action Edit"><i class="fa fa-edit"></i></a>
+                                   <div class="modal fade" id="myModaleEdit_${data}" role="dialog" data-url='/Account/Edit/${data}'></div>`;
+                        }
+                        return rs;
+                    },
+                    "autoWidth": false, "searchable": false, "className": 'text-center'
+                },
+                { "data": "ChuDeThi", "autoWidth": true, "searchable": false },
+                { "data": "TongCongTy", "autoWidth": true, "searchable": false },
+                { "data": "DonViC2", "autoWidth": true, "searchable": false },
+                { "data": "DoViC4", "autoWidth": true, "searchable": false },
+                { "data": "MaNV", "autoWidth": true, "searchable": false },
+                { "data": "HoTen", "autoWidth": true, "searchable": false },
+                { "data": "ChucVu", "autoWidth": true, "searchable": false },
+                { "data": "NgaySinhStr", "autoWidth": true, "searchable": false },
+                { "data": "Email", "autoWidth": true, "searchable": false },
+                { "data": "SoDienThoai", "autoWidth": true, "searchable": false },
+                { "data": "TenQuyen", "autoWidth": true, "searchable": false }
+            ]
+        });
+    });
+
+    $('#table').on('click', '.Reset', function () {
+        var data = $(this).attr('id').split("_")[1];
+        var url = $(`#myModale_${data}`).data('url');
+        $.get(url, function (data) {
+            $("#myModal").html(data);
+            $("#ModalTitle").html("Cập nhật mật khẩu");
+            $("#myModal").modal('show');
+        });
+    });
+
+    $('#table').on('click', '.Edit', function () {
+        var data = $(this).attr('id').split("_")[1];
+        var url = $(`#myModaleEdit_${data}`).data('url');
+        $.get(url, function (data) {
+            $("#myModal").html(data);
+            $("#ModalTitle").html("Cập nhật quyền");
+            $("#myModal").modal('show');
+        });
+    });
+</script>

@@ -1,0 +1,123 @@
+@{
+    ViewBag.Title = "Câu Hỏi Đề Thi";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@model List<ManageQuestionValidation>
+
+@if (TempData["msgSuccess"] != null)
+{
+    @Html.Raw(TempData["msgSuccess"])
+}
+@if (TempData["msgError"] != null)
+{
+    @Html.Raw(TempData["msgError"])
+}
+
+<div class="app-main__outer">
+    <div class="app-main__inner">
+
+        <div class="app-page-title">
+            <div class="page-title-wrapper">
+                <div class="page-title-heading">
+                    <div class="page-title-icon">
+                        <i class="pe-7s-id icon-gradient bg-grow-early"></i>
+                    </div>
+                    <div>
+                        Danh Sách Câu Hỏi
+                        <div class="page-title-subheading"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <div class="col-md-6">
+                    <span>TÊN ĐỀ: @ViewBag.TenDe<br />NỘI DUNG: @ViewBag.NoiDung</span>
+                </div>
+                <div class="col-md-3">
+                    <div class="col-md-3 m-l-auto">
+                        <button type="button" id="btn-re" class="btn btn-success m-l-auto"><i class="fa fa-plus">&nbsp;</i>&nbsp;Xử lý dữ liệu</button>
+                        <div class="modal fade" id="myModalRe" role="dialog" data-url="@Url.Action("XuLyCauHoi","ManageTestExam", new { IDDethi = ViewBag.IDDeThi })"></div>
+                    </div>
+                </div>
+                <div class="col-md-3 m-l-auto">
+                    <button type="button" id="btn-add" class="btn btn-primary m-l-auto"><i class="fa fa-plus">&nbsp;</i>&nbsp;Thêm mới</button>
+                    <div class="modal fade" id="myModal" role="dialog" data-url="@Url.Action("AddQuestion","ManageTestExam", new { id = ViewBag.IDDeThi })"></div>
+                </div>
+                <script type="text/javascript">
+                    $('#btn-re').click(function () {
+                        var url = $('#myModalRe').data('url');
+                        $.get(url, function (data) {
+                            $("#myModalRe").html(data);
+                            $("#ModalTitle").html("Xử lý câu hỏi");
+                            $("#myModalRe").modal('show');
+                        });
+                    });
+                </script>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="table" width="100%" cellpadding="0">
+                        <thead class="thead-light">
+                            <tr>
+                                <th class="text-center" width="30px">STT</th>
+                                <th class="text-center">Nội Dung Câu Hỏi</th>
+                                <th class="text-center">Đáp Án A</th>
+                                <th class="text-center">Đáp Án B</th>
+                                <th class="text-center">Đáp Án C</th>
+                                <th class="text-center">Đáp Án D</th>
+                                <th class="text-center">Đáp Án Đúng</th>
+                                <th class="text-center">Điểm</th>
+                                <th class="text-center">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{ int RowNo = 1; }
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td class="text-center">@RowNo@{ RowNo++; }</td>
+                                    <td>@Html.Raw(item.NoiDungCH)</td>
+                                    <td>@Html.Raw(item.DapAnA)</td>
+                                    <td>@Html.Raw(item.DapAnB)</td>
+                                    <td>@Html.Raw(item.DapAnC)</td>
+                                    <td>@Html.Raw(item.DapAnD)</td>
+                                    <td>@item.DapAnDung</td>
+                                    <td class="text-right">@item.Diem</td>
+                                    @if ((ViewBag.QUYENCN as List<string>).Contains(CONSTKEY.DEL))
+                                    {
+                                        <td class="text-center">
+                                            <a class="fa fa-trash icon_action" title="Xóa"
+                                               href="@Url.Action("DeleteQuestion", "ManageTestExam", new { id = item.IDCauHoiDeThi })"
+                                               onclick="return confirm('Bạn muốn xóa?')"></a>
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="app-wrapper-footer">
+        <div class="app-footer">
+            <div class="app-footer__inner"></div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $('#btn-add').click(function () {
+        var url = $('#myModal').data('url');
+        $.get(url, function (data) {
+            $("#myModal").html(data);
+            $("#ModalTitle").html("Thêm mới câu hỏi");
+            $("#myModal").modal('show');
+        });
+    });
+</script>

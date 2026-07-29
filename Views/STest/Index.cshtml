@@ -1,0 +1,347 @@
+@model List<TestValidation>
+
+@{
+    ViewBag.Title = "Làm bài thi";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@if (TempData["msgSuccess"] != null)
+{
+    @Html.Raw(TempData["msgSuccess"])
+}
+@if (TempData["msgError"] != null)
+{
+    @Html.Raw(TempData["msgError"])
+}
+
+<style>
+    input[type="radio"] {
+        transform: scale(1.5);
+    }
+
+    .question-nav-btn {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: clamp(5px, 2.5vw, 16px);
+        width: clamp(5px, 4vw, 40px);
+        height: clamp(5px, 4vw, 40px);
+        margin: 5px;
+        background-color: #f9e79f;
+        border: none;
+        border-radius: 8px;
+        font-weight: bold;
+    }
+
+        .question-nav-btn.answered {
+            background-color: #28a745;
+            color: white;
+        }
+
+    .fixed-header {
+        position: sticky;
+        top: 60px;
+        z-index: 999;
+        background-color: white;
+        padding: 10px;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+    }
+
+    .card-body img {
+        max-width: 100%;
+        height: auto;
+        display: block;
+    }
+
+    #question-nav {
+        max-height: 100px;
+        overflow-y: auto;
+    }
+</style>
+
+<div class="app-main__outer">
+    <div class="app-main__inner" style="padding-top:0;padding-left:0;">
+        <form asp-action="Confirm" asp-controller="STest" method="post" id="confirmForm">
+
+            <div class="tab-content fixed-header" style="margin-top:-10px">
+                <div class="card-header" style="height:auto !important; display:grid !important">
+                    <div class=""></div>
+                    <div class="col text-center">
+                        Thời gian làm bài thi: <span id="exam-timer" style="font-size: 24px; font-weight: bold; color: red;"></span>
+                        <input class="btn btn-success m-l-auto float-right" style="font-size: 18px;" type="submit" value="Nộp bài" onclick="return submitExam(this)" />
+                    </div>
+                    <div id="question-nav" class="row">
+                        @for (int i = 0; i < Model.Count; i++)
+                        {
+                            <button type="button" class="question-nav-btn btn" id="btn-question-@i" onclick="scrollToQuestion(@i)">
+                                @(i + 1)
+                            </button>
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-content">
+                <div class="row m-2">
+                    <div class="card col-lg-12">
+                        <div class="card-body" id="question-list">
+                            <input type="hidden" id="hiddenField" name="yourParamName" />
+                            <input type="hidden" id="hiddenFieldTGBDT" name="TGBDLamBaiThi" />
+
+                            <div id="imageModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); justify-content:center; align-items:center; z-index:9999;">
+                                <img id="fullImage" src="" style="max-width:90%; max-height:90%; border-radius:8px;" />
+                            </div>
+
+                            @for (int i = 0; i < Model.Count; i++)
+                            {
+                                <div id="@(i+1)" class="que multichoice deferredfeedback notyetanswered">
+                                    <div class="info">
+                                        <h3 class="no">Câu hỏi <span class="qno">@(i + 1)</span></h3>
+                                        <div class="grade">Đạt điểm: @Model[i].Diem</div>
+                                    </div>
+                                    <div class="content">
+                                        <div class="formulation clearfix question-box" id="question-@i" data-index="@i">
+                                            <h5 class="accesshide">@Html.Raw(Model[i].NoiDungCH)</h5>
+                                            <div class="ablock">
+                                                <div class="prompt">Chọn một:</div>
+                                                <div class="answer">
+                                                    <input type="hidden" name="[@i].IDCH" value="@Model[i].IDCH" />
+                                                    <input type="hidden" name="[@i].IDLH" value="@Model[i].IDLH" />
+                                                    <input type="hidden" name="[@i].IDDeThi" value="@Model[i].IDDeThi" />
+                                                    <input type="hidden" name="[@i].IDND" value="@Model[i].IDND" />
+                                                    <input type="hidden" name="[@i].IDDADung" value="@Model[i].IDDADung" />
+                                                    <input type="hidden" name="[@i].Diem" value="@Model[i].Diem" />
+                                                    <input type="hidden" name="[@i].GioBatDau" value="@Model[i].GioBatDau.ToString("o")" />
+                                                    @{
+                                                        var cauhoiID = Model[i].IDCH;
+                                                        var dapanA = Model[i].DapAnA;
+                                                        var dapanB = Model[i].DapAnB;
+                                                        var dapanC = Model[i].DapAnC;
+                                                        var dapanD = Model[i].DapAnD;
+
+                                                        var htmlTags = new List<string>
+                                                        {
+                                                            $"<div class=\"r0\"><input data-question-id=\"{cauhoiID}\" onchange=\"saveAnswer('{cauhoiID}', '1')\" data-val=\"true\" id=\"dapAnA_${{{i}}}\" name=[{i}].Answer type=\"radio\" value=\"1\"><span class=\"dapAn\"></span> <label for=\"dapAnA_${{{i}}}\" class=\"m-l-1\">{dapanA}</label></div>",
+                                                            $"<div class=\"r0\"><input data-question-id=\"{cauhoiID}\" onchange=\"saveAnswer('{cauhoiID}', '2')\" data-val=\"true\" id=\"dapAnB_${{{i}}}\" name=[{i}].Answer type=\"radio\" value=\"2\"><span class=\"dapAn\"></span> <label for=\"dapAnB_${{{i}}}\" class=\"m-l-1\">{dapanB}</label></div>",
+                                                            $"<div class=\"r0\"><input data-question-id=\"{cauhoiID}\" onchange=\"saveAnswer('{cauhoiID}', '3')\" data-val=\"true\" id=\"dapAnC_${{{i}}}\" name=[{i}].Answer type=\"radio\" value=\"3\"><span class=\"dapAn\"></span> <label for=\"dapAnC_${{{i}}}\" class=\"m-l-1\">{dapanC}</label></div>",
+                                                            $"<div class=\"r0\"><input data-question-id=\"{cauhoiID}\" onchange=\"saveAnswer('{cauhoiID}', '4')\" data-val=\"true\" id=\"dapAnD_${{{i}}}\" name=[{i}].Answer type=\"radio\" value=\"4\"><span class=\"dapAn\"></span> <label for=\"dapAnD_${{{i}}}\" class=\"m-l-1\">{dapanD}</label></div>"
+                                                        };
+
+                                                        var shuffledHtmlTags = htmlTags.ToList();
+                                                        if (Model[i].IsDao)
+                                                        {
+                                                            shuffledHtmlTags = htmlTags.OrderBy(x => Guid.NewGuid()).ToList();
+                                                        }
+                                                    }
+                                                    @foreach (var htmlTag in shuffledHtmlTags)
+                                                    {
+                                                        @Html.Raw(htmlTag)
+                                                    }
+                                                    <script>
+                                                        (function () {
+                                                            var elements = document.querySelectorAll('.dapAn');
+                                                            var ii = 1;
+                                                            elements.forEach(function (element) {
+                                                                if (!element.textContent) {
+                                                                    if (ii == 1) element.textContent = "A.";
+                                                                    else if (ii == 2) element.textContent = "B.";
+                                                                    else if (ii == 3) element.textContent = "C.";
+                                                                    else if (ii == 4) element.textContent = "D.";
+                                                                    ii++;
+                                                                    if (ii > 4) ii = 1;
+                                                                }
+                                                            });
+                                                        })();
+                                                    </script>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function saveAnswer(questionId, answer) {
+        let savedAnswers = JSON.parse(localStorage.getItem('quizAnswers') || '{}');
+        savedAnswers[questionId] = answer;
+        localStorage.setItem('quizAnswers', JSON.stringify(savedAnswers));
+    }
+
+    function restoreAnswers() {
+        let savedAnswers = JSON.parse(localStorage.getItem('quizAnswers') || '{}');
+        const radios = document.querySelectorAll("input[type=radio][data-question-id]");
+        radios.forEach(function (radio) {
+            const qid = radio.dataset.questionId;
+            const val = radio.value;
+            const idAttr = radio.id;
+            const match = idAttr.match(/\$\{(\d+)\}/);
+            if (!match) return;
+            const id = match[1];
+            if (savedAnswers[qid] && savedAnswers[qid] === val) {
+                radio.checked = true;
+                const btn = document.getElementById('btn-question-' + id);
+                if (btn) btn.classList.add('answered');
+            }
+        });
+    }
+
+    window.addEventListener("load", function () {
+        restoreAnswers();
+    });
+</script>
+
+<script>
+    function submitExam(button) {
+        let allRadioNames = $('[name$=".Answer"]').map(function () { return $(this).attr('name'); }).get();
+        let uniqueGroups = [...new Set(allRadioNames)];
+        let answeredGroups = uniqueGroups.filter(function (groupName) {
+            return $('input[name="' + groupName + '"]:checked').length > 0;
+        });
+        if (answeredGroups.length < uniqueGroups.length) {
+            alert("Bạn phải trả lời tất cả các câu hỏi trước khi nộp bài!");
+            return false;
+        }
+        const isConfirmed = confirm("Thời gian vẫn còn, Bạn có chắc chắn muốn nộp bài không?");
+        if (!isConfirmed) return false;
+        button.disabled = true;
+        button.value = 'Đang nộp bài...';
+        isExamStarted = false;
+        clearInterval(timerInterval);
+        localStorage.removeItem("quizAnswers");
+        localStorage.removeItem("savedExamTime");
+        localStorage.removeItem("exam_start_time");
+        localStorage.removeItem("IDLH");
+        button.form.submit();
+    }
+</script>
+
+<script>
+    document.getElementById('question-list').addEventListener('change', function (e) {
+        if (e.target.type === 'radio') {
+            const questionBox = e.target.closest('.question-box');
+            if (questionBox) {
+                const index = questionBox.dataset.index;
+                const btn = document.getElementById('btn-question-' + index);
+                if (btn) btn.classList.add('answered');
+            }
+        }
+    });
+</script>
+
+<script>
+    const images = document.querySelectorAll("img");
+    const modal = document.getElementById("imageModal");
+    const fullImage = document.getElementById("fullImage");
+
+    images.forEach(function (img) {
+        img.addEventListener("click", function () {
+            fullImage.src = img.src;
+            modal.style.display = "flex";
+        });
+    });
+
+    modal.addEventListener("click", function () {
+        modal.style.display = "none";
+    });
+</script>
+
+<script>
+    function scrollToQuestion(number) {
+        const element = document.getElementById('question-' + number);
+        if (element) {
+            const offset = 400;
+            const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
+            window.scrollTo({ top: elementPosition - offset, behavior: "smooth" });
+        }
+    }
+</script>
+
+<script>
+    restoreAnswers();
+    const EXAM_DURATION_MINUTES = @ViewBag.ThoiGianThi;
+    const EXAM_DURATION_MS = EXAM_DURATION_MINUTES * 60 * 1000;
+    const LOCAL_STORAGE_KEY = "exam_start_time";
+
+    const IDNV_stored = localStorage.getItem("IDNV");
+    if (!IDNV_stored) {
+        localStorage.setItem("IDNV", @ViewBag.IDNV);
+    }
+
+    const IDLH_stored = localStorage.getItem("IDLH");
+    if (!IDLH_stored) {
+        localStorage.setItem("IDLH", @ViewBag.IDLH);
+    }
+
+    if (IDNV_stored && IDLH_stored) {
+        const idnv = @ViewBag.IDNV;
+        const idlh = @ViewBag.IDLH;
+        if (idnv != IDNV_stored || IDLH_stored != idlh) {
+            localStorage.removeItem("quizAnswers");
+            localStorage.removeItem("savedExamTime");
+            localStorage.removeItem("exam_start_time");
+            localStorage.setItem("IDLH", idlh);
+            localStorage.setItem("IDNV", idnv);
+        }
+    }
+
+    function getOrCreateStartTime() {
+        let startTime = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (!startTime) {
+            startTime = Date.now();
+            localStorage.setItem(LOCAL_STORAGE_KEY, startTime);
+        }
+        const now = new Date();
+        const elapsedMs = now - startTime;
+        localStorage.setItem("savedExamTime", Math.floor(elapsedMs / 1000));
+        return parseInt(startTime);
+    }
+
+    const startTimeGet = getOrCreateStartTime();
+    let endTime = new Date(startTimeGet + EXAM_DURATION_MS);
+    const savedTime = parseInt(localStorage.getItem("savedExamTime")) || 0;
+    var i = savedTime || 0;
+
+    var valueFromLocal = localStorage.getItem("exam_start_time");
+    if (valueFromLocal) {
+        document.getElementById("hiddenFieldTGBDT").value = valueFromLocal;
+    }
+
+    var isExamStarted = true;
+    function updateTimer() {
+        const now = new Date();
+        const remaining = Math.floor((endTime - now) / 1000);
+        const timerDisplay = document.getElementById('exam-timer');
+        localStorage.setItem("savedExamTime", i);
+
+        const hiddenInput = document.getElementById("hiddenField");
+        if (hiddenInput) hiddenInput.value = i;
+
+        if (remaining > 0) {
+            const h = Math.floor(remaining / 3600).toString().padStart(2, '0');
+            const m = Math.floor((remaining % 3600) / 60).toString().padStart(2, '0');
+            const s = (remaining % 60).toString().padStart(2, '0');
+            timerDisplay.textContent = h + ':' + m + ':' + s;
+        } else {
+            isExamStarted = false;
+            clearInterval(timerInterval);
+            timerDisplay.textContent = "Hết giờ!";
+            localStorage.removeItem("quizAnswers");
+            localStorage.removeItem("savedExamTime");
+            localStorage.removeItem("exam_start_time");
+            localStorage.removeItem("IDLH");
+            var form = document.getElementById('confirmForm');
+            if (form) form.submit();
+        }
+        i++;
+    }
+
+    const timerInterval = setInterval(updateTimer, 1000);
+    updateTimer();
+</script>

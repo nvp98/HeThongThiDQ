@@ -1,0 +1,111 @@
+@model ManageETContentValidation
+
+<form asp-action="Create" asp-controller="ManageETContent" method="post" enctype="multipart/form-data">
+    @Html.AntiForgeryToken()
+    <div class="modal-dialog" id="form">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 id="ModalTitle"></h5>
+                <a href="#" class="close" data-dismiss="modal">&times;</a>
+            </div>
+            <div class="modal-body">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <fieldset id="SubmitForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="small mb-1">BP Lập Nhu Cầu</label>
+                                <select asp-for="BPLID" asp-items="(SelectList)ViewBag.BPLList" class="form-control" id="BPLID"></select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="small mb-1">Lĩnh vực ĐT</label>
+                                <select asp-for="LVDTID" asp-items="(SelectList)ViewBag.LVList" class="form-control" id="LVDTID"></select>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="small mb-1">Lĩnh vực Chi tiết</label>
+                                <script>
+                                    $(document).ready(function () {
+                                        $("#LVDTID").change(function () {
+                                            $.get("/ManageETContent/GetLVChiTiet", { id: $("#LVDTID").val() }, function (data) {
+                                                $("#IDCTLVDT").empty();
+                                                $.each(data, function (index, row) {
+                                                    $("#IDCTLVDT").append("<option value='" + row.IDCTLVDT + "'>" + row.TenCTLVDT + "</option>");
+                                                });
+                                            });
+                                        });
+                                    });
+                                </script>
+                                <select asp-for="IDCTLVDT" class="form-control" id="IDCTLVDT">
+                                    <option value="">--Chọn LV Chi Tiết--</option>
+                                </select>
+                                <span asp-validation-for="IDCTLVDT" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label class="small mb-1">Mã Nội Dung Đào Tạo</label>
+                                <input type="text" name="MaND" id="MaND" class="form-control" readonly="readonly" value="@ViewBag.MaND" />
+                                <span asp-validation-for="MaND" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="small mb-1">Nội Dung Đào Tạo</label>
+                                <input asp-for="NoiDung" class="form-control" placeholder="Nội Dung Đào Tạo" id="NoiDung" />
+                                <span asp-validation-for="NoiDung" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="small mb-1">Video Nội Dung</label>
+                                <input asp-for="VideoND" class="form-control" placeholder="Link Video" id="VideoND" />
+                            </div>
+                        </div>
+
+                        <div class="col-md-8">
+                            <div class="form-group">
+                                <label class="small mb-1">Hình Ảnh Nội Dung</label>
+                                <input asp-for="ImageND" class="form-control" placeholder="Link Thumbnail" id="ImageND" />
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label class="small mb-1">Thời lượng (phút)</label>
+                                <input asp-for="ThoiLuongDT" class="form-control" placeholder="Thời lượng" id="ThoiLuongDT" />
+                                <span asp-validation-for="ThoiLuongDT" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="small mb-1">Ngày Tạo</label>
+                                <input asp-for="NgayTao" type="date" class="form-control" placeholder="Chọn ngày" id="NgayTao" />
+                                <span asp-validation-for="NgayTao" class="text-danger"></span>
+                            </div>
+                        </div>
+
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="small mb-1">File</label>
+                                <input type="file" name="PDFEduFile" style="width:100%;" class="form-control" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="btn-margin-top text-center">
+                        <input type="submit" value="Xác nhận" class="btn btn-success button_submit" />
+                    </div>
+                </fieldset>
+            </div>
+        </div>
+    </div>
+</form>

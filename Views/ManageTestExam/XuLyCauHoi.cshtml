@@ -1,0 +1,50 @@
+@model LoginValidation
+
+<form asp-action="XuLyCauHoi" asp-controller="ManageTestExam" method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="IDDethi" value="@ViewBag.IDDeThi" />
+    <div class="modal-dialog" id="formE">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 id="ModalTitle"></h5>
+                <a href="#" class="close" data-dismiss="modal">&times;</a>
+            </div>
+            <div class="modal-body">
+                <fieldset id="SubmitForm">
+                    <div class="row">
+                        <div class="col-md-12 mb-1" style="display:grid">
+                            <label class="mb-1 font-weight-bold text-left">Danh sách Mã câu hỏi</label>
+                            <textarea asp-for="MaNV" class="form-control" rows="2" placeholder="Nhập danh sách mã câu hỏi" id="MaNV"></textarea>
+                            <span asp-validation-for="MaNV" class="text-danger"></span>
+                        </div>
+                        <div id="checkNV" style="width:70px" class="btn btn-primary form-group col-md-3 checkNV m-auto">Check</div>
+                        <div class="col-md-11 overflow-auto border border-success rounded text-left mt-1"
+                             style="display: grid; min-height: 40px; max-height: 400px; margin: 0 auto; margin-bottom:10px" id="dsnv"></div>
+                        <div class="col-md-12">
+                            <label class="small mb-1">Điểm chuẩn</label>
+                            <input type="number" step="any" name="DiemChuan" class="form-control" />
+                        </div>
+                    </div>
+                    <div class="btn-margin-top mt-2 text-center">
+                        <input type="submit" value="Xác nhận" class="btn btn-danger pull-right" />
+                    </div>
+                </fieldset>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script type="text/javascript">
+    $(document).on("click", ".checkNV", function () {
+        $.get("/ManageTestExam/CheckCauHoi", { lsnv: $("#MaNV").val() }, function (data) {
+            if (data[0] != null) {
+                $("#dsnv").empty();
+                $.each(data, function (index, row) {
+                    $("#dsnv").append("<div>" + row.HoTen + "</div>");
+                });
+            } else {
+                $("#dsnv").empty();
+            }
+        });
+    });
+</script>

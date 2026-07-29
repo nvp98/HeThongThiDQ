@@ -1,0 +1,51 @@
+@model CauHoiDeThiValidation
+
+<form asp-action="AddQuestion" asp-controller="ManageTestExam" method="post">
+    @Html.AntiForgeryToken()
+    <div class="modal-dialog" id="form">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 id="ModalTitle"></h5>
+                <a href="#" class="close" data-dismiss="modal">&times;</a>
+            </div>
+            <div class="modal-body">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <fieldset id="SubmitForm">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="small mb-1">Nội dung đề thi</label>
+                                <select name="IDND" id="IDND" asp-items="(SelectList)ViewBag.IDND" class="form-control marginTB5" style="width:100%" readonly="readonly">
+                                    <option value="">--Chọn Nội dung--</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="small mb-1">Câu hỏi</label>
+                                <select asp-for="IDCauHoi" asp-items="(SelectList)ViewBag.CHList" class="form-control" id="IDCauHoi">
+                                    <option value="">--- Câu Hỏi ----</option>
+                                </select>
+                                <span asp-validation-for="IDCauHoi" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="small mb-1">Số điểm</label>
+                                <input asp-for="Diem" class="form-control" placeholder="Điểm số của câu" id="Diem" />
+                                <span asp-validation-for="Diem" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="btn-margin-top text-center">
+                        <input type="submit" value="Xác nhận" id="btnSubmit" class="btn btn-primary pull-right" />
+                    </div>
+                </fieldset>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+    $("#IDCauHoi").chosen({ width: "100%" });
+</script>

@@ -1,0 +1,60 @@
+@model LoginValidation
+
+<form asp-action="Edit" asp-controller="Account" method="post">
+    @Html.AntiForgeryToken()
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 id="ModalTitle">Thay đổi thông tin</h5>
+                <a href="#" class="close" data-dismiss="modal">&times;</a>
+            </div>
+            <div class="modal-body">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <input asp-for="ID" type="hidden" />
+                <fieldset id="SubmitForm">
+                    <div class="form-row">
+                        <div class="form-group col-md-12">
+                            <label class="small mb-1">MaNV</label>
+                            <input asp-for="MaNV" class="form-control" readonly="readonly" id="TenDangNhap" />
+                            <span asp-validation-for="MaNV" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-12">
+                            <label class="small mb-1">Họ tên</label>
+                            <input asp-for="HoTen" class="form-control" readonly="readonly" id="HoTen" />
+                            <span asp-validation-for="HoTen" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-12">
+                            <label class="small mb-1">Email</label>
+                            <input asp-for="Email" class="form-control" id="Email" />
+                            <span asp-validation-for="Email" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-12">
+                            <label class="small mb-1">Số điện thoại</label>
+                            <input asp-for="SoDienThoai" class="form-control" id="SoDienThoai" />
+                            <span asp-validation-for="SoDienThoai" class="text-danger"></span>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-12">
+                            <label class="small mb-1">Quyền</label>
+                            <select asp-for="IDQuyen" asp-items="ViewBag.PList as SelectList" class="form-control" id="IDQuyen">
+                                <option value="">--Chọn quyền--</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group col-md-12">
+                            <button class="btn btn-primary pull-right" id="btncreate"><i class="fa fa-check-circle"></i> Cập nhật</button>
+                        </div>
+                    </div>
+                </fieldset>
+            </div>
+        </div>
+    </div>
+</form>

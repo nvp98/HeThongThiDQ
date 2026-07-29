@@ -1,0 +1,116 @@
+@model ManageQuestionValidation
+
+<script type="text/javascript">
+    tinymce.init({
+        selector: '.myTextarea',
+        plugins: 'image paste',
+        images_file_types: 'jpg,svg,webp,png',
+        a_configuration_option: 400,
+        paste_data_images: true,
+        automatic_uploads: true,
+        images_upload_url: '/Question/Upload',
+        images_upload_credentials: true,
+        relative_urls: false,
+        remove_script_host: true,
+        statusbar: false,
+        promotion: false
+    });
+    $(document).on('submit', 'form', function () {
+        if (typeof tinymce !== 'undefined') tinymce.triggerSave();
+    });
+</script>
+
+<form asp-action="Edit" asp-controller="Question" method="post">
+    @Html.AntiForgeryToken()
+    <input asp-for="IDCH" type="hidden" />
+    <div class="modal-dialog" id="formE">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 id="ModalTitle"></h5>
+                <a href="#" class="close" data-dismiss="modal">&times;</a>
+            </div>
+            <div class="modal-body">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <fieldset id="SubmitForm">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="small mb-1">Nội Dung Câu Hỏi</label>
+                                <textarea asp-for="NoiDungCH" class="form-control myTextarea" rows="2" placeholder="Nội Dung Câu Hỏi" id="NoiDungCH"></textarea>
+                                <span asp-validation-for="NoiDungCH" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="small mb-1">Mã câu hỏi</label>
+                                <input asp-for="MaCH" class="form-control" placeholder="Mã câu hỏi" id="MaCH" />
+                                <span asp-validation-for="MaCH" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="small mb-1">Đáp Án A</label>
+                                <input asp-for="DapAnA" class="form-control" placeholder="Đáp Án A" id="DapAnA" />
+                                <span asp-validation-for="DapAnA" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="small mb-1">Đáp Án B</label>
+                                <input asp-for="DapAnB" class="form-control" placeholder="Đáp Án B" id="DapAnB" />
+                                <span asp-validation-for="DapAnB" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="small mb-1">Đáp Án C</label>
+                                <input asp-for="DapAnC" class="form-control" placeholder="Đáp Án C" id="DapAnC" />
+                                <span asp-validation-for="DapAnC" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="small mb-1">Đáp Án D</label>
+                                <input asp-for="DapAnD" class="form-control" placeholder="Đáp Án D" id="DapAnD" />
+                                <span asp-validation-for="DapAnD" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="small mb-1">Đáp Án Đúng</label>
+                                <select asp-for="IDDADung" asp-items="(SelectList)ViewBag.IDDADung" class="form-control" id="IDDADung">
+                                    <option value="">-- Chọn đáp án đúng --</option>
+                                </select>
+                                <span asp-validation-for="IDDADung" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="form-group col-md-12">
+                            <label class="small mb-1">Nội dung Đào tạo</label>
+                            <select asp-for="IDND" asp-items="(SelectList)ViewBag.IDND" id="IDND" class="form-control marginTB5" style="width:100%">
+                                <option value="">--Chọn Nội Dung--</option>
+                            </select>
+                        </div>
+                        <div class="form-group col-md-12">
+                            <label class="small mb-1">Đảo câu hỏi</label>
+                            <input asp-for="IsDao" type="checkbox" class="form-check-input" id="IsDao" />
+                        </div>
+                    </div>
+                    &nbsp;
+                    <div class="btn-margin-top text-center">
+                        <input type="submit" value="Xác nhận" class="btn btn-success button_submit" />
+                        <input type="reset" value="Hủy" class="btn btn-danger button_cancel" data-dismiss="modal" />
+                    </div>
+                </fieldset>
+            </div>
+        </div>
+    </div>
+</form>
+
+<style>
+    .button_submit { float: right; margin-bottom: 15px; }
+    .button_cancel { float: right; margin-right: 15px; }
+</style>
+
+<script>
+    $("#formE #IDND").chosen({ width: "100%" });
+</script>

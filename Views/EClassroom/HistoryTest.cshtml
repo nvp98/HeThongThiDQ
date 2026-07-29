@@ -1,0 +1,92 @@
+@{
+    ViewBag.Title = "Lịch sử thi";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@using HeThongThiDQ.Models
+@using X.PagedList
+@using X.PagedList.Mvc.Core
+@model IPagedList<HistoryTestView>
+
+<link href="~/Content/assets/css/PagedList.css" rel="stylesheet" />
+
+@if (TempData["msgSuccess"] != null)
+{
+    @Html.Raw(TempData["msgSuccess"])
+}
+@if (TempData["msgError"] != null)
+{
+    @Html.Raw(TempData["msgError"])
+}
+
+<div class="app-main__outer">
+    <div class="app-main__inner">
+
+        <div class="app-page-title">
+            <div class="page-title-wrapper">
+                <div class="page-title-heading">
+                    <div class="page-title-icon">
+                        <i class="pe-7s-id icon-gradient bg-grow-early"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <div class="col-md-9">
+                    <div class="row"></div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover" id="table" width="100%" cellpadding="0">
+                        <thead class="thead-light">
+                            <tr>
+                                <th class="text-center" width="30px">STT</th>
+                                <th class="text-center">Họ Tên</th>
+                                <th class="text-center">Điểm thi</th>
+                                <th class="text-center">Ngày thi</th>
+                                <th class="text-center">Thời gian thi</th>
+                                <th class="text-center">Thao tác</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{
+                                int pageno = Model.PageNumber;
+                                int itemperpage = Model.PageSize;
+                                int RowNo = ((pageno - 1) * itemperpage) + 1;
+                            }
+                            @foreach (var item in Model)
+                            {
+                                <tr>
+                                    <td class="text-center">@RowNo@{ RowNo++; }</td>
+                                    <td>@item.HoTen</td>
+                                    <td>@item.DiemThi</td>
+                                    <td>@(item.NgayThi.HasValue ? item.NgayThi.Value.ToString("dd-MM-yyyy") : "")</td>
+                                    <td>@(item.ThoiGianThi / 60) Phút @(item.ThoiGianThi % 60) Giây</td>
+                                    <td class="text-center">
+                                        <a href="@Url.Action("TestView", "ConfirmEStudy", new { LHID = item.IDLH, IDNV = item.IDNV, IDBaiThi = item.IDBaiThi })">
+                                            <span class="btn-transition btn btn-outline-primary">Xem kết quả</span>
+                                        </a>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                    <div class="pager">
+                        @Html.PagedListPager(Model, page => Url.Action("HistoryTest", "EClassroom", new { page }))
+                        <span class="pageoff">Trang @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) / @Model.PageCount</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="app-wrapper-footer">
+        <div class="app-footer">
+            <div class="app-footer__inner"></div>
+        </div>
+    </div>
+</div>

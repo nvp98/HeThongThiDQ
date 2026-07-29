@@ -1,0 +1,57 @@
+@model ManageClassValidation
+
+<form asp-action="Create" asp-controller="Account" method="post" enctype="multipart/form-data">
+    @Html.AntiForgeryToken()
+    <div class="modal-dialog" id="form">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 id="ModalTitle"></h5>
+                <a href="#" class="close" data-dismiss="modal">&times;</a>
+            </div>
+            <div class="modal-body">
+                <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+                <fieldset id="SubmitForm">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <label class="small mb-1">File danh sách nhân viên</label>
+                                <input type="file" id="FileUpload" name="FileUpload" class="form-control" onchange="checkfile(this);" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="btn-margin-top text-center">
+                        <input type="submit" value="Xử lý dữ liệu" id="btnSubmit" class="btn btn-success button_submit" />
+                    </div>
+                </fieldset>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+    function checkfile(sender) {
+        var validExts = [".xlsx", ".xls"];
+        var fileExt = sender.value.substring(sender.value.lastIndexOf('.'));
+        if (validExts.indexOf(fileExt) < 0) {
+            alert("Vui lòng chọn file Excel: " + validExts.toString());
+            sender.value = '';
+            return false;
+        }
+        return true;
+    }
+
+    $("#btnSubmit").on('click', function () {
+        var file = $('#FileUpload').val();
+        if (file.length == 0) {
+            alert('Vui lòng chọn file Import.');
+            return false;
+        }
+        var validExts = [".xlsx", ".xls"];
+        var fileExt = file.substring(file.lastIndexOf('.'));
+        if (validExts.indexOf(fileExt) < 0) {
+            alert("Vui lòng chọn file Excel: " + validExts.toString());
+            return false;
+        }
+        return true;
+    });
+</script>

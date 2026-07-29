@@ -1,0 +1,198 @@
+@using X.PagedList
+@using X.PagedList.Mvc.Core
+@model IPagedList<ConfirmEStudyValidation>
+
+@{
+    ViewBag.Title = "Bảng Xác Nhận Học Tập";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<link href="~/Content/assets/css/PagedList.css" rel="stylesheet" />
+
+@if (TempData["msgSuccess"] != null) { @Html.Raw(TempData["msgSuccess"]) }
+@if (TempData["msgError"] != null) { @Html.Raw(TempData["msgError"]) }
+
+<div class="app-main__outer">
+    <div class="app-main__inner">
+
+        <div class="app-page-title">
+            <div class="page-title-wrapper">
+                <div class="page-title-heading">
+                    <div class="page-title-icon">
+                        <i class="pe-7s-id icon-gradient bg-grow-early"></i>
+                    </div>
+                    <div>
+                        Bảng Xác Nhận Học Tập
+                        <div class="page-title-subheading"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content">
+            <div class="row">
+                <div class="card col-lg-12">
+                    <div class="card-header">
+                        <span class="col-md-2">
+                            <input id="txtsearch" class="form-control" type="text" placeholder="Tìm kiếm nhân viên ..." value="@ViewBag.search" />
+                        </span>
+                        <span class="col-md-2">
+                            <select id="IDPhongBan" name="IDPhongBan" class="form-control" style="width:100%">
+                                <option value="0">--Phòng ban--</option>
+                                @foreach (var item in (SelectList)ViewBag.PBList)
+                                {
+                                    @if (item.Selected)
+                                    {
+                                        <option value="@item.Value" selected>@item.Text</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="@item.Value">@item.Text</option>
+                                    }
+                                    @* <option value="@item.Value" @(item.Selected ? "selected" : "")>@item.Text</option> *@
+                                }
+                            </select>
+                        </span>
+                        <span>
+                            <button type="button" id="btn-search" class="btn btn-success m-l-auto">
+                                <i class="fa fa-search">&nbsp;</i>&nbsp;Tìm kiếm
+                            </button>
+                        </span>
+                        <span class="m-l-auto">
+                            @if ((bool)ViewBag.IsLopMo)
+                            {
+                                <button type="button" id="btn-Import" class="btn btn-success m-l-auto">
+                                    <i class="fa fa-file-excel-o">&nbsp;</i>&nbsp;Nhập Danh sách
+                                </button>
+                                <span class="modal fade" id="myModalimport" role="dialog"
+                                      data-url="@Url.Action("ImportExcel", "ConfirmEStudy", new { id = ViewBag.IDLH })"></span>
+
+                                <button type="button" id="btn-Export" class="btn btn-success m-l-auto">
+                                    <i class="fa fa-file-excel-o">&nbsp;</i>&nbsp;Xuất Danh sách
+                                </button>
+
+                                <button type="button" id="btn-add" class="btn btn-primary m-l-auto">
+                                    <i class="fa fa-plus">&nbsp;</i>&nbsp;Thêm mới
+                                </button>
+                                <span class="modal fade" id="myModal" role="dialog"
+                                      data-url="@Url.Action("Create", "ConfirmEStudy", new { id = ViewBag.IDLH })"></span>
+                            }
+                            else
+                            {
+                                <button type="button" id="btn-Export" class="btn btn-success m-l-auto">
+                                    <i class="fa fa-file-excel-o">&nbsp;</i>&nbsp;Xuất Danh sách
+                                </button>
+                            }
+                        </span>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover" id="table" width="100%" cellpadding="0">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th width="30px">STT</th>
+                                        <th width="80px">Mã NV</th>
+                                        <th width="150px">Họ và Tên</th>
+                                        <th width="150px">Vị Trí</th>
+                                        <th class="text-center">Tên Chủ đề thi</th>
+                                        <th class="text-center">Kết quả thi</th>
+                                        <th class="text-center">Số lần làm bài thi</th>
+                                        <th class="text-center">Điểm thi</th>
+                                        <th class="text-center">Thao tác</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @{
+                                        int pageno = Model.PageNumber;
+                                        int itemperpage = Model.PageSize;
+                                        int RowNo = ((pageno - 1) * itemperpage) + 1;
+                                    }
+                                    @foreach (var item in Model)
+                                    {
+                                        <tr>
+                                            <td class="text-center">@RowNo@{ RowNo++; }</td>
+                                            <td>@item.MaNV - @item.IDHT</td>
+                                            <td>@item.HoTenHV</td>
+                                            <td>@item.TenVT</td>
+                                            <td class="text-center">@item.TenLH</td>
+                                            <td class="text-center">@item.KetQuaThi</td>
+                                            <td class="text-center">@item.SoLanThi lần</td>
+                                            <td class="text-center">
+                                                @item.DiemText
+                                                @if (item.SoLanThi > 0)
+                                                {
+                                                    <a href="@Url.Action("TestView", "ConfirmEStudy", new { LHID = item.LHID, IDNV = item.NVID, IDBaiThi = item.IDBaiThi })">
+                                                        <i class="fa fa-eye-slash"></i>
+                                                    </a>
+                                                }
+                                            </td>
+                                            <td class="text-center">
+                                                <a href="@Url.Action("Delete", "ConfirmEStudy", new { id = item.IDHT })"
+                                                   onclick="return confirm('Bạn có chắc chắn muốn xóa?')"
+                                                   class="btn btn-danger btn-sm">
+                                                    <i class="fa fa-trash"></i>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                            <div class="pager">
+                                @Html.PagedListPager(Model, page => Url.Action("Index", "ConfirmEStudy",
+                                    new { id = ViewBag.IDLH, page, IDPhongBan = Context.Request.Query["IDPhongBan"], search = Context.Request.Query["search"] }))
+                                <span class="pageoff">Trang @(Model.PageCount < Model.PageNumber ? 0 : Model.PageNumber) / @Model.PageCount</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-wrapper-footer">
+        <div class="app-footer">
+            <div class="app-footer__inner"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal container -->
+<div class="modal fade" id="modalContainer" tabindex="-1" role="dialog">
+    <div id="modalContent"></div>
+</div>
+
+<script type="text/javascript">
+    $('#btn-add').click(function () {
+        var url = $('#myModal').data('url');
+        $.get(url, function (data) {
+            $("#modalContainer .modal-dialog").remove();
+            $("#modalContainer").html(data);
+            $("#modalContainer").modal('show');
+        });
+    });
+
+    $('#btn-Import').click(function () {
+        var url = $('#myModalimport').data('url');
+        $.get(url, function (data) {
+            $("#modalContainer").html(data);
+            $("#modalContainer").modal('show');
+        });
+    });
+
+    $('#btn-Export').click(function () {
+        window.location.href = '@Url.Action("ExportToExcel", "ConfirmEStudy", new { id = ViewBag.IDLH })';
+    });
+
+    $('#btn-search').on('click', function () {
+        var search = $('#txtsearch').val();
+        var IDPhongBan = $('#IDPhongBan').val();
+        window.location.href = '@Url.Action("Index", "ConfirmEStudy", new { id = ViewBag.IDLH })'
+            + '&IDPhongBan=' + IDPhongBan + '&search=' + search;
+    });
+
+    $('#txtsearch').keyup(function (event) {
+        if (event.keyCode == 13) { $('#btn-search').click(); }
+    });
+
+    $('#IDPhongBan').chosen({ width: "100%" });
+</script>

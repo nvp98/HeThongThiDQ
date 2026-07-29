@@ -1,0 +1,333 @@
+@model StatisticValidation
+
+@{
+    ViewBag.Title = "Thống kê";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<script src="~/Content/assets/Highcharts/highcharts.js"></script>
+<script src="~/Content/assets/Highcharts/accessibility.js"></script>
+<script src="~/Content/assets/Highcharts/data.js"></script>
+<script src="~/Content/assets/Highcharts/drilldown.js"></script>
+
+<style>
+    .row-border::before {
+        content: "";
+        position: absolute;
+        right: 0;
+        bottom: -1px;
+        left: 0;
+        display: block;
+        height: 0;
+        border-top: 1px solid rgba(24, 28, 33, 0.13);
+    }
+
+    .row-border::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        left: -1px;
+        display: block;
+        width: 0;
+        border-left: 1px solid rgba(24, 28, 33, 0.13);
+    }
+</style>
+
+<div class="app-main__outer">
+    <div class="h-100">
+        <div class="card mb-4">
+            <div class="card-body" style="background-color: #e5e8e9">
+                <div class="row">
+                    <div class="col-lg-5">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="card mb-4 border">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <div class="font-weight-bold">
+                                                <h2 class="mb-2 font-weight-bold">@Model.SLHV</h2>
+                                                <p class="text-muted mb-0"><span class="badge badge-primary">Học viên</span></p>
+                                            </div>
+                                            <div class="lnr lnr-leaf display-4 text-primary"><i class="metismenu-icon pe-7s-study"></i></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card mb-4">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <div class="">
+                                                <h2 class="mb-2 font-weight-bold">@Model.SLLH</h2>
+                                                <p class="text-muted mb-0"><span class="badge badge-success">Lớp học</span></p>
+                                            </div>
+                                            <div class="lnr lnr-chart-bars display-4 text-success"><i class="metismenu-icon pe-7s-display2"></i></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card mb-4">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <div class="">
+                                                <h2 class="mb-2 font-weight-bold">@Model.SLNDDT</h2>
+                                                <p class="text-muted mb-0"><span class="badge badge-danger">Nội dung đào tạo</span></p>
+                                            </div>
+                                            <div class="lnr lnr-rocket display-4 text-danger"><i class="metismenu-icon pe-7s-news-paper"></i></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card mb-4">
+                                    <div class="card-body">
+                                        <div class="d-flex align-items-center justify-content-between">
+                                            <div class="">
+                                                <h2 class="mb-2 font-weight-bold">@Model.SLGV</h2>
+                                                <p class="text-muted mb-0"><span class="badge badge-warning">Giảng viên</span></p>
+                                            </div>
+                                            <div class="lnr lnr-cart display-4 text-warning"><i class="metismenu-icon pe-7s-id"></i></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-sm-12">
+                                <div class="card d-flex w-100 mb-4">
+                                    <div class="row no-gutters">
+                                        <div class="d-flex col-md-6 align-items-center border-right">
+                                            <div class="card-body">
+                                                <div class="row align-items-center">
+                                                    <div class="col-auto lnr lnr-cart display-4" style="color:deepskyblue">
+                                                        <i class="metismenu-icon pe-7s-safe"></i>
+                                                    </div>
+                                                    <div class="col">
+                                                        <h6 class="mb-0 text-muted font-weight-bold">Tổng số câu hỏi</h6>
+                                                        <h4 class="mt-3 mb-0 font-weight-bold">@Model.SLCH<i class="ion ion-md-arrow-round-down ml-3 text-danger"></i></h4>
+                                                    </div>
+                                                </div>
+                                                <br />
+                                            </div>
+                                        </div>
+                                        <div class="d-flex col-md-6 align-items-center">
+                                            <div class="card-body">
+                                                <div class="row align-items-center">
+                                                    <div class="col-auto lnr lnr-cart display-4" style="color: deepskyblue">
+                                                        <i class="metismenu-icon pe-7s-note2"></i>
+                                                    </div>
+                                                    <div class="col">
+                                                        <h6 class="mb-0 text-muted font-weight-bold">Tổng số đề thi</h6>
+                                                        <h4 class="mt-3 mb-0 font-weight-bold">@Model.SLDT<i class="ion ion-md-arrow-round-up ml-3 text-success"></i></h4>
+                                                    </div>
+                                                </div>
+                                                <br />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-7">
+                        <div class="card mb-4">
+                            <div class="card">
+                                <div id="containerPie" style="max-height:396px;font-weight:bold"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card d-flex w-100 mb-4">
+                            <div class="row no-gutters border">
+                                <div class="d-flex col-sm-6 col-md-6 col-lg-6 align-items-center row-border">
+                                    <div class="card-body media align-items-center text-dark font-weight-bold">
+                                        <i class="metismenu-icon pe-7s-server display-4 text-primary"></i>
+                                        <span class="media-body d-block ml-3">
+                                            <span class="text-big mr-1 text-primary">@Model.SLuotDT</span>
+                                            <br>
+                                            <p class="text-muted font-weight-bold">Số lượt đào tạo</p>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="d-flex col-sm-6 col-md-6 col-lg-6 align-items-center row-border">
+                                    <div class="card-body media align-items-center text-dark font-weight-bold">
+                                        <i class="metismenu-icon pe-7s-timer display-4 text-warning"></i>
+                                        <span class="media-body d-block ml-3">
+                                            <span class="text-big"><span class="mr-1 text-warning">@Model.SLTGDT</span></span>
+                                            <br>
+                                            <p class="text-muted font-weight-bold">Tổng thời lượng đào tạo (Phút)</p>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="d-flex col-sm-6 col-md-6 col-lg-6 align-items-center row-border">
+                                    <div class="card-body media align-items-center text-dark font-weight-bold">
+                                        <i class="metismenu-icon pe-7s-plugin display-4 text-danger"></i>
+                                        <span class="media-body d-block ml-3">
+                                            <span class="text-big"><span class="mr-1 text-danger">@Model.SLLH</span></span>
+                                            <br>
+                                            <p class="text-muted font-weight-bold">Lớp học</p>
+                                        </span>
+                                    </div>
+                                </div>
+                                <div class="d-flex col-sm-6 col-md-6 col-lg-6 align-items-center row-border">
+                                    <div class="card-body media align-items-center text-dark font-weight-bold">
+                                        <i class="metismenu-icon pe-7s-target display-4 text-success"></i>
+                                        <span class="media-body d-block ml-3">
+                                            <span class="text-big"><span class="mr-1 text-success">@Model.TLHT %</span></span>
+                                            <br>
+                                            <p class="text-muted font-weight-bold">Tỉ lệ hoàn thành</p>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="row">
+                            <div id="containerM" style="width: 98%; height: 200px; font-weight: bold"></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card d-flex w-100 mb-4">
+                            <div class="row no-gutters border">
+                                <div class="d-flex col-sm-12 col-md-12 col-lg-12 align-items-center">
+                                    <div class="card-body media align-items-center text-dark">
+                                        <div id="containerN" style="height: 300px; width: 100%; font-weight: bold"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-12">
+                        <div class="card d-flex w-100 mb-4">
+                            <div class="row no-gutters border">
+                                <div class="d-flex col-sm-12 col-md-12 col-lg-12 align-items-center">
+                                    <div class="card-body media align-items-center text-dark">
+                                        <div id="containerCol" style="height: 300px; width: 100%; font-weight: bold"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-wrapper-footer">
+        <div class="app-footer">
+            <div class="app-footer__inner">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $.getJSON("/Statistic/GetNDDTBP", function (data) {
+        Highcharts.chart('containerCol', {
+            chart: { type: 'column' },
+            title: { text: 'Nội dung đào tạo theo bộ phận lập yêu cầu', align: 'left' },
+            xAxis: { categories: data.ListTenBP },
+            credits: { enabled: false },
+            yAxis: {
+                min: 0,
+                title: { text: 'NDĐT' },
+                stackLabels: {
+                    enabled: true,
+                    style: {
+                        fontWeight: 'bold',
+                        color: (Highcharts.defaultOptions.title.style && Highcharts.defaultOptions.title.style.color) || 'gray',
+                        textOutline: 'none'
+                    }
+                }
+            },
+            legend: { align: 'left', x: 500, verticalAlign: 'top', y: 0, floating: true, backgroundColor: Highcharts.defaultOptions.legend.backgroundColor || 'white', borderColor: '#CCC', borderWidth: 1, shadow: false },
+            tooltip: { headerFormat: '<b>{point.x}</b><br/>', pointFormat: '{series.name}: {point.y}<br/>Total: {point.stackTotal}' },
+            plotOptions: { column: { stacking: 'normal', dataLabels: { enabled: true } } },
+            series: data.ListLVDT
+        });
+    });
+
+    Highcharts.setOptions({
+        colors: Highcharts.map(Highcharts.getOptions().colors, function (color) {
+            return {
+                radialGradient: { cx: 0.5, cy: 0.3, r: 0.7 },
+                stops: [[0, color], [1, Highcharts.color(color).brighten(-0.3).get('rgb')]]
+            };
+        })
+    });
+
+    $.getJSON("/Statistic/GetLVDT", function (data) {
+        var DataLVDT = [];
+        for (var i = 0; i < data.length; i++) {
+            DataLVDT.push({ name: data[i].TenLV, y: data[i].TLGiaTri });
+        }
+        Highcharts.chart('containerPie', {
+            chart: { plotBackgroundColor: null, plotBorderWidth: null, plotShadow: false, type: 'pie' },
+            credits: { enabled: false },
+            title: { text: 'Lĩnh vực đào tạo', align: 'left' },
+            tooltip: { pointFormat: '{series.name}: <b>{point.percentage:.1f}%</b>' },
+            accessibility: { point: { valueSuffix: '%' } },
+            plotOptions: { pie: { allowPointSelect: true, cursor: 'pointer', dataLabels: { enabled: true, format: '<b>{point.name}</b>: {point.percentage:.1f} %', connectorColor: 'silver' } } },
+            series: [{ name: 'Tỉ lệ', data: DataLVDT }]
+        });
+    });
+
+    $.getJSON("/Statistic/GetKQHT", function (data) {
+        Highcharts.chart('containerM', {
+            chart: { type: 'column' },
+            title: { text: 'Kết quả học tập' },
+            xAxis: { categories: ['Tham gia', 'Hoàn thành', 'Không tham gia'], crosshair: true },
+            yAxis: { min: 0, title: { text: 'Lượt tham gia' } },
+            tooltip: { headerFormat: '<span style="font-size:10px">{point.key}</span><table>', pointFormat: '<tr><td style="color:{series.color};padding:0">{series.name}: </td><td style="padding:0"><b>{point.y} lượt</b></td></tr>', footerFormat: '</table>', shared: true, useHTML: true },
+            plotOptions: { column: { pointPadding: 0.2, borderWidth: 0 }, series: { borderWidth: 0, dataLabels: { enabled: true, format: '{point.y}' } } },
+            legend: { enabled: false },
+            credits: { enabled: false },
+            series: [{ name: 'Số lượng', data: data }]
+        });
+    });
+
+    $.getJSON("/Statistic/GetKQDT", function (data) {
+        var DataDat = [], DataKDat = [];
+        for (var i = 0; i < data.ListKQD.length; i++) {
+            DataDat.push([data.ListKQD[i].name, data.ListKQD[i].data]);
+        }
+        for (var i = 0; i < data.ListKQKD.length; i++) {
+            DataKDat.push([data.ListKQKD[i].name, data.ListKQKD[i].data]);
+        }
+        Highcharts.chart('containerN', {
+            chart: { type: 'column' },
+            title: { align: 'left', text: 'Kết quả đào tạo' },
+            subtitle: { align: 'left', text: '' },
+            credits: { enabled: false },
+            accessibility: { announceNewData: { enabled: true } },
+            colors: ['#1aadce', '#910000'],
+            xAxis: { type: 'category' },
+            yAxis: { title: { text: 'Lượt đào tạo' } },
+            legend: { enabled: false },
+            plotOptions: { series: { borderWidth: 0, dataLabels: { enabled: true, format: '{point.y}' } } },
+            tooltip: { headerFormat: '<span style="font-size:11px">{series.name}</span><br>', pointFormat: '<span style="color:{point.color}">{point.name}</span>: <b>{point.y}</b> lượt<br/>' },
+            series: [{
+                name: 'Kết quả',
+                colorByPoint: true,
+                data: [
+                    { name: 'Đạt', y: data.Dat, drilldown: 'Đạt' },
+                    { name: 'Không đạt', y: data.KhongDat, drilldown: 'Không đạt' }
+                ]
+            }],
+            drilldown: {
+                breadcrumbs: { position: { align: 'right' } },
+                series: [
+                    { name: 'Đạt', id: 'Đạt', data: DataDat },
+                    { name: 'Không đạt', id: 'Không đạt', data: DataKDat }
+                ]
+            }
+        });
+    });
+</script>

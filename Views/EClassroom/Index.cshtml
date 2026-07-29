@@ -1,0 +1,381 @@
+@{
+    ViewBag.Title = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@using HeThongThiDQ.Models
+@model List<EClassroomValidation>
+
+@if (TempData["msgSuccess"] != null)
+{
+    @Html.Raw(TempData["msgSuccess"])
+}
+@if (TempData["msgError"] != null)
+{
+    @Html.Raw(TempData["msgError"])
+}
+
+@if (TempData["ClearLocalStorage"] != null)
+{
+    <script>
+        localStorage.removeItem("IDNV");
+        localStorage.removeItem("IDLH");
+    </script>
+}
+
+<div class="app-main__outer">
+    <div class="app-main__inner">
+
+        <div class="tab-content">
+            <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+            <div class="row">
+                <div class="col-lg-12">
+
+                    <div class="card-header mb-3">
+                        <div>
+                            <p style="margin-bottom: 0;"><strong>Chào mừng Anh/Chị tham gia Hội thi Tay nghề giỏi Tập đoàn Hòa Phát 2025</strong></p>
+                        </div>
+                    </div>
+
+                    <div class="main-card mb-3 card">
+                        <div class="card-header" style="border:none;">
+                            <div class="italic"><p>Lưu ý: Anh/Chị chọn các đề dưới đây để Ôn luyện cho Phần thi Lý thuyết.</p></div>
+                        </div>
+
+                        <div class="card-body pt-0">
+                            @{
+                                var checkontap = Model.Where(x => x.ThiNhieuLan == 1).ToList();
+                                var chudeondien = Model.Where(x => x.ThiNhieuLan == 1 && x.TenLH != null && x.TenLH.Contains("Điện")).ToList();
+                                var chudeoncokhi = Model.Where(x => x.ThiNhieuLan == 1 && x.TenLH != null && x.TenLH.Contains("Cơ khí")).ToList();
+                                var chudeonantoan = Model.Where(x => x.ThiNhieuLan == 1 && x.TenLH != null && x.TenLH.Contains("ATMT")).ToList();
+                                var checkthi = Model.Where(x => x.ThiNhieuLan != 1).ToList();
+                            }
+
+                            <div class="tab-content" style="margin-top: 30px;">
+
+                                @* Chủ đề ATMT *@
+                                @if (chudeonantoan.Count != 0)
+                                {
+                                    <div class="card-title">Chủ đề An toàn - Môi trường</div>
+                                    <div class="row">
+                                        @foreach (var item in chudeonantoan)
+                                        {
+                                            <div class="col-md-6 col-xl-3">
+                                                <div class="card mb-3">
+                                                    <div class="widget-content">
+                                                        <div class="content">
+                                                            <div class="widget-subheading">@item.TenLH</div>
+                                                        </div>
+                                                        <div class="widget-content-wrapper" style="padding: .5rem 0 0;">
+                                                            <div class="widget-content-left"><strong>Thời gian: </strong></div>
+                                                            <div class="widget-content-right">@item.TGBDLH.ToString("dd-MM-yyyy HH:mm")</div>
+                                                            <div class="widget-content-right"> - @item.TGKTLH.ToString("dd-MM-yyyy HH:mm")</div>
+                                                        </div>
+                                                        @if (item.BaiThiCount > 0)
+                                                        {
+                                                            <div class="widget-content-wrapper" style="padding: .5rem 0 0;">
+                                                                <div class="widget-content-left"><strong>Điểm thi: </strong></div>
+                                                                <div class="widget-content-right text-danger">@item.LastDiemSo / @item.TongDiem</div>
+                                                            </div>
+                                                            <div class="widget-content-wrapper" style="padding: .5rem 0 0;">
+                                                                <div class="widget-content-left"><strong>Số câu trả lời đúng: </strong></div>
+                                                                <div class="widget-content-right text-danger">@item.SoCauDung / @item.TongSoCau</div>
+                                                            </div>
+                                                            if (item.ThiNhieuLan == 1)
+                                                            {
+                                                                <div class="widget-content-wrapper" style="padding: .5rem 0 0;">
+                                                                    <div class="widget-content-left"><strong>Số lượt ôn luyện: </strong></div>
+                                                                    <div class="widget-content-right text-danger">@item.BaiThiCount lượt</div>
+                                                                </div>
+                                                            }
+                                                        }
+                                                        <div class="widget-content-wrapper" style="padding: .5rem 0;">
+                                                            <div class="widget-content-right">
+                                                                @{
+                                                                    if (DateTime.Now >= item.TGBDLH)
+                                                                    {
+                                                                        if ((item.BaiThiCount == 0 || item.ThiNhieuLan == 1) && DateTime.Now <= item.TGKTLH)
+                                                                        {
+                                                                            <a id="@item.LHID" data-lhid="@item.LHID" class="exam-link" href="/STest/Index?LHID=@item.LHID">
+                                                                                <span class="btn-transition btn btn-outline-success">@(item.ThiNhieuLan == 1 ? "Ôn luyện" : "Làm bài thi")</span>
+                                                                            </a>
+                                                                        }
+                                                                        if (item.BaiThiCount > 0)
+                                                                        {
+                                                                            <a href="@Url.Action("TestView", "ConfirmEStudy", new { LHID = item.LHID, IDNV = item.NVID, IDBaiThi = item.LastIDBaiThi })">
+                                                                                <span class="btn-transition btn btn-outline-primary">Xem kết quả ôn luyện</span>
+                                                                            </a>
+                                                                            if (item.ThiNhieuLan == 1)
+                                                                            {
+                                                                                <a href="@Url.Action("HistoryTest", "EClassroom", new { IDLH = item.LHID, IDNV = item.NVID })">
+                                                                                    <span class="btn-transition btn btn-outline-primary">Xem lịch sử ôn luyện</span>
+                                                                                </a>
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span class="text-danger">Chưa đến giờ thi, đề thi sẽ mở vào lúc @item.TGBDLH.ToString("HH") giờ @item.TGBDLH.ToString("mm") ngày @item.TGBDLH.ToString("dd/MM/yyyy")</span>
+                                                                    }
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+
+                                @* Chủ đề Cơ khí *@
+                                @if (chudeoncokhi.Count != 0)
+                                {
+                                    <div class="card-title">Chủ đề Cơ khí</div>
+                                    <div class="row">
+                                        @foreach (var item in chudeoncokhi)
+                                        {
+                                            <div class="col-md-6 col-xl-3">
+                                                <div class="card mb-3">
+                                                    <div class="widget-content">
+                                                        <div class="content">
+                                                            <div class="widget-subheading">@item.TenLH</div>
+                                                        </div>
+                                                        <div class="widget-content-wrapper" style="padding: .5rem 0 0;">
+                                                            <div class="widget-content-left"><strong>Thời gian: </strong></div>
+                                                            <div class="widget-content-right">@item.TGBDLH.ToString("dd-MM-yyyy HH:mm")</div>
+                                                            <div class="widget-content-right"> - @item.TGKTLH.ToString("dd-MM-yyyy HH:mm")</div>
+                                                        </div>
+                                                        @if (item.BaiThiCount > 0)
+                                                        {
+                                                            <div class="widget-content-wrapper" style="padding: .5rem 0 0;">
+                                                                <div class="widget-content-left"><strong>Điểm thi: </strong></div>
+                                                                <div class="widget-content-right text-danger">@item.LastDiemSo / @item.TongDiem</div>
+                                                            </div>
+                                                            <div class="widget-content-wrapper" style="padding: .5rem 0 0;">
+                                                                <div class="widget-content-left"><strong>Số câu trả lời đúng: </strong></div>
+                                                                <div class="widget-content-right text-danger">@item.SoCauDung / @item.TongSoCau</div>
+                                                            </div>
+                                                            if (item.ThiNhieuLan == 1)
+                                                            {
+                                                                <div class="widget-content-wrapper" style="padding: .5rem 0 0;">
+                                                                    <div class="widget-content-left"><strong>Số lượt ôn luyện: </strong></div>
+                                                                    <div class="widget-content-right text-danger">@item.BaiThiCount lượt</div>
+                                                                </div>
+                                                            }
+                                                        }
+                                                        <div class="widget-content-wrapper" style="padding: .5rem 0;">
+                                                            <div class="widget-content-right">
+                                                                @{
+                                                                    if (DateTime.Now >= item.TGBDLH)
+                                                                    {
+                                                                        if ((item.BaiThiCount == 0 || item.ThiNhieuLan == 1) && DateTime.Now <= item.TGKTLH)
+                                                                        {
+                                                                            <a id="@item.LHID" data-lhid="@item.LHID" class="exam-link" href="/STest/Index?LHID=@item.LHID">
+                                                                                <span class="btn-transition btn btn-outline-success">@(item.ThiNhieuLan == 1 ? "Ôn luyện" : "Làm bài thi")</span>
+                                                                            </a>
+                                                                        }
+                                                                        if (item.BaiThiCount > 0)
+                                                                        {
+                                                                            <a href="@Url.Action("TestView", "ConfirmEStudy", new { LHID = item.LHID, IDNV = item.NVID, IDBaiThi = item.LastIDBaiThi })">
+                                                                                <span class="btn-transition btn btn-outline-primary">Xem kết quả ôn luyện</span>
+                                                                            </a>
+                                                                            if (item.ThiNhieuLan == 1)
+                                                                            {
+                                                                                <a href="@Url.Action("HistoryTest", "EClassroom", new { IDLH = item.LHID, IDNV = item.NVID })">
+                                                                                    <span class="btn-transition btn btn-outline-primary">Xem lịch sử ôn luyện</span>
+                                                                                </a>
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span class="text-danger">Chưa đến giờ thi, đề thi sẽ mở vào lúc @item.TGBDLH.ToString("HH") giờ @item.TGBDLH.ToString("mm") ngày @item.TGBDLH.ToString("dd/MM/yyyy")</span>
+                                                                    }
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+
+                                @* Chủ đề Điện *@
+                                @if (chudeondien.Count != 0)
+                                {
+                                    <div class="card-title">Chủ đề Điện</div>
+                                    <div class="row">
+                                        @foreach (var item in chudeondien)
+                                        {
+                                            <div class="col-md-6 col-xl-3">
+                                                <div class="card mb-3">
+                                                    <div class="widget-content">
+                                                        <div class="content">
+                                                            <div class="widget-subheading">@item.TenLH</div>
+                                                        </div>
+                                                        <div class="widget-content-wrapper" style="padding: .5rem 0 0;">
+                                                            <div class="widget-content-left"><strong>Thời gian: </strong></div>
+                                                            <div class="widget-content-right">@item.TGBDLH.ToString("dd-MM-yyyy HH:mm")</div>
+                                                            <div class="widget-content-right"> - @item.TGKTLH.ToString("dd-MM-yyyy HH:mm")</div>
+                                                        </div>
+                                                        @if (item.BaiThiCount > 0)
+                                                        {
+                                                            <div class="widget-content-wrapper" style="padding: .5rem 0 0;">
+                                                                <div class="widget-content-left"><strong>Điểm thi: </strong></div>
+                                                                <div class="widget-content-right text-danger">@item.LastDiemSo / @item.TongDiem</div>
+                                                            </div>
+                                                            <div class="widget-content-wrapper" style="padding: .5rem 0 0;">
+                                                                <div class="widget-content-left"><strong>Số câu trả lời đúng: </strong></div>
+                                                                <div class="widget-content-right text-danger">@item.SoCauDung / @item.TongSoCau</div>
+                                                            </div>
+                                                            if (item.ThiNhieuLan == 1)
+                                                            {
+                                                                <div class="widget-content-wrapper" style="padding: .5rem 0 0;">
+                                                                    <div class="widget-content-left"><strong>Số lượt ôn luyện: </strong></div>
+                                                                    <div class="widget-content-right text-danger">@item.BaiThiCount lượt</div>
+                                                                </div>
+                                                            }
+                                                        }
+                                                        <div class="widget-content-wrapper" style="padding: .5rem 0;">
+                                                            <div class="widget-content-right">
+                                                                @{
+                                                                    if (DateTime.Now >= item.TGBDLH)
+                                                                    {
+                                                                        if ((item.BaiThiCount == 0 || item.ThiNhieuLan == 1) && DateTime.Now <= item.TGKTLH)
+                                                                        {
+                                                                            <a id="@item.LHID" data-lhid="@item.LHID" class="exam-link" href="/STest/Index?LHID=@item.LHID">
+                                                                                <span class="btn-transition btn btn-outline-success">@(item.ThiNhieuLan == 1 ? "Ôn luyện" : "Làm bài thi")</span>
+                                                                            </a>
+                                                                        }
+                                                                        if (item.BaiThiCount > 0)
+                                                                        {
+                                                                            <a href="@Url.Action("TestView", "ConfirmEStudy", new { LHID = item.LHID, IDNV = item.NVID, IDBaiThi = item.LastIDBaiThi })">
+                                                                                <span class="btn-transition btn btn-outline-primary">Xem kết quả ôn luyện</span>
+                                                                            </a>
+                                                                            if (item.ThiNhieuLan == 1)
+                                                                            {
+                                                                                <a href="@Url.Action("HistoryTest", "EClassroom", new { IDLH = item.LHID, IDNV = item.NVID })">
+                                                                                    <span class="btn-transition btn btn-outline-primary">Xem lịch sử ôn luyện</span>
+                                                                                </a>
+                                                                            }
+                                                                        }
+                                                                    }
+                                                                    else
+                                                                    {
+                                                                        <span class="text-danger">Chưa đến giờ thi, đề thi sẽ mở vào lúc @item.TGBDLH.ToString("HH") giờ @item.TGBDLH.ToString("mm") ngày @item.TGBDLH.ToString("dd/MM/yyyy")</span>
+                                                                    }
+                                                                }
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
+                                    </div>
+                                }
+
+                            </div>
+
+                            @if (checkthi.Count != 0)
+                            {
+                                <div class="card-title">Chủ đề dự thi</div>
+                            }
+
+                            <div class="tab-content" style="margin-top: 30px;">
+                                <div class="row">
+                                    @foreach (var item in checkthi)
+                                    {
+                                        <div class="col-md-6 col-xl-3">
+                                            <div class="card mb-3">
+                                                <div class="widget-content">
+                                                    <div class="content">
+                                                        <div class="widget-subheading">@item.TenLH</div>
+                                                    </div>
+                                                    <div class="widget-content-wrapper" style="padding: .5rem 0 0;">
+                                                        <div class="widget-content-left"><strong>Thời gian: </strong></div>
+                                                        <div class="widget-content-right">@item.TGBDLH.ToString("dd-MM-yyyy HH:mm")</div>
+                                                        <div class="widget-content-right"> - @item.TGKTLH.ToString("dd-MM-yyyy HH:mm")</div>
+                                                    </div>
+                                                    @if (item.BaiThiCount > 0)
+                                                    {
+                                                        <div class="widget-content-wrapper" style="padding: .5rem 0 0;">
+                                                            <div class="widget-content-left"><strong>Điểm thi: </strong></div>
+                                                            <div class="widget-content-right text-danger">@item.LastDiemSo / @item.TongDiem</div>
+                                                        </div>
+                                                        <div class="widget-content-wrapper" style="padding: .5rem 0 0;">
+                                                            <div class="widget-content-left"><strong>Số câu trả lời đúng: </strong></div>
+                                                            <div class="widget-content-right text-danger">@item.SoCauDung / @item.TongSoCau</div>
+                                                        </div>
+                                                    }
+                                                    <div class="widget-content-wrapper" style="padding: .5rem 0;">
+                                                        <div class="widget-content-right">
+                                                            @{
+                                                                if (DateTime.Now >= item.TGBDLH)
+                                                                {
+                                                                    if (item.BaiThiCount == 0 && DateTime.Now <= item.TGKTLH)
+                                                                    {
+                                                                        <a id="@item.LHID" data-lhid="@item.LHID" class="exam-link" href="/STest/Index?LHID=@item.LHID">
+                                                                            <span class="btn-transition btn btn-outline-success">Làm bài thi</span>
+                                                                        </a>
+                                                                    }
+                                                                    if (item.BaiThiCount > 0)
+                                                                    {
+                                                                        <a href="@Url.Action("TestView", "ConfirmEStudy", new { LHID = item.LHID, IDNV = item.NVID, IDBaiThi = item.LastIDBaiThi })">
+                                                                            <span class="btn-transition btn btn-outline-primary">Xem kết quả thi</span>
+                                                                        </a>
+                                                                    }
+                                                                }
+                                                                else
+                                                                {
+                                                                    <span class="text-danger">Chưa đến giờ thi, đề thi sẽ mở vào lúc @item.TGBDLH.ToString("HH") giờ @item.TGBDLH.ToString("mm") ngày @item.TGBDLH.ToString("dd/MM/yyyy")</span>
+                                                                }
+                                                            }
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    }
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <div class="d-block text-right card-footer"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $('#btn-his').click(function () {
+        window.location.href = "/SHistory/Index/";
+    });
+</script>
+
+<script>
+    $(document).ready(function () {
+        const unfinishedIDLH = localStorage.getItem("IDLH");
+
+        $('.exam-link').each(function () {
+            const currentLHID = $(this).data('lhid');
+
+            if (unfinishedIDLH && unfinishedIDLH !== currentLHID.toString()) {
+                $(this).on('click', function (e) {
+                    e.preventDefault();
+                    alert('Bạn cần hoàn thành bài đang thi !');
+                });
+            }
+            if (unfinishedIDLH && unfinishedIDLH === currentLHID.toString()) {
+                $(this).find('span')
+                    .removeClass('btn-outline-success')
+                    .addClass('btn-warning')
+                    .text('Đang thi');
+            }
+        });
+    });
+</script>

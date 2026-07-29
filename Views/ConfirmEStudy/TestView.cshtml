@@ -1,0 +1,130 @@
+@model TestViewModel
+
+@{
+    ViewBag.Title = "Kết quả bài thi";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+    .table img { max-width: 100%; height: auto; display: block; margin: 0 auto; }
+    td img { margin-left: 0 !important; }
+    td p { display: block; margin: 10px 0; }
+</style>
+
+<div class="app-main__outer">
+    <div class="app-main__inner">
+
+        <div class="app-page-title" style="margin-bottom: 5px">
+            <div class="page-title-wrapper">
+                <div class="page-title-heading">
+                    <div class="page-title-icon">
+                        <i class="pe-7s-display2 icon-gradient bg-grow-early"></i>
+                    </div>
+                    <div>Bài thi</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content">
+            <div class="row">
+                <div class="card col-md-12">
+                    <div class="HeadTest row">
+                        <div class="col-md-12" style="padding-bottom: 1rem;">
+                            <p style="text-align:center; font-size: 1.5rem; font-weight:bold; text-transform:uppercase;">Kết quả bài thi</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p>- Họ và tên: @Model.HoTen</p>
+                            <p>- Mã nhân viên: @Model.MaNV</p>
+                        </div>
+                        <div class="col-md-6">
+                            <p>- Ngày kiểm tra: @Model.NgayThi.ToString("dd/MM/yyyy")</p>
+                            <p>- Thời gian làm bài: @Model.ThoiGianLamBai phút</p>
+                        </div>
+                        <div class="col-md-12">
+                            <p>- Bộ phận: @Model.TenPhongBan</p>
+                            <p>- Nội dung: @Model.NoiDungDT</p>
+                            <p>- Đề thi: @Model.TenDeThi</p>
+                        </div>
+                        <div class="col-md-12" style="text-decoration:underline;">
+                            <p><strong>Kết quả:</strong></p>
+                        </div>
+                        <div class="col-md-12">
+                            <table class="table table-bordered table-responsive">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th class="text-center" width="25%">Hình thức thi</th>
+                                        <th class="text-center" width="25%">Điểm</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td class="text-center">Lý thuyết</td>
+                                        <td class="text-center">@Model.DiemSo</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <table class="table table-bordered">
+                        <thead class="thead-light">
+                            <tr>
+                                <th width="30px" class="text-center">STT</th>
+                                <th class="text-center">Nội Dung câu hỏi</th>
+                                <th class="text-center">Đáp án đúng</th>
+                                <th class="text-center">Điểm thi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @{ int RowNo = 1; }
+                            @foreach (var item in Model.CauHois)
+                            {
+                                <tr>
+                                    <td class="text-center">@RowNo@{ RowNo++; }</td>
+                                    <td>
+                                        <span class="font-weight-bold">Câu hỏi: @Html.Raw(item.NoiDungCH)</span><br />
+                                        @{
+                                            var answers = new[]
+                                            {
+                                                new { Label = "A", Text = item.DapAnA, Val = 1 },
+                                                new { Label = "B", Text = item.DapAnB, Val = 2 },
+                                                new { Label = "C", Text = item.DapAnC, Val = 3 },
+                                                new { Label = "D", Text = item.DapAnD, Val = 4 },
+                                            };
+                                        }
+                                        @foreach (var ans in answers)
+                                        {
+                                            if (item.IDDAHocVien == ans.Val)
+                                            {
+                                                if (item.IDDAHocVien == item.IDDADung)
+                                                {
+                                                    <span class="text-success">@ans.Label: @Html.Raw(ans.Text)</span><br />
+                                                }
+                                                else
+                                                {
+                                                    <span class="text-danger">@ans.Label: @Html.Raw(ans.Text)</span><br />
+                                                }
+                                            }
+                                            else
+                                            {
+                                                <span>@ans.Label: @Html.Raw(ans.Text)</span><br />
+                                            }
+                                        }
+                                    </td>
+                                    <td class="text-center">@item.DapAnDung</td>
+                                    <td class="text-center">@item.Diem</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    document.querySelectorAll("p").forEach(function (p) {
+        if (p.innerHTML.trim() === "&nbsp;") p.remove();
+    });
+</script>

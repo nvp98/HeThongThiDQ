@@ -1,0 +1,37 @@
+﻿.watermark {
+    background-repeat: repeat;
+    background-image: url("../../Content/assets/images/WaterMarkElearning.jpg") !important;
+    background-size: 297mm 210mm;
+    -webkit-print-color-adjust: exact !important;
+}
+.watermark1 {
+    color: black;
+    font-family: Arial, Helvetica, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: fixed;
+    bottom: 5px;
+    right: 5px;
+}
+@media print {
+    /*.watermark {
+        background-repeat: repeat;
+        background-image: url("../../Content/assets/images/WaterMark.png") !important;
+    }*/
+    page-break-inside: avoid;
+    .pagebreak {
+        clear: both;
+        page-break-after: always;
+    }
+}
+
+@page {
+    size: A4 landscape;
+    margin: 20px;
+}
+
+table, th, td {
+    border: 2px solid black;
+    border-collapse: collapse;
+}
