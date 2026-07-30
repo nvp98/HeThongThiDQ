@@ -1,6 +1,8 @@
 using HeThongThiDQ.Common;
 using HeThongThiDQ.Data;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 
@@ -49,6 +51,20 @@ builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<MyAuthentication>();
 builder.Services.AddScoped<HeThongThiDQ.Controllers.HomeController>();
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor |
+        ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();  // trust nginx từ bất kỳ IP nào
+    options.KnownProxies.Clear();
+});
+
+// Persist Data Protection keys vào DB — chia sẻ key giữa tất cả IIS worker processes
+builder.Services.AddDataProtection()
+    .PersistKeysToDbContext<ELEARNINGEntities>()
+    .SetApplicationName("HeThongThiDQ");
+
 var app = builder.Build();
 
 if (!app.Environment.IsDevelopment())
@@ -58,15 +74,16 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseResponseCompression(); // Phải trước UseStaticFiles
-app.UseHttpsRedirection();
+app.UseForwardedHeaders();      // Phải gọi trước
+// app.UseHttpsRedirection();
 app.UseStaticFiles();
 
 app.UseRouting();
 
+app.UseSession();
+
 app.UseAuthentication();
 app.UseAuthorization();
-
-app.UseSession();
 
 app.MapControllerRoute(
     name: "default",
