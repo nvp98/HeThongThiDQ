@@ -42,6 +42,102 @@
     <link rel="stylesheet" type="text/css" href="~/Content/assets/DataTables/datatables.min.css" />
     <script type="text/javascript" src="~/Content/assets/DataTables/datatables.min.js"></script>
     <script src="~/Content/assets/TinyMCE/js/tinymce/tinymce.min.js"></script>
+    <style>
+    /* ---- Ẩn hoàn toàn sidebar khi closed-sidebar ---- */
+    .closed-sidebar .app-sidebar {
+        display: none !important;
+    }
+    .closed-sidebar .app-main {
+        margin-left: 0 !important;
+        padding-left: 0 !important;
+        width: 100% !important;
+    }
+    .closed-sidebar .app-main .app-main__outer,
+    .closed-sidebar .app-main .app-main__inner {
+        margin-left: 0 !important;
+        padding-left: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
+    /* ---- Icon dùng class riêng, tránh xung đột template ---- */
+    .nav-icon {
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        width: 26px !important;
+        height: 26px !important;
+        font-size: 14px !important;
+        flex-shrink: 0 !important;
+        opacity: .6;
+        transition: color .18s, opacity .18s !important;
+    }
+    /* ---- Menu item enhancements ---- */
+    .vertical-nav-menu li > a {
+        border-radius: 8px !important;
+        margin: 2px 8px !important;
+        padding: 9px 14px !important;
+        font-size: 13.5px !important;
+        font-weight: 500 !important;
+        transition: background .18s, color .18s, border-color .18s !important;
+        border-left: 3px solid transparent !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 6px !important;
+    }
+    .vertical-nav-menu li > a:hover {
+        background: #e8f0fe !important;
+        color: #1a73e8 !important;
+        text-decoration: none !important;
+        border-left-color: #1a73e8 !important;
+    }
+    .vertical-nav-menu li > a:hover .nav-icon {
+        color: #1a73e8 !important;
+        opacity: 1 !important;
+    }
+    /* Active item */
+    .vertical-nav-menu li.mm-active > a,
+    .vertical-nav-menu li > a.sb-active {
+        background: #e8f0fe !important;
+        color: #1558b0 !important;
+        font-weight: 700 !important;
+        border-left-color: #1a73e8 !important;
+    }
+    .vertical-nav-menu li.mm-active > a .nav-icon,
+    .vertical-nav-menu li > a.sb-active .nav-icon {
+        color: #1a73e8 !important;
+        opacity: 1 !important;
+    }
+    /* Section headings */
+    .app-sidebar__heading {
+        font-size: 10.5px !important;
+        font-weight: 800 !important;
+        letter-spacing: 1.2px !important;
+        color: #9aaec1 !important;
+        padding: 16px 18px 4px !important;
+        margin-top: 4px !important;
+    }
+    /* Sub-menu items */
+    .vertical-nav-menu ul a {
+        font-size: 13px !important;
+        padding: 8px 14px 8px 42px !important;
+        color: #555 !important;
+        border-left: 3px solid transparent !important;
+        margin: 1px 8px !important;
+        border-radius: 6px !important;
+        display: block !important;
+    }
+    .vertical-nav-menu ul a:hover {
+        background: #e8f0fe !important;
+        color: #1a73e8 !important;
+        border-left-color: #1a73e8 !important;
+    }
+    /* Caret icon trong dropdown */
+    .metismenu-state-icon {
+        margin-left: auto !important;
+        font-size: 13px !important;
+    }
+    </style>
 </head>
 <body style="padding-right:0px !important">
 
@@ -141,7 +237,7 @@
                             <li class="app-sidebar__heading">Tổng quan</li>
                             <li>
                                 <a asp-controller="EClassroom" asp-action="Index">
-                                    <i class="metismenu-icon pe-7s-display1"></i>
+                                    <i class="nav-icon fa fa-th-large"></i>
                                     Khóa thi của bạn
                                 </a>
                             </li>
@@ -150,8 +246,8 @@
                             {
                                 <li>
                                     <a href="#" id="IDTK">
-                                        <i class="metismenu-icon pe-7s-graph"></i>Thống kê
-                                        <i class="metismenu-state-icon pe-7s-angle-down caret-left"></i>
+                                        <i class="nav-icon fa fa-bar-chart"></i>Thống kê
+                                        <i class="metismenu-state-icon fa fa-angle-down"></i>
                                     </a>
                                     <ul id="LSTK">
                                         <li>
@@ -168,7 +264,7 @@
                             {
                                 <li>
                                     <a asp-controller="Account" asp-action="Index">
-                                        <i class="metismenu-icon pe-7s-users"></i>
+                                        <i class="nav-icon fa fa-users"></i>
                                         Tài khoản
                                     </a>
                                 </li>
@@ -178,7 +274,7 @@
                             {
                                 <li>
                                     <a asp-controller="FPermision" asp-action="Index">
-                                        <i class="metismenu-icon pe-7s-config"></i>Phân Quyền
+                                        <i class="nav-icon fa fa-shield"></i>Phân Quyền
                                     </a>
                                 </li>
                                 showQuanTri = 1;
@@ -187,7 +283,7 @@
                             {
                                 <li>
                                     <a asp-controller="Notification" asp-action="Index">
-                                        <i class="metismenu-icon pe-7s-volume2"></i>Cấu hình thông báo
+                                        <i class="nav-icon fa fa-bell-o"></i>Cấu hình thông báo
                                     </a>
                                 </li>
                                 showQuanTri = 1;
@@ -198,26 +294,26 @@
                                 <li class="app-sidebar__heading">Quản lý Học Vụ</li>
                                 <li>
                                     <a asp-controller="ManageETContent" asp-action="Index">
-                                        <i class="metismenu-icon pe-7s-portfolio"></i>
+                                        <i class="nav-icon fa fa-folder-open-o"></i>
                                         Quản lý NDĐT
                                     </a>
                                 </li>
                                 <li>
                                     <a asp-controller="ManageClass" asp-action="Index" asp-route-IDPB="@Auth.IDPhongban">
-                                        <i class="metismenu-icon pe-7s-id"></i>
+                                        <i class="nav-icon fa fa-list-alt"></i>
                                         Quản lý Chủ đề thi
                                     </a>
                                 </li>
                                 <li class="app-sidebar__heading">Quản lý câu hỏi đề thi</li>
                                 <li>
                                     <a asp-controller="Question" asp-action="Index" asp-route-IDND="1">
-                                        <i class="metismenu-icon pe-7s-display2"></i>
+                                        <i class="nav-icon fa fa-question-circle-o"></i>
                                         Ngân hàng câu hỏi
                                     </a>
                                 </li>
                                 <li>
                                     <a asp-controller="ManageTestExam" asp-action="Index" asp-route-IDND="1">
-                                        <i class="metismenu-icon pe-7s-display2"></i>
+                                        <i class="nav-icon fa fa-file-text-o"></i>
                                         Ngân hàng đề thi
                                     </a>
                                 </li>
@@ -229,7 +325,7 @@
                             {
                                 <li>
                                     <a asp-controller="FDepartment" asp-action="Index">
-                                        <i class="metismenu-icon pe-7s-tools"></i>Phòng Ban
+                                        <i class="nav-icon fa fa-building-o"></i>Phòng Ban
                                     </a>
                                 </li>
                                 showQuanTriKNL = 1;
@@ -266,6 +362,20 @@
             if (@showQTriKNL    == 1) { $("#QTriKNL").css("display", "block"); }
             if (@showQTriHV     == 1) { $("#QTriHV").css("display", "block"); }
             if (@showQTriCHDT   == 1) { $("#QTriCHDT").css("display", "block"); }
+
+            // Active menu item theo URL hiện tại
+            var cur = window.location.pathname.toLowerCase().replace(/\/index$/, '').replace(/\/$/, '') || '/';
+            $('.vertical-nav-menu a[href]').each(function () {
+                var href = ($(this).attr('href') || '').toLowerCase().replace(/\/index$/, '').replace(/\/$/, '');
+                if (!href || href === '#') return;
+                if (cur === href || cur.startsWith(href + '/') || cur.startsWith(href + '?')) {
+                    $(this).addClass('sb-active');
+                    $(this).closest('li').addClass('mm-active');
+                    // Mở parent submenu nếu là sub-item
+                    $(this).closest('ul.collapse, ul:not(.vertical-nav-menu)').prev('a').addClass('sb-active');
+                    $(this).closest('ul.collapse, ul:not(.vertical-nav-menu)').parent('li').addClass('mm-active');
+                }
+            });
         });
     </script>
 

@@ -165,5 +165,100 @@ namespace HeThongThiDQ.Controllers
         {
             return Json(true);
         }
+
+        [HttpPost]
+        public async Task<IActionResult> SubmitExamAjax([FromBody] ExamSubmitDto dto)
+        {
+            if (dto.Answers == null || dto.Answers.Count == 0)
+                return Json(new { success = false, message = "Không có câu trả lời" });
+
+            var lanthi = await _db.BaiThis
+                .Where(x => x.Idnv == _auth.ID && x.IddeThi == dto.IDDeThi && x.Idlh == dto.IDLH)
+                .ToListAsync();
+            var lophoc = await _db.LopHocs.FirstOrDefaultAsync(x => x.Idlh == dto.IDLH);
+
+            if (lanthi.Count >= 1 && lophoc?.IsCoCtdt == 0)
+                return Json(new { success = false, message = "Bạn đã hoàn thành bài thi", redirectUrl = Url.Action("Index", "EClassroom") });
+
+            var baiThi = new BaiThi
+            {
+                Idlh       = dto.IDLH,
+                IddeThi    = dto.IDDeThi,
+                Idnd       = dto.IDND,
+                Idnv       = _auth.ID,
+                IdphongBan = _auth.IDPhongban,
+                IdviTri    = _auth.IDViTri,
+                DiemSo     = 0,
+                NgayThi    = DateOnly.FromDateTime(DateTime.Now),
+                TinhTrang  = false,
+                LanThi     = lanthi.Count + 1,
+                GioBatDau  = lophoc?.Tgbdlh,
+                GioKetThuc = lophoc?.Tgktlh
+            };
+
+            if (dto.ThoiGianSec > 0) baiThi.ThoiGianThi = dto.ThoiGianSec;
+            if (dto.TGBDLamBaiThi > 0)
+            {
+                baiThi.GioBatDau  = DateTimeOffset.FromUnixTimeMilliseconds(dto.TGBDLamBaiThi).LocalDateTime;
+                baiThi.GioKetThuc = DateTime.Now;
+            }
+
+            _db.BaiThis.Add(baiThi);
+            await _db.SaveChangesAsync();
+
+            // Tra đáp án đúng từ DB — client không gửi IDDADung
+            var idCHList = dto.Answers.Select(a => a.IDCH).ToList();
+            var cauHoiMap = await (
+                from cd in _db.CauHoiDeThis.Where(x => x.IddeThi == dto.IDDeThi && x.IdcauHoi.HasValue && idCHList.Contains(x.IdcauHoi!.Value))
+                join ch in _db.CauHois on cd.IdcauHoi equals ch.Idch
+                select new { IdcauHoi = cd.IdcauHoi!.Value, ch.Iddađung, cd.Diem }
+            ).ToDictionaryAsync(x => x.IdcauHoi);
+
+            foreach (var ans in dto.Answers)
+            {
+                if (!cauHoiMap.TryGetValue(ans.IDCH, out var info)) continue;
+                _db.CtbaiThis.Add(new CtbaiThi
+                {
+                    IdbaiThi    = baiThi.IdbaiThi,
+                    IdcauHoi    = ans.IDCH,
+                    IddapAnDung = info.Iddađung,
+                    IddapAnNv   = ans.Answer,
+                    Diem        = info.Iddađung == ans.Answer ? (info.Diem ?? 0) : 0
+                });
+            }
+            await _db.SaveChangesAsync();
+
+            double diemSo = await _db.CtbaiThis
+                .Where(x => x.IdbaiThi == baiThi.IdbaiThi)
+                .SumAsync(x => x.Diem) ?? 0;
+
+            baiThi.DiemSo    = diemSo;
+            baiThi.TinhTrang = true;
+            await _db.SaveChangesAsync();
+
+            TempData["Message"] = $"Với số điểm là: {diemSo}/100";
+
+            return Json(new
+            {
+                success     = true,
+                redirectUrl = Url.Action("ViewResult", "EClassroom", new { IDLH = dto.IDLH, IDBaiThi = baiThi.IdbaiThi })
+            });
+        }
+
+        public class ExamAnswerDto
+        {
+            public int  IDCH   { get; set; }
+            public int? Answer { get; set; }
+        }
+
+        public class ExamSubmitDto
+        {
+            public int  IDLH          { get; set; }
+            public int  IDDeThi       { get; set; }
+            public int  IDND          { get; set; }
+            public int  ThoiGianSec   { get; set; }
+            public long TGBDLamBaiThi { get; set; }
+            public List<ExamAnswerDto> Answers { get; set; } = new();
+        }
     }
 }

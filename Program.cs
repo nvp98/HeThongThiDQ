@@ -24,8 +24,12 @@ builder.Services.AddDbContext<ELEARNINGEntities>(options =>
     options.UseSqlServer(builder.Configuration.GetConnectionString("DbConnectionString"),
         sql => sql.EnableRetryOnFailure(3, TimeSpan.FromSeconds(5), null)));
 
-// Memory cache for permissions sidebar
-builder.Services.AddMemoryCache();
+// Distributed cache (Redis) — dùng chung giữa tất cả IIS instances
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis");
+    options.InstanceName = "HPDQ:";
+});
 
 // Cookie Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)

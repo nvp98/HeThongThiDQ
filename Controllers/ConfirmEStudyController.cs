@@ -375,8 +375,9 @@ namespace HeThongThiDQ.Controllers
                               TenPB = p != null ? p.TenPhongBan : null,
                               TenVT = v != null ? v.TenViTri : null,
                               NoiDungDT = nd != null ? nd.NoiDung : null,
-                              ThoiGianLamBai = dt != null ? dt.ThoiGianLamBai ?? 0 : 0,
-                              TenDeThi = dt != null ? dt.TenDe : null
+                              ThoiGianLamBai  = dt != null ? dt.ThoiGianLamBai ?? 0 : 0,
+                              TenDeThi        = dt != null ? dt.TenDe : null,
+                              ThoiGianThiGiay = a.ThoiGianThi ?? 0
                           }).FirstOrDefault();
 
             if (baiThi == null) return RedirectToAction("Index", "ConfirmEStudy", new { id = LHID });
@@ -419,9 +420,10 @@ namespace HeThongThiDQ.Controllers
                 NoiDungDT = baiThi.NoiDungDT,
                 ThoiGianLamBai = baiThi.ThoiGianLamBai,
                 TenDeThi = baiThi.TenDeThi,
-                CauHois = cauHois
+                CauHois  = cauHois
             };
 
+            ViewBag.ThoiGianThiGiay = baiThi.ThoiGianThiGiay;
             return View(vm);
         }
     }

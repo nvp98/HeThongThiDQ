@@ -3,128 +3,387 @@
 @{
     ViewBag.Title = "Kết quả bài thi";
     Layout = "~/Views/Shared/_Layout.cshtml";
+
+    int tgGiay   = (int)(ViewBag.ThoiGianThiGiay ?? 0);
+    var tgSpan   = TimeSpan.FromSeconds(tgGiay);
+    string tgThucTe = tgGiay > 0
+        ? (tgGiay >= 3600
+            ? $"{(int)tgSpan.TotalHours:D2}:{tgSpan.Minutes:D2}:{tgSpan.Seconds:D2}"
+            : $"{tgSpan.Minutes:D2}:{tgSpan.Seconds:D2}")
+        : "--:--";
+
+    int totalQ   = Model.CauHois.Count;
+    int correctQ  = Model.CauHois.Count(q => q.IDDAHocVien == q.IDDADung && q.IDDAHocVien != null);
+    int wrongQ    = Model.CauHois.Count(q => q.IDDAHocVien != null && q.IDDAHocVien != q.IDDADung);
+    int skippedQ  = totalQ - correctQ - wrongQ;
+    double maxScore = Model.CauHois.Sum(q => q.Diem > 0 ? q.Diem : 0);
+
+    // Tính tỉ lệ để chọn màu header score
+    double pct = maxScore > 0 ? Model.DiemSo / maxScore * 100 : 0;
+    string scoreColor = pct >= 80 ? "#34a853" : pct >= 70 ? "#1a73e8" : pct >= 50 ? "#f57c00" : "#d32f2f";
 }
 
 <style>
-    .table img { max-width: 100%; height: auto; display: block; margin: 0 auto; }
-    td img { margin-left: 0 !important; }
-    td p { display: block; margin: 10px 0; }
+:root {
+    --blue:   #1a73e8;
+    --green:  #34a853;
+    --red:    #d32f2f;
+    --orange: #f57c00;
+    --bg:     #f0f2f5;
+}
+
+.tv-wrapper {
+    background: var(--bg);
+    min-height: calc(100vh - 60px);
+    padding: 0 0 40px;
+}
+
+/* ---- sticky top bar ---- */
+.tv-topbar {
+    position: sticky;
+    top: 60px;
+    z-index: 100;
+    background: #fff;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 10px 24px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+.tv-back {
+    display: flex; align-items: center; gap: 6px;
+    color: #555; font-size: 13px; font-weight: 600;
+    text-decoration: none; padding: 6px 12px;
+    border-radius: 8px; border: 1px solid #e0e0e0;
+    background: #f8f9fa; transition: background .15s;
+}
+.tv-back:hover { background: #ececec; color: #222; }
+.tv-topbar-title {
+    font-size: 15px; font-weight: 700; color: #222; flex: 1;
+}
+.tv-print {
+    display: flex; align-items: center; gap: 6px;
+    color: #1a73e8; font-size: 13px; font-weight: 600;
+    text-decoration: none; padding: 6px 14px;
+    border-radius: 8px; border: 1px solid #d2e3fc;
+    background: #e8f0fe; transition: background .15s; cursor: pointer;
+}
+.tv-print:hover { background: #d2e3fc; }
+
+/* ---- content ---- */
+.tv-content { max-width: 900px; margin: 0 auto; padding: 24px 16px 0; }
+
+/* ---- info card ---- */
+.tv-info-card {
+    background: #fff; border-radius: 16px;
+    box-shadow: 0 1px 6px rgba(0,0,0,.08);
+    padding: 22px 24px; margin-bottom: 16px;
+}
+.tv-card-title {
+    font-size: 18px; font-weight: 800; color: #222;
+    text-align: center; text-transform: uppercase;
+    letter-spacing: .5px; margin-bottom: 20px;
+    padding-bottom: 14px; border-bottom: 2px solid #e8f0fe;
+}
+.tv-info-grid {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 8px 24px;
+}
+.tv-info-row {
+    display: flex; align-items: flex-start; gap: 6px;
+    font-size: 13.5px; color: #444; padding: 4px 0;
+}
+.tv-info-label {
+    color: #888; font-weight: 600; white-space: nowrap;
+    min-width: 110px;
+}
+.tv-info-val { color: #222; font-weight: 600; }
+@@media (max-width:600px) {
+    .tv-info-grid { grid-template-columns: 1fr; }
+}
+
+/* ---- score summary ---- */
+.tv-stats {
+    display: grid; grid-template-columns: repeat(4, 1fr);
+    gap: 12px; margin-bottom: 16px;
+}
+.tv-stat-card {
+    background: #fff; border-radius: 14px;
+    box-shadow: 0 1px 6px rgba(0,0,0,.08);
+    padding: 18px 14px; text-align: center;
+}
+.tv-stat-num  { font-size: 28px; font-weight: 800; line-height: 1; }
+.tv-stat-label{ font-size: 12px; color: #888; margin-top: 5px; font-weight: 600; }
+@@media (max-width:700px) {
+    .tv-stats { grid-template-columns: repeat(2, 1fr); }
+}
+@@media (max-width:480px) {
+    .tv-stats { grid-template-columns: 1fr; }
+    .tv-stat-num { font-size: 22px; }
+}
+
+/* ---- question cards ---- */
+.q-card {
+    background: #fff; border-radius: 14px;
+    box-shadow: 0 1px 5px rgba(0,0,0,.07);
+    padding: 18px 20px; margin-bottom: 14px;
+    border-left: 4px solid #e0e0e0;
+}
+.q-card.correct { border-left-color: var(--green); }
+.q-card.wrong   { border-left-color: var(--red);   }
+.q-card.skipped { border-left-color: var(--orange); }
+
+.q-header {
+    display: flex; align-items: center; gap: 10px;
+    margin-bottom: 12px;
+}
+.q-num {
+    background: #1a73e8; color: #fff; font-size: 11px;
+    font-weight: 700; padding: 3px 11px; border-radius: 20px;
+}
+.q-result-badge {
+    font-size: 12px; font-weight: 700; padding: 3px 11px;
+    border-radius: 20px; margin-left: auto;
+}
+.badge-correct { background: #e8f5e9; color: #2e7d32; }
+.badge-wrong   { background: #ffebee; color: #c62828; }
+.badge-skipped { background: #fff8e1; color: #e65100; }
+
+.q-score-chip {
+    font-size: 12px; color: #888;
+    background: #f5f5f5; padding: 3px 10px; border-radius: 12px;
+}
+
+.q-text {
+    font-size: 14.5px; line-height: 1.65; color: #222;
+    margin-bottom: 14px; font-weight: 600;
+}
+.q-text img { max-width:100%; border-radius:6px; margin-top:6px; display:block; }
+
+/* answer option rows */
+.ans-list   { display: flex; flex-direction: column; gap: 7px; }
+.ans-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 10px 14px; border-radius: 9px;
+    font-size: 13.5px; color: #444; background: #fafbff;
+    border: 2px solid #eee; transition: none;
+}
+
+/* States */
+.ans-row.ans-correct-chosen {
+    border-color: var(--green);
+    background: #e8f5e9;
+    color: #1b5e20;
+}
+.ans-row.ans-wrong-chosen {
+    border-color: var(--red);
+    background: #ffebee;
+    color: #b71c1c;
+}
+.ans-row.ans-correct-only {
+    border-color: #a5d6a7;
+    background: #f1f8e9;
+    color: #2e7d32;
+}
+
+.ans-letter {
+    width: 28px; height: 28px; min-width: 28px;
+    border-radius: 50%; border: 2px solid #c5cae9;
+    background: #fff; display: flex; align-items: center; justify-content: center;
+    font-weight: 800; font-size: 12px; color: #3f51b5;
+    flex-shrink: 0;
+}
+.ans-row.ans-correct-chosen .ans-letter { background: var(--green); border-color: var(--green); color:#fff; }
+.ans-row.ans-wrong-chosen   .ans-letter { background: var(--red);   border-color: var(--red);   color:#fff; }
+.ans-row.ans-correct-only   .ans-letter { background: #a5d6a7;       border-color: #a5d6a7;       color:#fff; }
+
+.ans-icon { margin-left: auto; font-size: 16px; flex-shrink: 0; }
+
+/* ---- print ---- */
+@@media print {
+    .tv-topbar, .tv-print { display: none !important; }
+    .tv-wrapper { background: white; }
+    .q-card { page-break-inside: avoid; box-shadow: none; border: 1px solid #ccc; }
+    .tv-info-card, .tv-stat-card { box-shadow: none; border: 1px solid #ccc; }
+}
 </style>
 
 <div class="app-main__outer">
-    <div class="app-main__inner">
+    <div class="app-main__inner" style="padding:0;">
+        <div class="tv-wrapper">
 
-        <div class="app-page-title" style="margin-bottom: 5px">
-            <div class="page-title-wrapper">
-                <div class="page-title-heading">
-                    <div class="page-title-icon">
-                        <i class="pe-7s-display2 icon-gradient bg-grow-early"></i>
-                    </div>
-                    <div>Bài thi</div>
-                </div>
+            <!-- Topbar -->
+            <div class="tv-topbar">
+                <a class="tv-back" href="@Url.Action("Index","EClassroom")">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"
+                         viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/></svg>
+                    Quay về
+                </a>
+                <span class="tv-topbar-title">Kết quả bài thi — @(Model.HoTen ?? "Học viên")</span>
+                <button class="tv-print" onclick="window.print()">
+                    <svg width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"
+                         viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+                    In kết quả
+                </button>
             </div>
-        </div>
 
-        <div class="tab-content">
-            <div class="row">
-                <div class="card col-md-12">
-                    <div class="HeadTest row">
-                        <div class="col-md-12" style="padding-bottom: 1rem;">
-                            <p style="text-align:center; font-size: 1.5rem; font-weight:bold; text-transform:uppercase;">Kết quả bài thi</p>
+            <div class="tv-content">
+
+                <!-- Info card -->
+                <div class="tv-info-card">
+                    <div class="tv-card-title">Kết Quả Bài Thi Lý Thuyết</div>
+                    <div class="tv-info-grid">
+                        <div class="tv-info-row">
+                            <span class="tv-info-label">Họ và tên:</span>
+                            <span class="tv-info-val">@Model.HoTen</span>
                         </div>
-                        <div class="col-md-6">
-                            <p>- Họ và tên: @Model.HoTen</p>
-                            <p>- Mã nhân viên: @Model.MaNV</p>
+                        <div class="tv-info-row">
+                            <span class="tv-info-label">Ngày kiểm tra:</span>
+                            <span class="tv-info-val">@Model.NgayThi.ToString("dd/MM/yyyy")</span>
                         </div>
-                        <div class="col-md-6">
-                            <p>- Ngày kiểm tra: @Model.NgayThi.ToString("dd/MM/yyyy")</p>
-                            <p>- Thời gian làm bài: @Model.ThoiGianLamBai phút</p>
+                        <div class="tv-info-row">
+                            <span class="tv-info-label">Mã nhân viên:</span>
+                            <span class="tv-info-val">@Model.MaNV</span>
                         </div>
-                        <div class="col-md-12">
-                            <p>- Bộ phận: @Model.TenPhongBan</p>
-                            <p>- Nội dung: @Model.NoiDungDT</p>
-                            <p>- Đề thi: @Model.TenDeThi</p>
+                        <div class="tv-info-row">
+                            <span class="tv-info-label">Thời gian cho phép:</span>
+                            <span class="tv-info-val">@Model.ThoiGianLamBai phút</span>
                         </div>
-                        <div class="col-md-12" style="text-decoration:underline;">
-                            <p><strong>Kết quả:</strong></p>
+                        <div class="tv-info-row">
+                            <span class="tv-info-label">Thời gian làm bài:</span>
+                            <span class="tv-info-val" style="color:#1a73e8;font-weight:700;">@tgThucTe</span>
                         </div>
-                        <div class="col-md-12">
-                            <table class="table table-bordered table-responsive">
-                                <thead class="thead-light">
-                                    <tr>
-                                        <th class="text-center" width="25%">Hình thức thi</th>
-                                        <th class="text-center" width="25%">Điểm</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr>
-                                        <td class="text-center">Lý thuyết</td>
-                                        <td class="text-center">@Model.DiemSo</td>
-                                    </tr>
-                                </tbody>
-                            </table>
+                        <div class="tv-info-row">
+                            <span class="tv-info-label">Bộ phận:</span>
+                            <span class="tv-info-val">@Model.TenPhongBan</span>
+                        </div>
+                        <div class="tv-info-row">
+                            <span class="tv-info-label">Lần thi:</span>
+                            <span class="tv-info-val">Lần @Model.LanThi</span>
+                        </div>
+                        <div class="tv-info-row" style="grid-column:1/-1;">
+                            <span class="tv-info-label">Nội dung:</span>
+                            <span class="tv-info-val">@Model.NoiDungDT</span>
+                        </div>
+                        <div class="tv-info-row" style="grid-column:1/-1;">
+                            <span class="tv-info-label">Đề thi:</span>
+                            <span class="tv-info-val">@Model.TenDeThi</span>
                         </div>
                     </div>
+                </div>
 
-                    <table class="table table-bordered">
-                        <thead class="thead-light">
-                            <tr>
-                                <th width="30px" class="text-center">STT</th>
-                                <th class="text-center">Nội Dung câu hỏi</th>
-                                <th class="text-center">Đáp án đúng</th>
-                                <th class="text-center">Điểm thi</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @{ int RowNo = 1; }
-                            @foreach (var item in Model.CauHois)
+                <!-- Score stats -->
+                <div class="tv-stats">
+                    <div class="tv-stat-card">
+                        <div class="tv-stat-num" style="color:@scoreColor">
+                            @Model.DiemSo.ToString("G4")
+                            @if (maxScore > 0)
                             {
-                                <tr>
-                                    <td class="text-center">@RowNo@{ RowNo++; }</td>
-                                    <td>
-                                        <span class="font-weight-bold">Câu hỏi: @Html.Raw(item.NoiDungCH)</span><br />
-                                        @{
-                                            var answers = new[]
-                                            {
-                                                new { Label = "A", Text = item.DapAnA, Val = 1 },
-                                                new { Label = "B", Text = item.DapAnB, Val = 2 },
-                                                new { Label = "C", Text = item.DapAnC, Val = 3 },
-                                                new { Label = "D", Text = item.DapAnD, Val = 4 },
-                                            };
-                                        }
-                                        @foreach (var ans in answers)
-                                        {
-                                            if (item.IDDAHocVien == ans.Val)
-                                            {
-                                                if (item.IDDAHocVien == item.IDDADung)
-                                                {
-                                                    <span class="text-success">@ans.Label: @Html.Raw(ans.Text)</span><br />
-                                                }
-                                                else
-                                                {
-                                                    <span class="text-danger">@ans.Label: @Html.Raw(ans.Text)</span><br />
-                                                }
-                                            }
-                                            else
-                                            {
-                                                <span>@ans.Label: @Html.Raw(ans.Text)</span><br />
-                                            }
-                                        }
-                                    </td>
-                                    <td class="text-center">@item.DapAnDung</td>
-                                    <td class="text-center">@item.Diem</td>
-                                </tr>
+                                <span style="font-size:15px;font-weight:600;color:#aaa">/@maxScore.ToString("G4")</span>
                             }
-                        </tbody>
-                    </table>
+                        </div>
+                        <div class="tv-stat-label">Điểm số đạt được</div>
+                    </div>
+                    <div class="tv-stat-card">
+                        <div class="tv-stat-num" style="color:var(--green)">
+                            @correctQ
+                            <span style="font-size:15px;font-weight:600;color:#aaa">/@totalQ</span>
+                        </div>
+                        <div class="tv-stat-label">Câu trả lời đúng</div>
+                    </div>
+                    <div class="tv-stat-card">
+                        <div class="tv-stat-num" style="color:var(--red)">
+                            @wrongQ
+                            @if (skippedQ > 0)
+                            {
+                                <span style="font-size:13px;color:var(--orange);font-weight:700">+@skippedQ bỏ qua</span>
+                            }
+                        </div>
+                        <div class="tv-stat-label">Câu trả lời sai</div>
+                    </div>
+                    <div class="tv-stat-card">
+                        <div class="tv-stat-num" style="color:#1a73e8;font-size:22px;letter-spacing:1px;">
+                            @tgThucTe
+                        </div>
+                        <div class="tv-stat-label">Thời gian làm bài</div>
+                    </div>
                 </div>
-            </div>
-        </div>
+
+                <!-- Questions -->
+                @{ int rowNo = 1; }
+                @foreach (var q in Model.CauHois)
+                {
+                    bool answered = q.IDDAHocVien != null;
+                    bool isCorrect = answered && q.IDDAHocVien == q.IDDADung;
+                    bool isWrong   = answered && q.IDDAHocVien != q.IDDADung;
+
+                    string cardClass   = isCorrect ? "correct" : isWrong ? "wrong" : "skipped";
+                    string badgeClass  = isCorrect ? "badge-correct" : isWrong ? "badge-wrong" : "badge-skipped";
+                    string badgeText   = isCorrect ? "✓ Đúng" : isWrong ? "✗ Sai" : "— Bỏ qua";
+
+                    var answerDefs = new[]
+                    {
+                        new { Label = "A", Text = q.DapAnA, Val = 1 },
+                        new { Label = "B", Text = q.DapAnB, Val = 2 },
+                        new { Label = "C", Text = q.DapAnC, Val = 3 },
+                        new { Label = "D", Text = q.DapAnD, Val = 4 },
+                    };
+
+                    <div class="q-card @cardClass">
+                        <div class="q-header">
+                            <span class="q-num">Câu @rowNo</span>
+                            <span class="q-result-badge @badgeClass">@badgeText</span>
+                            <span class="q-score-chip">@q.Diem điểm</span>
+                        </div>
+
+                        <div class="q-text">@Html.Raw(q.NoiDungCH)</div>
+
+                        <div class="ans-list">
+                            @foreach (var ans in answerDefs)
+                            {
+                                bool studentChose = q.IDDAHocVien == ans.Val;
+                                bool isRightAns   = q.IDDADung    == ans.Val;
+
+                                string rowCls = "";
+                                string icon   = "";
+
+                                if (studentChose && isRightAns)
+                                {
+                                    rowCls = "ans-correct-chosen";
+                                    icon   = "<span class=\"ans-icon\">✓</span>";
+                                }
+                                else if (studentChose && !isRightAns)
+                                {
+                                    rowCls = "ans-wrong-chosen";
+                                    icon   = "<span class=\"ans-icon\">✗</span>";
+                                }
+                                else if (!studentChose && isRightAns)
+                                {
+                                    rowCls = "ans-correct-only";
+                                    icon   = "<span class=\"ans-icon\" title=\"Đáp án đúng\">★</span>";
+                                }
+
+                                <div class="ans-row @rowCls">
+                                    <span class="ans-letter">@ans.Label</span>
+                                    <span style="flex:1">@Html.Raw(ans.Text)</span>
+                                    @Html.Raw(icon)
+                                </div>
+                            }
+                        </div>
+                    </div>
+
+                    rowNo++;
+                }
+
+            </div><!-- /tv-content -->
+        </div><!-- /tv-wrapper -->
     </div>
 </div>
 
 <script>
-    document.querySelectorAll("p").forEach(function (p) {
-        if (p.innerHTML.trim() === "&nbsp;") p.remove();
+    // Xóa các đoạn p rỗng trong nội dung câu hỏi
+    document.querySelectorAll('.q-text p, .ans-row p').forEach(function (p) {
+        if (p.innerHTML.trim() === '&nbsp;' || p.innerHTML.trim() === '') p.remove();
     });
 </script>

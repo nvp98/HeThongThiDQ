@@ -16,7 +16,7 @@ namespace HeThongThiDQ.Controllers
 
         public EClassroomController(ELEARNINGEntities db, MyAuthentication auth)
         {
-            _db = db;
+            _db   = db;
             _auth = auth;
         }
 
@@ -152,7 +152,10 @@ namespace HeThongThiDQ.Controllers
                 .SumAsync(x => x.Diem);
 
             var baithi = await _db.BaiThis.AsNoTracking().FirstOrDefaultAsync(x => x.IdbaiThi == IDBaiThi);
-            ViewBag.DiemThi = (baithi?.DiemSo ?? 0) + "/" + tongdiem;
+            ViewBag.DiemThi         = (baithi?.DiemSo ?? 0) + "/" + tongdiem;
+            ViewBag.ThoiGianThiGiay = baithi?.ThoiGianThi ?? 0;
+            ViewBag.GioBatDau       = baithi?.GioBatDau;
+            ViewBag.GioKetThuc      = baithi?.GioKetThuc;
 
             return View();
         }

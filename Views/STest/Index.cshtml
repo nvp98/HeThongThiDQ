@@ -5,341 +5,695 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-@if (TempData["msgSuccess"] != null)
-{
-    @Html.Raw(TempData["msgSuccess"])
-}
-@if (TempData["msgError"] != null)
-{
-    @Html.Raw(TempData["msgError"])
-}
+@if (TempData["msgSuccess"] != null) { @Html.Raw(TempData["msgSuccess"]) }
+@if (TempData["msgError"]   != null) { @Html.Raw(TempData["msgError"])   }
 
 <style>
-    input[type="radio"] {
-        transform: scale(1.5);
-    }
+/* ====== ROOT ====== */
+:root {
+    --blue:      #1a73e8;
+    --blue-dark: #1558b0;
+    --green:     #34a853;
+    --orange:    #f57c00;
+    --red:       #d32f2f;
+    --bg:        #f0f2f5;
+    --card-bg:   #ffffff;
+    --border:    #e8eaf6;
+    --text:      #222222;
+    --muted:     #757575;
+    --sidebar-w: 270px;
+    --nav-h:     60px;
+}
 
-    .question-nav-btn {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        font-size: clamp(5px, 2.5vw, 16px);
-        width: clamp(5px, 4vw, 40px);
-        height: clamp(5px, 4vw, 40px);
-        margin: 5px;
-        background-color: #f9e79f;
-        border: none;
-        border-radius: 8px;
-        font-weight: bold;
-    }
+/* ====== LAYOUT ====== */
+.exam-wrapper {
+    display: flex;
+    min-height: calc(100vh - var(--nav-h));
+    background: var(--bg);
+}
 
-        .question-nav-btn.answered {
-            background-color: #28a745;
-            color: white;
-        }
+/* ====== SIDEBAR ====== */
+.exam-sidebar {
+    width: var(--sidebar-w);
+    min-width: var(--sidebar-w);
+    position: sticky;
+    top: var(--nav-h);
+    height: calc(100vh - var(--nav-h));
+    overflow-y: auto;
+    background: var(--card-bg);
+    border-right: 1px solid #e0e0e0;
+    display: flex;
+    flex-direction: column;
+    padding: 16px 14px;
+    gap: 12px;
+    scrollbar-width: thin;
+}
 
-    .fixed-header {
+/* ====== TIMER ====== */
+.timer-card {
+    background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+    border-radius: 14px;
+    padding: 16px 14px 14px;
+    text-align: center;
+    color: #fff;
+    transition: background 0.4s;
+    flex-shrink: 0;
+}
+.timer-card.warning { background: linear-gradient(135deg, var(--orange), #bf360c); }
+.timer-card.danger  { background: linear-gradient(135deg, var(--red), #7f0000);
+                      animation: pulse-red 0.9s ease-in-out infinite; }
+@@keyframes pulse-red { 0%,100%{opacity:1} 50%{opacity:.82} }
+
+.timer-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    opacity: .8;
+    margin-bottom: 6px;
+}
+#exam-timer {
+    font-size: 34px;
+    font-weight: 700;
+    font-family: 'Courier New', monospace;
+    letter-spacing: 3px;
+    line-height: 1;
+}
+
+/* ====== PROGRESS ====== */
+.progress-card {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 11px 12px;
+    flex-shrink: 0;
+}
+.progress-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 7px;
+    font-size: 12px;
+    color: var(--muted);
+}
+.progress-row strong { font-size: 15px; color: var(--blue); }
+.progress-track {
+    height: 7px;
+    background: #e0e0e0;
+    border-radius: 4px;
+    overflow: hidden;
+}
+#progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, var(--green), #1e8449);
+    border-radius: 4px;
+    transition: width .35s ease;
+    width: 0%;
+}
+
+/* ====== NAV GRID ====== */
+.nav-card {
+    background: #f8f9fa;
+    border-radius: 10px;
+    padding: 12px;
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.nav-card-title {
+    font-size: 10px;
+    font-weight: 800;
+    color: #aaa;
+    text-transform: uppercase;
+    letter-spacing: .8px;
+}
+.q-nav-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+.q-nav-btn {
+    width: 33px;
+    height: 33px;
+    border: 2px solid #dde1e7;
+    border-radius: 7px;
+    background: #fff;
+    font-size: 11px;
+    font-weight: 700;
+    color: #555;
+    cursor: pointer;
+    transition: border-color .12s, background .12s, color .12s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    line-height: 1;
+}
+.q-nav-btn:hover            { border-color: var(--blue); color: var(--blue); }
+.q-nav-btn.answered         { background: var(--green); border-color: var(--green); color: #fff; }
+.q-nav-btn.current          { background: #e8f0fe; border-color: var(--blue); color: var(--blue); }
+
+.nav-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10.5px;
+    color: #888;
+}
+.legend-dot {
+    width: 11px; height: 11px;
+    border-radius: 3px;
+    border: 2px solid #dde1e7;
+    background: #fff;
+}
+.legend-dot.answered { background: var(--green); border-color: var(--green); }
+
+/* ====== SUBMIT BUTTON ====== */
+.btn-submit {
+    background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+    color: #fff;
+    border: none;
+    border-radius: 11px;
+    padding: 14px 10px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    width: 100%;
+    transition: opacity .2s, transform .15s, box-shadow .2s;
+    box-shadow: 0 4px 14px rgba(26,115,232,.35);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+}
+.btn-submit:hover   { opacity:.92; transform:translateY(-1px); box-shadow:0 6px 18px rgba(26,115,232,.42); }
+.btn-submit:disabled{ opacity:.65; transform:none; cursor:not-allowed; }
+
+/* ====== QUESTION AREA ====== */
+.exam-main {
+    flex: 1;
+    padding: 20px 22px;
+    overflow-y: auto;
+}
+
+.question-card {
+    background: var(--card-bg);
+    border-radius: 14px;
+    padding: 20px 22px;
+    margin-bottom: 16px;
+    box-shadow: 0 1px 5px rgba(0,0,0,.07);
+    border: 2px solid transparent;
+    transition: border-color .2s, box-shadow .2s;
+    scroll-margin-top: 24px;
+}
+.question-card.has-answer {
+    border-color: #c8e6c9;
+    box-shadow: 0 2px 8px rgba(52,168,83,.12);
+}
+
+.question-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding-bottom: 12px;
+    margin-bottom: 14px;
+    border-bottom: 1px solid #f0f0f0;
+}
+.question-badge {
+    background: var(--blue);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 4px 13px;
+    border-radius: 20px;
+}
+.question-score {
+    font-size: 11.5px;
+    color: var(--muted);
+    background: #f5f5f5;
+    padding: 3px 11px;
+    border-radius: 12px;
+    margin-left: auto;
+}
+
+.question-text {
+    font-size: 15px;
+    line-height: 1.65;
+    color: var(--text);
+    margin-bottom: 16px;
+}
+.question-text img {
+    max-width: 100%;
+    border-radius: 8px;
+    margin-top: 8px;
+    cursor: zoom-in;
+    display: block;
+}
+
+/* ====== ANSWER OPTIONS ====== */
+.answer-options { display: flex; flex-direction: column; gap: 9px; }
+
+.answer-option {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 13px 16px;
+    border: 2px solid var(--border);
+    border-radius: 11px;
+    cursor: pointer;
+    transition: border-color .14s, background .14s, transform .1s;
+    user-select: none;
+    margin: 0;
+    background: #fafbff;
+}
+.answer-option:hover {
+    border-color: #90caf9;
+    background: #f0f7ff;
+    transform: translateX(3px);
+}
+.answer-option input[type="radio"] { display: none; }
+
+.answer-option input[type="radio"]:checked ~ .option-letter {
+    background: var(--blue);
+    color: #fff;
+    border-color: var(--blue);
+}
+.answer-option:has(input[type="radio"]:checked) {
+    border-color: var(--blue);
+    background: #e8f0fe;
+}
+
+.option-letter {
+    width: 33px;
+    height: 33px;
+    min-width: 33px;
+    border-radius: 50%;
+    border: 2px solid #c5cae9;
+    background: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 13px;
+    color: #3f51b5;
+    transition: background .14s, border-color .14s, color .14s;
+}
+.option-text {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #333;
+    flex: 1;
+}
+
+/* ====== OVERLAY ====== */
+#submitOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(255,255,255,.92);
+    z-index: 10000;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 18px;
+    backdrop-filter: blur(3px);
+}
+.ov-spinner {
+    width: 52px; height: 52px;
+    border: 5px solid #e8f0fe;
+    border-top-color: var(--blue);
+    border-radius: 50%;
+    animation: spin .75s linear infinite;
+}
+@@keyframes spin { to { transform: rotate(360deg); } }
+.ov-text { font-size: 17px; font-weight: 700; color: #333; }
+
+/* ====== IMAGE MODAL ====== */
+#imageModal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.88);
+    z-index: 9999;
+    justify-content: center;
+    align-items: center;
+}
+#fullImage { max-width:90%; max-height:90%; border-radius:10px; cursor:zoom-out; }
+
+/* ====== MOBILE ====== */
+@@media (max-width: 991px) {
+    .exam-wrapper   { flex-direction: column; }
+    .exam-sidebar   {
+        width: 100%;
+        min-width: unset;
         position: sticky;
-        top: 60px;
-        z-index: 999;
-        background-color: white;
-        padding: 10px;
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-    }
-
-    .card-body img {
-        max-width: 100%;
+        top: var(--nav-h);
         height: auto;
-        display: block;
+        flex-direction: row;
+        flex-wrap: wrap;
+        overflow: visible;
+        padding: 10px 12px;
+        gap: 8px;
+        border-right: none;
+        border-bottom: 1px solid #e0e0e0;
+        z-index: 200;
     }
-
-    #question-nav {
-        max-height: 100px;
-        overflow-y: auto;
-    }
+    .timer-card     { flex: 1; min-width: 140px; padding: 10px 12px; }
+    #exam-timer     { font-size: 24px; }
+    .progress-card  { flex: 1; min-width: 120px; }
+    .nav-card       { width: 100%; flex: unset; max-height: 120px; }
+    .btn-submit     { min-width: 110px; align-self: center; padding: 10px 12px; font-size: 14px; }
+    .exam-main      { padding: 12px; }
+    .question-card  { padding: 14px 14px; }
+}
 </style>
 
 <div class="app-main__outer">
-    <div class="app-main__inner" style="padding-top:0;padding-left:0;">
-        <form asp-action="Confirm" asp-controller="STest" method="post" id="confirmForm">
+    <div class="app-main__inner" style="padding:0;">
+        <form id="confirmForm" asp-action="Confirm" asp-controller="STest" method="post" onsubmit="return false;">
+            <input type="hidden" id="hiddenField"    name="yourParamName" />
+            <input type="hidden" id="hiddenFieldTGBDT" name="TGBDLamBaiThi" />
 
-            <div class="tab-content fixed-header" style="margin-top:-10px">
-                <div class="card-header" style="height:auto !important; display:grid !important">
-                    <div class=""></div>
-                    <div class="col text-center">
-                        Thời gian làm bài thi: <span id="exam-timer" style="font-size: 24px; font-weight: bold; color: red;"></span>
-                        <input class="btn btn-success m-l-auto float-right" style="font-size: 18px;" type="submit" value="Nộp bài" onclick="return submitExam(this)" />
+            <div class="exam-wrapper">
+
+                <!-- ========== SIDEBAR ========== -->
+                <aside class="exam-sidebar">
+
+                    <div class="timer-card" id="timerCard">
+                        <div class="timer-label">Thời gian còn lại</div>
+                        <div id="exam-timer">--:--:--</div>
                     </div>
-                    <div id="question-nav" class="row">
-                        @for (int i = 0; i < Model.Count; i++)
-                        {
-                            <button type="button" class="question-nav-btn btn" id="btn-question-@i" onclick="scrollToQuestion(@i)">
-                                @(i + 1)
-                            </button>
-                        }
-                    </div>
-                </div>
-            </div>
 
-            <div class="tab-content">
-                <div class="row m-2">
-                    <div class="card col-lg-12">
-                        <div class="card-body" id="question-list">
-                            <input type="hidden" id="hiddenField" name="yourParamName" />
-                            <input type="hidden" id="hiddenFieldTGBDT" name="TGBDLamBaiThi" />
-
-                            <div id="imageModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); justify-content:center; align-items:center; z-index:9999;">
-                                <img id="fullImage" src="" style="max-width:90%; max-height:90%; border-radius:8px;" />
-                            </div>
-
-                            @for (int i = 0; i < Model.Count; i++)
-                            {
-                                <div id="@(i+1)" class="que multichoice deferredfeedback notyetanswered">
-                                    <div class="info">
-                                        <h3 class="no">Câu hỏi <span class="qno">@(i + 1)</span></h3>
-                                        <div class="grade">Đạt điểm: @Model[i].Diem</div>
-                                    </div>
-                                    <div class="content">
-                                        <div class="formulation clearfix question-box" id="question-@i" data-index="@i">
-                                            <h5 class="accesshide">@Html.Raw(Model[i].NoiDungCH)</h5>
-                                            <div class="ablock">
-                                                <div class="prompt">Chọn một:</div>
-                                                <div class="answer">
-                                                    <input type="hidden" name="[@i].IDCH" value="@Model[i].IDCH" />
-                                                    <input type="hidden" name="[@i].IDLH" value="@Model[i].IDLH" />
-                                                    <input type="hidden" name="[@i].IDDeThi" value="@Model[i].IDDeThi" />
-                                                    <input type="hidden" name="[@i].IDND" value="@Model[i].IDND" />
-                                                    <input type="hidden" name="[@i].IDDADung" value="@Model[i].IDDADung" />
-                                                    <input type="hidden" name="[@i].Diem" value="@Model[i].Diem" />
-                                                    <input type="hidden" name="[@i].GioBatDau" value="@Model[i].GioBatDau.ToString("o")" />
-                                                    @{
-                                                        var cauhoiID = Model[i].IDCH;
-                                                        var dapanA = Model[i].DapAnA;
-                                                        var dapanB = Model[i].DapAnB;
-                                                        var dapanC = Model[i].DapAnC;
-                                                        var dapanD = Model[i].DapAnD;
-
-                                                        var htmlTags = new List<string>
-                                                        {
-                                                            $"<div class=\"r0\"><input data-question-id=\"{cauhoiID}\" onchange=\"saveAnswer('{cauhoiID}', '1')\" data-val=\"true\" id=\"dapAnA_${{{i}}}\" name=[{i}].Answer type=\"radio\" value=\"1\"><span class=\"dapAn\"></span> <label for=\"dapAnA_${{{i}}}\" class=\"m-l-1\">{dapanA}</label></div>",
-                                                            $"<div class=\"r0\"><input data-question-id=\"{cauhoiID}\" onchange=\"saveAnswer('{cauhoiID}', '2')\" data-val=\"true\" id=\"dapAnB_${{{i}}}\" name=[{i}].Answer type=\"radio\" value=\"2\"><span class=\"dapAn\"></span> <label for=\"dapAnB_${{{i}}}\" class=\"m-l-1\">{dapanB}</label></div>",
-                                                            $"<div class=\"r0\"><input data-question-id=\"{cauhoiID}\" onchange=\"saveAnswer('{cauhoiID}', '3')\" data-val=\"true\" id=\"dapAnC_${{{i}}}\" name=[{i}].Answer type=\"radio\" value=\"3\"><span class=\"dapAn\"></span> <label for=\"dapAnC_${{{i}}}\" class=\"m-l-1\">{dapanC}</label></div>",
-                                                            $"<div class=\"r0\"><input data-question-id=\"{cauhoiID}\" onchange=\"saveAnswer('{cauhoiID}', '4')\" data-val=\"true\" id=\"dapAnD_${{{i}}}\" name=[{i}].Answer type=\"radio\" value=\"4\"><span class=\"dapAn\"></span> <label for=\"dapAnD_${{{i}}}\" class=\"m-l-1\">{dapanD}</label></div>"
-                                                        };
-
-                                                        var shuffledHtmlTags = htmlTags.ToList();
-                                                        if (Model[i].IsDao)
-                                                        {
-                                                            shuffledHtmlTags = htmlTags.OrderBy(x => Guid.NewGuid()).ToList();
-                                                        }
-                                                    }
-                                                    @foreach (var htmlTag in shuffledHtmlTags)
-                                                    {
-                                                        @Html.Raw(htmlTag)
-                                                    }
-                                                    <script>
-                                                        (function () {
-                                                            var elements = document.querySelectorAll('.dapAn');
-                                                            var ii = 1;
-                                                            elements.forEach(function (element) {
-                                                                if (!element.textContent) {
-                                                                    if (ii == 1) element.textContent = "A.";
-                                                                    else if (ii == 2) element.textContent = "B.";
-                                                                    else if (ii == 3) element.textContent = "C.";
-                                                                    else if (ii == 4) element.textContent = "D.";
-                                                                    ii++;
-                                                                    if (ii > 4) ii = 1;
-                                                                }
-                                                            });
-                                                        })();
-                                                    </script>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            }
+                    <div class="progress-card">
+                        <div class="progress-row">
+                            <span>Đã trả lời</span>
+                            <strong><span id="answered-count">0</span>&nbsp;/&nbsp;@Model.Count</strong>
+                        </div>
+                        <div class="progress-track">
+                            <div id="progress-bar"></div>
                         </div>
                     </div>
-                </div>
+
+                    <div class="nav-card">
+                        <div class="nav-card-title">Danh sách câu hỏi</div>
+                        <div class="q-nav-grid">
+                            @for (int i = 0; i < Model.Count; i++)
+                            {
+                                <button type="button" class="q-nav-btn" id="btn-question-@i"
+                                        onclick="scrollToQuestion(@i)">@(i + 1)</button>
+                            }
+                        </div>
+                        <div class="nav-legend">
+                            <span class="legend-item"><span class="legend-dot answered"></span>Đã trả lời</span>
+                            <span class="legend-item"><span class="legend-dot"></span>Chưa trả lời</span>
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn-submit" id="submitBtn" onclick="submitExam(this)">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="20 6 9 17 4 12"></polyline>
+                        </svg>
+                        Nộp bài
+                    </button>
+                </aside>
+
+                <!-- ========== QUESTIONS ========== -->
+                <main class="exam-main">
+                    @for (int i = 0; i < Model.Count; i++)
+                    {
+                        <div class="question-card" id="question-card-@i">
+                            <div class="question-header">
+                                <span class="question-badge">Câu @(i + 1)</span>
+                                <span class="question-score">@Model[i].Diem điểm</span>
+                            </div>
+
+                            <div class="question-text" id="question-@i" data-index="@i">
+                                @Html.Raw(Model[i].NoiDungCH)
+                            </div>
+
+                            <input type="hidden" name="[@i].IDCH"    value="@Model[i].IDCH" />
+                            <input type="hidden" name="[@i].IDLH"    value="@Model[i].IDLH" />
+                            <input type="hidden" name="[@i].IDDeThi" value="@Model[i].IDDeThi" />
+                            <input type="hidden" name="[@i].IDND"    value="@Model[i].IDND" />
+
+                            <div class="answer-options">
+                                @{
+                                    var cauhoiID = Model[i].IDCH;
+                                    var dapanA   = Model[i].DapAnA;
+                                    var dapanB   = Model[i].DapAnB;
+                                    var dapanC   = Model[i].DapAnC;
+                                    var dapanD   = Model[i].DapAnD;
+
+                                    var htmlTags = new List<string>
+                                    {
+                                        $"<label class=\"answer-option\" for=\"dapAnA_${{{i}}}\"><input data-question-id=\"{cauhoiID}\" onchange=\"saveAnswer('{cauhoiID}','1')\" id=\"dapAnA_${{{i}}}\" name=[{i}].Answer type=\"radio\" value=\"1\"><span class=\"option-letter dapAn\"></span><span class=\"option-text\">{dapanA}</span></label>",
+                                        $"<label class=\"answer-option\" for=\"dapAnB_${{{i}}}\"><input data-question-id=\"{cauhoiID}\" onchange=\"saveAnswer('{cauhoiID}','2')\" id=\"dapAnB_${{{i}}}\" name=[{i}].Answer type=\"radio\" value=\"2\"><span class=\"option-letter dapAn\"></span><span class=\"option-text\">{dapanB}</span></label>",
+                                        $"<label class=\"answer-option\" for=\"dapAnC_${{{i}}}\"><input data-question-id=\"{cauhoiID}\" onchange=\"saveAnswer('{cauhoiID}','3')\" id=\"dapAnC_${{{i}}}\" name=[{i}].Answer type=\"radio\" value=\"3\"><span class=\"option-letter dapAn\"></span><span class=\"option-text\">{dapanC}</span></label>",
+                                        $"<label class=\"answer-option\" for=\"dapAnD_${{{i}}}\"><input data-question-id=\"{cauhoiID}\" onchange=\"saveAnswer('{cauhoiID}','4')\" id=\"dapAnD_${{{i}}}\" name=[{i}].Answer type=\"radio\" value=\"4\"><span class=\"option-letter dapAn\"></span><span class=\"option-text\">{dapanD}</span></label>",
+                                    };
+
+                                    var shuffledTags = htmlTags.ToList();
+                                    if (Model[i].IsDao)
+                                        shuffledTags = htmlTags.OrderBy(_ => Guid.NewGuid()).ToList();
+                                }
+                                @foreach (var tag in shuffledTags) { @Html.Raw(tag) }
+                            </div>
+                        </div>
+                    }
+                </main>
             </div>
         </form>
     </div>
 </div>
 
+<!-- Submit overlay -->
+<div id="submitOverlay">
+    <div class="ov-spinner"></div>
+    <div class="ov-text">Đang nộp bài, vui lòng chờ...</div>
+</div>
+
+<!-- Image lightbox -->
+<div id="imageModal">
+    <img id="fullImage" src="" />
+</div>
+
+<!-- ===== SCRIPTS ===== -->
+
 <script>
-    function saveAnswer(questionId, answer) {
-        let savedAnswers = JSON.parse(localStorage.getItem('quizAnswers') || '{}');
-        savedAnswers[questionId] = answer;
-        localStorage.setItem('quizAnswers', JSON.stringify(savedAnswers));
+    // Gán chữ A B C D cho từng nhóm đáp án theo thứ tự DOM
+    (function () {
+        const letters = ['A', 'B', 'C', 'D'];
+        document.querySelectorAll('.answer-options').forEach(function (group) {
+            group.querySelectorAll('.dapAn').forEach(function (span, idx) {
+                span.textContent = letters[idx % 4];
+            });
+        });
+    })();
+</script>
+
+<script>
+    // ----- Progress bar -----
+    function updateProgress() {
+        const total    = @Model.Count;
+        const answered = document.querySelectorAll('.answer-options input[type="radio"]:checked').length;
+        document.getElementById('answered-count').textContent = answered;
+        document.getElementById('progress-bar').style.width  = Math.round(answered / total * 100) + '%';
     }
 
+    // ----- Lưu đáp án vào localStorage -----
+    function saveAnswer(questionId, answer) {
+        const saved = JSON.parse(localStorage.getItem('quizAnswers') || '{}');
+        saved[questionId] = answer;
+        localStorage.setItem('quizAnswers', JSON.stringify(saved));
+    }
+
+    // ----- Khôi phục đáp án từ localStorage khi reload -----
     function restoreAnswers() {
-        let savedAnswers = JSON.parse(localStorage.getItem('quizAnswers') || '{}');
-        const radios = document.querySelectorAll("input[type=radio][data-question-id]");
-        radios.forEach(function (radio) {
-            const qid = radio.dataset.questionId;
-            const val = radio.value;
-            const idAttr = radio.id;
-            const match = idAttr.match(/\$\{(\d+)\}/);
+        const saved = JSON.parse(localStorage.getItem('quizAnswers') || '{}');
+        document.querySelectorAll('input[type=radio][data-question-id]').forEach(function (radio) {
+            const qid   = radio.dataset.questionId;
+            const match = radio.id.match(/\$\{(\d+)\}/);
             if (!match) return;
-            const id = match[1];
-            if (savedAnswers[qid] && savedAnswers[qid] === val) {
+            const idx = match[1];
+            if (saved[qid] && saved[qid] === radio.value) {
                 radio.checked = true;
-                const btn = document.getElementById('btn-question-' + id);
+                const btn = document.getElementById('btn-question-' + idx);
                 if (btn) btn.classList.add('answered');
+                const card = radio.closest('.question-card');
+                if (card) card.classList.add('has-answer');
             }
         });
+        updateProgress();
     }
 
-    window.addEventListener("load", function () {
-        restoreAnswers();
+    window.addEventListener('load', restoreAnswers);
+
+    // ----- Cập nhật trạng thái khi chọn đáp án -----
+    document.addEventListener('change', function (e) {
+        if (e.target.type !== 'radio' || !e.target.name.endsWith('.Answer')) return;
+        const card = e.target.closest('.question-card');
+        if (card) {
+            card.classList.add('has-answer');
+            const idx = card.id.replace('question-card-', '');
+            const btn = document.getElementById('btn-question-' + idx);
+            if (btn) btn.classList.add('answered');
+        }
+        updateProgress();
     });
 </script>
 
 <script>
-    function submitExam(button) {
-        let allRadioNames = $('[name$=".Answer"]').map(function () { return $(this).attr('name'); }).get();
-        let uniqueGroups = [...new Set(allRadioNames)];
-        let answeredGroups = uniqueGroups.filter(function (groupName) {
-            return $('input[name="' + groupName + '"]:checked').length > 0;
+    // ----- Image lightbox -----
+    const imgModal  = document.getElementById('imageModal');
+    const fullImage = document.getElementById('fullImage');
+    document.addEventListener('click', function (e) {
+        if (e.target.tagName === 'IMG' && e.target !== fullImage) {
+            fullImage.src = e.target.src;
+            imgModal.style.display = 'flex';
+        }
+    });
+    imgModal.addEventListener('click', function () { imgModal.style.display = 'none'; });
+</script>
+
+<script>
+    // ----- Cuộn đến câu hỏi -----
+    function scrollToQuestion(number) {
+        const card = document.getElementById('question-card-' + number);
+        if (card) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+</script>
+
+<script>
+    // ----- Nộp bài qua AJAX -----
+    async function doSubmitExam() {
+        const answers = [];
+        document.querySelectorAll('input[name$=".IDCH"]').forEach(function (el) {
+            const prefix  = el.name.slice(0, el.name.lastIndexOf('.'));
+            const idCH    = parseInt(el.value);
+            const checked = document.querySelector('input[name="' + prefix + '.Answer"]:checked');
+            answers.push({ IDCH: idCH, Answer: checked ? parseInt(checked.value) : null });
         });
-        if (answeredGroups.length < uniqueGroups.length) {
-            alert("Bạn phải trả lời tất cả các câu hỏi trước khi nộp bài!");
+
+        const payload = {
+            IDLH:          parseInt(document.querySelector('input[name$=".IDLH"]').value),
+            IDDeThi:       parseInt(document.querySelector('input[name$=".IDDeThi"]').value),
+            IDND:          parseInt(document.querySelector('input[name$=".IDND"]').value),
+            ThoiGianSec:   parseInt(document.getElementById('hiddenField').value) || 0,
+            TGBDLamBaiThi: parseInt(document.getElementById('hiddenFieldTGBDT').value) || 0,
+            Answers:       answers
+        };
+
+        document.getElementById('submitOverlay').style.display = 'flex';
+
+        try {
+            const res  = await fetch('/STest/SubmitExamAjax', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify(payload)
+            });
+            const data = await res.json();
+            if (data.success) {
+                window.location.href = data.redirectUrl;
+            } else {
+                document.getElementById('submitOverlay').style.display = 'none';
+                alert(data.message || 'Có lỗi xảy ra khi nộp bài');
+            }
+        } catch (e) {
+            document.getElementById('submitOverlay').style.display = 'none';
+            alert('Mất kết nối, vui lòng thử lại');
+        }
+    }
+
+    function submitExam(button) {
+        const allNames     = $('[name$=".Answer"]').map(function () { return $(this).attr('name'); }).get();
+        const uniqueGroups = [...new Set(allNames)];
+        const answered     = uniqueGroups.filter(function (g) { return $('input[name="' + g + '"]:checked').length > 0; });
+        if (answered.length < uniqueGroups.length) {
+            alert('Bạn phải trả lời tất cả các câu hỏi trước khi nộp bài!');
             return false;
         }
-        const isConfirmed = confirm("Thời gian vẫn còn, Bạn có chắc chắn muốn nộp bài không?");
-        if (!isConfirmed) return false;
-        button.disabled = true;
-        button.value = 'Đang nộp bài...';
-        isExamStarted = false;
+        if (!confirm('Thời gian vẫn còn, Bạn có chắc chắn muốn nộp bài không?')) return false;
+
+        button.disabled   = true;
+        button.innerHTML  = '<div class="ov-spinner" style="width:18px;height:18px;border-width:3px;"></div>Đang nộp...';
+        isExamStarted     = false;
         clearInterval(timerInterval);
-        localStorage.removeItem("quizAnswers");
-        localStorage.removeItem("savedExamTime");
-        localStorage.removeItem("exam_start_time");
-        localStorage.removeItem("IDLH");
-        button.form.submit();
+        localStorage.removeItem('quizAnswers');
+        localStorage.removeItem('savedExamTime');
+        localStorage.removeItem('exam_start_time');
+        localStorage.removeItem('IDLH');
+        doSubmitExam();
+        return false;
     }
 </script>
 
 <script>
-    document.getElementById('question-list').addEventListener('change', function (e) {
-        if (e.target.type === 'radio') {
-            const questionBox = e.target.closest('.question-box');
-            if (questionBox) {
-                const index = questionBox.dataset.index;
-                const btn = document.getElementById('btn-question-' + index);
-                if (btn) btn.classList.add('answered');
-            }
-        }
-    });
-</script>
+    // ----- Đồng hồ đếm ngược -----
+    const EXAM_DURATION_MS  = @ViewBag.ThoiGianThi * 60 * 1000;
+    const LOCAL_STORAGE_KEY = 'exam_start_time';
 
-<script>
-    const images = document.querySelectorAll("img");
-    const modal = document.getElementById("imageModal");
-    const fullImage = document.getElementById("fullImage");
+    if (!localStorage.getItem('IDNV')) localStorage.setItem('IDNV', @ViewBag.IDNV);
+    if (!localStorage.getItem('IDLH')) localStorage.setItem('IDLH', @ViewBag.IDLH);
 
-    images.forEach(function (img) {
-        img.addEventListener("click", function () {
-            fullImage.src = img.src;
-            modal.style.display = "flex";
-        });
-    });
-
-    modal.addEventListener("click", function () {
-        modal.style.display = "none";
-    });
-</script>
-
-<script>
-    function scrollToQuestion(number) {
-        const element = document.getElementById('question-' + number);
-        if (element) {
-            const offset = 400;
-            const elementPosition = element.getBoundingClientRect().top + window.pageYOffset;
-            window.scrollTo({ top: elementPosition - offset, behavior: "smooth" });
-        }
-    }
-</script>
-
-<script>
-    restoreAnswers();
-    const EXAM_DURATION_MINUTES = @ViewBag.ThoiGianThi;
-    const EXAM_DURATION_MS = EXAM_DURATION_MINUTES * 60 * 1000;
-    const LOCAL_STORAGE_KEY = "exam_start_time";
-
-    const IDNV_stored = localStorage.getItem("IDNV");
-    if (!IDNV_stored) {
-        localStorage.setItem("IDNV", @ViewBag.IDNV);
-    }
-
-    const IDLH_stored = localStorage.getItem("IDLH");
-    if (!IDLH_stored) {
-        localStorage.setItem("IDLH", @ViewBag.IDLH);
-    }
-
-    if (IDNV_stored && IDLH_stored) {
-        const idnv = @ViewBag.IDNV;
-        const idlh = @ViewBag.IDLH;
-        if (idnv != IDNV_stored || IDLH_stored != idlh) {
-            localStorage.removeItem("quizAnswers");
-            localStorage.removeItem("savedExamTime");
-            localStorage.removeItem("exam_start_time");
-            localStorage.setItem("IDLH", idlh);
-            localStorage.setItem("IDNV", idnv);
+    const storedNV = localStorage.getItem('IDNV');
+    const storedLH = localStorage.getItem('IDLH');
+    if (storedNV && storedLH) {
+        if (storedNV != '@ViewBag.IDNV' || storedLH != '@ViewBag.IDLH') {
+            ['quizAnswers','savedExamTime','exam_start_time'].forEach(k => localStorage.removeItem(k));
+            localStorage.setItem('IDLH', @ViewBag.IDLH);
+            localStorage.setItem('IDNV', @ViewBag.IDNV);
         }
     }
 
     function getOrCreateStartTime() {
-        let startTime = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (!startTime) {
-            startTime = Date.now();
-            localStorage.setItem(LOCAL_STORAGE_KEY, startTime);
-        }
-        const now = new Date();
-        const elapsedMs = now - startTime;
-        localStorage.setItem("savedExamTime", Math.floor(elapsedMs / 1000));
-        return parseInt(startTime);
+        let t = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (!t) { t = Date.now(); localStorage.setItem(LOCAL_STORAGE_KEY, t); }
+        localStorage.setItem('savedExamTime', Math.floor((Date.now() - t) / 1000));
+        return parseInt(t);
     }
 
-    const startTimeGet = getOrCreateStartTime();
-    let endTime = new Date(startTimeGet + EXAM_DURATION_MS);
-    const savedTime = parseInt(localStorage.getItem("savedExamTime")) || 0;
-    var i = savedTime || 0;
+    const startMs   = getOrCreateStartTime();
+    const endTime   = new Date(startMs + EXAM_DURATION_MS);
+    let   elapsed   = parseInt(localStorage.getItem('savedExamTime')) || 0;
+    const timerCard = document.getElementById('timerCard');
+    const timerEl   = document.getElementById('exam-timer');
 
-    var valueFromLocal = localStorage.getItem("exam_start_time");
-    if (valueFromLocal) {
-        document.getElementById("hiddenFieldTGBDT").value = valueFromLocal;
-    }
+    const fromLocal = localStorage.getItem('exam_start_time');
+    if (fromLocal) document.getElementById('hiddenFieldTGBDT').value = fromLocal;
 
     var isExamStarted = true;
-    function updateTimer() {
-        const now = new Date();
-        const remaining = Math.floor((endTime - now) / 1000);
-        const timerDisplay = document.getElementById('exam-timer');
-        localStorage.setItem("savedExamTime", i);
 
-        const hiddenInput = document.getElementById("hiddenField");
-        if (hiddenInput) hiddenInput.value = i;
+    function updateTimer() {
+        const remaining = Math.floor((endTime - Date.now()) / 1000);
+        localStorage.setItem('savedExamTime', elapsed);
+        const hf = document.getElementById('hiddenField');
+        if (hf) hf.value = elapsed;
 
         if (remaining > 0) {
             const h = Math.floor(remaining / 3600).toString().padStart(2, '0');
             const m = Math.floor((remaining % 3600) / 60).toString().padStart(2, '0');
             const s = (remaining % 60).toString().padStart(2, '0');
-            timerDisplay.textContent = h + ':' + m + ':' + s;
+            timerEl.textContent = h + ':' + m + ':' + s;
+            timerCard.className = 'timer-card' +
+                (remaining <= 60 ? ' danger' : remaining <= 300 ? ' warning' : '');
         } else {
             isExamStarted = false;
             clearInterval(timerInterval);
-            timerDisplay.textContent = "Hết giờ!";
-            localStorage.removeItem("quizAnswers");
-            localStorage.removeItem("savedExamTime");
-            localStorage.removeItem("exam_start_time");
-            localStorage.removeItem("IDLH");
-            var form = document.getElementById('confirmForm');
-            if (form) form.submit();
+            timerEl.textContent  = 'Hết giờ!';
+            timerCard.className  = 'timer-card danger';
+            ['quizAnswers','savedExamTime','exam_start_time','IDLH'].forEach(k => localStorage.removeItem(k));
+            doSubmitExam();
         }
-        i++;
+        elapsed++;
     }
 
     const timerInterval = setInterval(updateTimer, 1000);
