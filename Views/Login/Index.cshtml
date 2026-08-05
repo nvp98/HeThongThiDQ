@@ -18,6 +18,10 @@
     {
         @Html.Raw(TempData["msglg"])
     }
+    @if (Context.Request.Query["kicked"] == "1")
+    {
+        <script>alert('Tài khoản của bạn đã được đăng nhập ở thiết bị khác. Vui lòng đăng nhập lại.');</script>
+    }
 
     <div class="container" style="height:100%">
         <div class="main-content">

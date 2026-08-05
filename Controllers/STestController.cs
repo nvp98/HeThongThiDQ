@@ -265,6 +265,12 @@ namespace HeThongThiDQ.Controllers
             }
         }
 
+        [HttpGet]
+        public IActionResult PingSession()
+        {
+            return Json(new { valid = true });
+        }
+
         public JsonResult AddEvent()
         {
             return Json(true);

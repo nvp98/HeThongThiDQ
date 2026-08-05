@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using System.Security.Claims;
 
 namespace HeThongThiDQ.Controllers
@@ -14,11 +15,16 @@ namespace HeThongThiDQ.Controllers
     {
         private readonly ELEARNINGEntities _db;
         private readonly MyAuthentication _auth;
+        private readonly IDistributedCache _cache;
 
-        public LoginController(ELEARNINGEntities db, MyAuthentication auth)
+        private static readonly DistributedCacheEntryOptions _sessionOpts =
+            new() { SlidingExpiration = TimeSpan.FromMinutes(360) };
+
+        public LoginController(ELEARNINGEntities db, MyAuthentication auth, IDistributedCache cache)
         {
-            _db = db;
-            _auth = auth;
+            _db    = db;
+            _auth  = auth;
+            _cache = cache;
         }
 
         public async Task<IActionResult> Index()
@@ -42,6 +48,9 @@ namespace HeThongThiDQ.Controllers
 
                 if (user != null)
                 {
+                    // Sinh token mới — ghi đè session cũ trên thiết bị khác
+                    var sessionToken = Guid.NewGuid().ToString("N");
+
                     var claims = new List<Claim>
                     {
                         new Claim("NV_ID",         user.Id.ToString()),
@@ -53,6 +62,7 @@ namespace HeThongThiDQ.Controllers
                         new Claim("NV_IDQuyenKNL",  (user.IdquyenKnl ?? 0).ToString()),
                         new Claim("NV_IDVTKNL",     (user.Idvtknl ?? 0).ToString()),
                         new Claim("NV_MaViTri",     user.MaViTri ?? ""),
+                        new Claim("NV_ST",          sessionToken),
                     };
 
                     var identity = new ClaimsIdentity(claims, CookieAuthenticationDefaults.AuthenticationScheme);
@@ -62,6 +72,14 @@ namespace HeThongThiDQ.Controllers
                         CookieAuthenticationDefaults.AuthenticationScheme,
                         principal,
                         new AuthenticationProperties { IsPersistent = false });
+
+                    // Lưu token vào Redis — thiết bị cũ sẽ bị kick ở request tiếp theo
+                    try
+                    {
+                        await _cache.SetStringAsync(
+                            $"user:session:{user.Id}", sessionToken, _sessionOpts);
+                    }
+                    catch { }
 
                     TempData["ClearLocalStorage"] = true;
                     return RedirectToAction("Index", "EClassroom");
@@ -87,6 +105,9 @@ namespace HeThongThiDQ.Controllers
                 var logs = _db.HistoryLogs.Where(x => x.NhanVienId == idNV);
                 _db.HistoryLogs.RemoveRange(logs);
                 await _db.SaveChangesAsync();
+
+                // Xóa session token — đảm bảo không thiết bị nào dùng lại được
+                try { await _cache.RemoveAsync($"user:session:{idNV}"); } catch { }
             }
 
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);

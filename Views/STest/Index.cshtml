@@ -481,6 +481,27 @@
     <div class="ov-text">Đang nộp bài, vui lòng chờ...</div>
 </div>
 
+<!-- Kicked overlay — hiện khi tài khoản đăng nhập ở thiết bị khác -->
+<div id="kickedOverlay" style="
+    display:none; position:fixed; inset:0; z-index:99999;
+    background:rgba(0,0,0,.82); backdrop-filter:blur(4px);
+    align-items:center; justify-content:center;">
+    <div style="
+        background:#fff; border-radius:18px; padding:36px 32px;
+        max-width:400px; width:90%; text-align:center;
+        box-shadow:0 12px 48px rgba(0,0,0,.4);">
+        <div style="font-size:42px; margin-bottom:12px;">⚠️</div>
+        <div style="font-size:17px; font-weight:700; color:#b71c1c; margin-bottom:10px;">
+            Phiên thi bị gián đoạn
+        </div>
+        <div style="font-size:14px; color:#555; line-height:1.6; margin-bottom:20px;">
+            Tài khoản của bạn đã được đăng nhập ở thiết bị khác.<br>
+            Bạn sẽ được chuyển về trang đăng nhập...
+        </div>
+        <div id="kickedCountdown" style="font-size:28px; font-weight:800; color:#1a73e8;">3</div>
+    </div>
+</div>
+
 <!-- Image lightbox -->
 <div id="imageModal">
     <img id="fullImage" src="" />
@@ -512,6 +533,35 @@
         document.getElementById('progress-bar').style.width  = Math.round(answered / total * 100) + '%';
     }
 
+    // ----- Xử lý khi bị kick (thiết bị khác đăng nhập) -----
+    var isKicked = false;
+    function handleKicked() {
+        if (isKicked) return;
+        isKicked     = true;
+        isExamStarted = false;
+        clearInterval(timerInterval);
+        clearInterval(pingInterval);
+
+        var overlay   = document.getElementById('kickedOverlay');
+        var countdown = document.getElementById('kickedCountdown');
+        overlay.style.display = 'flex';
+
+        var n = 3;
+        var cd = setInterval(function () {
+            n--;
+            countdown.textContent = n;
+            if (n <= 0) {
+                clearInterval(cd);
+                window.location.href = '/Login/Index?kicked=1';
+            }
+        }, 1000);
+    }
+
+    // Kiểm tra response có phải bị redirect về login không
+    function isKickedResponse(res) {
+        return res.redirected || res.url.toLowerCase().includes('/login');
+    }
+
     // ----- Lưu đáp án vào Redis + localStorage (fallback) -----
     function saveAnswer(questionId, answer) {
         // Fallback localStorage
@@ -519,7 +569,7 @@
         saved[questionId] = answer;
         localStorage.setItem('quizAnswers', JSON.stringify(saved));
 
-        // Gửi lên Redis qua AutoSave (fire-and-forget)
+        // Gửi lên Redis qua AutoSave — kiểm tra response xem có bị kick không
         if (examSession) {
             fetch('/STest/AutoSave', {
                 method:  'POST',
@@ -530,6 +580,8 @@
                     AnswerId: parseInt(answer),
                     ChosenAt: Date.now()
                 })
+            }).then(function (res) {
+                if (isKickedResponse(res)) handleKicked();
             }).catch(function () {});
         }
     }
@@ -748,4 +800,14 @@
 
     var timerInterval = setInterval(updateTimer, 1000);
     updateTimer();
+
+    // ----- Ping 15 giây — phát hiện thiết bị khác đăng nhập khi đang treo màn hình thi -----
+    var pingInterval = setInterval(function () {
+        if (!isExamStarted || isKicked) return;
+        fetch('/STest/PingSession')
+            .then(function (res) {
+                if (isKickedResponse(res)) handleKicked();
+            })
+            .catch(function () {});
+    }, 15000);
 </script>

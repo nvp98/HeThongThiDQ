@@ -87,6 +87,7 @@ app.UseRouting();
 app.UseSession();
 
 app.UseAuthentication();
+app.UseMiddleware<HeThongThiDQ.Middleware.SessionGuardMiddleware>();
 app.UseAuthorization();
 
 app.MapControllerRoute(
