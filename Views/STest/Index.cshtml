@@ -501,6 +501,9 @@
 </script>
 
 <script>
+    // Session từ Redis (null nếu không có)
+    var examSession = @Html.Raw(ViewBag.ExamSession ?? "null");
+
     // ----- Progress bar -----
     function updateProgress() {
         const total    = @Model.Count;
@@ -509,26 +512,61 @@
         document.getElementById('progress-bar').style.width  = Math.round(answered / total * 100) + '%';
     }
 
-    // ----- Lưu đáp án vào localStorage -----
+    // ----- Lưu đáp án vào Redis + localStorage (fallback) -----
     function saveAnswer(questionId, answer) {
+        // Fallback localStorage
         const saved = JSON.parse(localStorage.getItem('quizAnswers') || '{}');
         saved[questionId] = answer;
         localStorage.setItem('quizAnswers', JSON.stringify(saved));
+
+        // Gửi lên Redis qua AutoSave (fire-and-forget)
+        if (examSession) {
+            fetch('/STest/AutoSave', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({
+                    IDLH:     examSession.IDLH,
+                    IDCH:     parseInt(questionId),
+                    AnswerId: parseInt(answer),
+                    ChosenAt: Date.now()
+                })
+            }).catch(function () {});
+        }
     }
 
-    // ----- Khôi phục đáp án từ localStorage khi reload -----
+    // ----- Khôi phục đáp án: Redis session ưu tiên, localStorage fallback -----
     function restoreAnswers() {
-        const saved = JSON.parse(localStorage.getItem('quizAnswers') || '{}');
+        if (examSession && examSession.Answers) {
+            // Khôi phục từ Redis session (hỗ trợ đổi thiết bị)
+            for (var idCH in examSession.Answers) {
+                var ans = examSession.Answers[idCH];
+                if (!ans || !ans.AnswerId) continue;
+                var radio = document.querySelector('input[data-question-id="' + idCH + '"][value="' + ans.AnswerId + '"]');
+                if (!radio) continue;
+                radio.checked = true;
+                var match = radio.id.match(/\$\{(\d+)\}/);
+                if (match) {
+                    var btn = document.getElementById('btn-question-' + match[1]);
+                    if (btn) btn.classList.add('answered');
+                }
+                var card = radio.closest('.question-card');
+                if (card) card.classList.add('has-answer');
+            }
+            updateProgress();
+            return;
+        }
+        // Fallback: localStorage
+        var saved = JSON.parse(localStorage.getItem('quizAnswers') || '{}');
         document.querySelectorAll('input[type=radio][data-question-id]').forEach(function (radio) {
-            const qid   = radio.dataset.questionId;
-            const match = radio.id.match(/\$\{(\d+)\}/);
+            var qid   = radio.dataset.questionId;
+            var match = radio.id.match(/\$\{(\d+)\}/);
             if (!match) return;
-            const idx = match[1];
+            var idx = match[1];
             if (saved[qid] && saved[qid] === radio.value) {
                 radio.checked = true;
-                const btn = document.getElementById('btn-question-' + idx);
+                var btn = document.getElementById('btn-question-' + idx);
                 if (btn) btn.classList.add('answered');
-                const card = radio.closest('.question-card');
+                var card = radio.closest('.question-card');
                 if (card) card.classList.add('has-answer');
             }
         });
@@ -540,11 +578,11 @@
     // ----- Cập nhật trạng thái khi chọn đáp án -----
     document.addEventListener('change', function (e) {
         if (e.target.type !== 'radio' || !e.target.name.endsWith('.Answer')) return;
-        const card = e.target.closest('.question-card');
+        var card = e.target.closest('.question-card');
         if (card) {
             card.classList.add('has-answer');
-            const idx = card.id.replace('question-card-', '');
-            const btn = document.getElementById('btn-question-' + idx);
+            var idx = card.id.replace('question-card-', '');
+            var btn = document.getElementById('btn-question-' + idx);
             if (btn) btn.classList.add('answered');
         }
         updateProgress();
@@ -638,64 +676,76 @@
 
 <script>
     // ----- Đồng hồ đếm ngược -----
-    const EXAM_DURATION_MS  = @ViewBag.ThoiGianThi * 60 * 1000;
-    const LOCAL_STORAGE_KEY = 'exam_start_time';
+    // Ưu tiên EndTimestamp từ Redis session (hỗ trợ đổi thiết bị)
+    // Fallback: tính từ localStorage (hành vi cũ)
 
-    if (!localStorage.getItem('IDNV')) localStorage.setItem('IDNV', @ViewBag.IDNV);
-    if (!localStorage.getItem('IDLH')) localStorage.setItem('IDLH', @ViewBag.IDLH);
+    const EXAM_DURATION_MS = @ViewBag.ThoiGianThi * 60 * 1000;
 
-    const storedNV = localStorage.getItem('IDNV');
-    const storedLH = localStorage.getItem('IDLH');
-    if (storedNV && storedLH) {
-        if (storedNV != '@ViewBag.IDNV' || storedLH != '@ViewBag.IDLH') {
-            ['quizAnswers','savedExamTime','exam_start_time'].forEach(k => localStorage.removeItem(k));
+    // Xác định thời điểm kết thúc bài thi
+    var endTime;
+    var startMs;
+
+    if (examSession && examSession.EndTimestamp) {
+        // Dùng EndTimestamp từ server — đổi thiết bị timer vẫn chính xác
+        endTime = new Date(examSession.EndTimestamp);
+        startMs = examSession.StartTimestamp;
+        // Xóa localStorage cũ để tránh xung đột
+        ['quizAnswers', 'savedExamTime', 'exam_start_time'].forEach(function (k) {
+            localStorage.removeItem(k);
+        });
+    } else {
+        // Fallback: tính từ localStorage (Redis down hoặc không có session)
+        if (!localStorage.getItem('IDNV')) localStorage.setItem('IDNV', @ViewBag.IDNV);
+        if (!localStorage.getItem('IDLH')) localStorage.setItem('IDLH', @ViewBag.IDLH);
+        var storedNV = localStorage.getItem('IDNV');
+        var storedLH = localStorage.getItem('IDLH');
+        if (storedNV && storedLH &&
+            (storedNV != '@ViewBag.IDNV' || storedLH != '@ViewBag.IDLH')) {
+            ['quizAnswers', 'savedExamTime', 'exam_start_time'].forEach(function (k) {
+                localStorage.removeItem(k);
+            });
             localStorage.setItem('IDLH', @ViewBag.IDLH);
             localStorage.setItem('IDNV', @ViewBag.IDNV);
         }
+        var t = localStorage.getItem('exam_start_time');
+        if (!t) { t = Date.now(); localStorage.setItem('exam_start_time', t); }
+        startMs = parseInt(t);
+        endTime = new Date(startMs + EXAM_DURATION_MS);
     }
 
-    function getOrCreateStartTime() {
-        let t = localStorage.getItem(LOCAL_STORAGE_KEY);
-        if (!t) { t = Date.now(); localStorage.setItem(LOCAL_STORAGE_KEY, t); }
-        localStorage.setItem('savedExamTime', Math.floor((Date.now() - t) / 1000));
-        return parseInt(t);
-    }
+    // Gán thời gian bắt đầu vào hidden field (để server tính GioBatDau)
+    document.getElementById('hiddenFieldTGBDT').value = startMs;
 
-    const startMs   = getOrCreateStartTime();
-    const endTime   = new Date(startMs + EXAM_DURATION_MS);
-    let   elapsed   = parseInt(localStorage.getItem('savedExamTime')) || 0;
-    const timerCard = document.getElementById('timerCard');
-    const timerEl   = document.getElementById('exam-timer');
-
-    const fromLocal = localStorage.getItem('exam_start_time');
-    if (fromLocal) document.getElementById('hiddenFieldTGBDT').value = fromLocal;
-
+    var elapsed    = Math.floor((Date.now() - startMs) / 1000);
+    var timerCard  = document.getElementById('timerCard');
+    var timerEl    = document.getElementById('exam-timer');
     var isExamStarted = true;
 
     function updateTimer() {
-        const remaining = Math.floor((endTime - Date.now()) / 1000);
-        localStorage.setItem('savedExamTime', elapsed);
-        const hf = document.getElementById('hiddenField');
+        var remaining = Math.floor((endTime - Date.now()) / 1000);
+        elapsed = Math.floor((Date.now() - startMs) / 1000);
+        var hf = document.getElementById('hiddenField');
         if (hf) hf.value = elapsed;
 
         if (remaining > 0) {
-            const h = Math.floor(remaining / 3600).toString().padStart(2, '0');
-            const m = Math.floor((remaining % 3600) / 60).toString().padStart(2, '0');
-            const s = (remaining % 60).toString().padStart(2, '0');
+            var h = Math.floor(remaining / 3600).toString().padStart(2, '0');
+            var m = Math.floor((remaining % 3600) / 60).toString().padStart(2, '0');
+            var s = (remaining % 60).toString().padStart(2, '0');
             timerEl.textContent = h + ':' + m + ':' + s;
             timerCard.className = 'timer-card' +
                 (remaining <= 60 ? ' danger' : remaining <= 300 ? ' warning' : '');
         } else {
             isExamStarted = false;
             clearInterval(timerInterval);
-            timerEl.textContent  = 'Hết giờ!';
-            timerCard.className  = 'timer-card danger';
-            ['quizAnswers','savedExamTime','exam_start_time','IDLH'].forEach(k => localStorage.removeItem(k));
+            timerEl.textContent = 'Hết giờ!';
+            timerCard.className = 'timer-card danger';
+            ['quizAnswers', 'savedExamTime', 'exam_start_time', 'IDLH'].forEach(function (k) {
+                localStorage.removeItem(k);
+            });
             doSubmitExam();
         }
-        elapsed++;
     }
 
-    const timerInterval = setInterval(updateTimer, 1000);
+    var timerInterval = setInterval(updateTimer, 1000);
     updateTimer();
 </script>

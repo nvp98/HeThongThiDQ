@@ -16,4 +16,6 @@ public partial class CtbaiThi
     public int? IddapAnNv { get; set; }
 
     public double? Diem { get; set; }
+
+    public DateTime? ThoiGianChon { get; set; }
 }

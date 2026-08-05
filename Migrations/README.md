@@ -1,5 +1,109 @@
 # Migration Notes
 
+## Redis Exam Session — Lưu bài thi vào Redis
+
+### Mục tiêu
+
+- Thí sinh có thể **đổi thiết bị giữa chừng** và tiếp tục thi từ đúng trạng thái đã lưu
+- **Lưu thời điểm chọn từng đáp án** (`ThoiGianChon`) để phân tích sau
+- Redis chỉ lưu tạm (TTL sliding 30 phút), **không ghi DB** cho đến khi nộp bài
+
+---
+
+### Cấu trúc Redis session
+
+**Key:** `exam:session:{IDNV}:{IDLH}`  
+**TTL:** Sliding 30 phút (reset mỗi lần thí sinh chọn đáp án)
+
+```json
+{
+  "IDDeThi": 5,
+  "IDND": 2,
+  "IDLH": 10,
+  "IDNV": 123,
+  "TotalTimeSec": 1800,
+  "StartTimestamp": 1754321000000,
+  "EndTimestamp":   1754322800000,
+  "SavedAt":        1754321500000,
+  "QuestionOrder": [101, 87, 45],
+  "Answers": {
+    "101": { "AnswerId": 3,    "ChosenAt": 1754321060000 },
+    "87":  { "AnswerId": null, "ChosenAt": null }
+  }
+}
+```
+
+- `StartTimestamp` / `EndTimestamp`: server set khi tạo session → timer trên mọi thiết bị đều chính xác
+- `SavedAt`: thời điểm lưu Redis lần cuối
+- `QuestionOrder`: thứ tự câu hỏi sau khi shuffle → đổi thiết bị vẫn giữ nguyên thứ tự
+- `Answers[IDCH].ChosenAt`: Unix ms khi thí sinh chọn đáp án đó
+
+---
+
+### Luồng hoạt động
+
+```
+1. Thí sinh vào trang thi (STestController.Index)
+   ├─ Redis có session hợp lệ?
+   │     Có  → Restore QuestionOrder + Answers + timer từ EndTimestamp
+   │     Không → Shuffle câu hỏi, tạo session mới, lưu Redis
+   └─ Truyền ExamSession xuống view qua ViewBag.ExamSession
+
+2. Thí sinh chọn đáp án (frontend onchange → saveAnswer)
+   ├─ Lưu vào localStorage (fallback)
+   └─ Gọi POST /STest/AutoSave { IDLH, IDCH, AnswerId, ChosenAt: Date.now() }
+         → Cập nhật Answers[IDCH] trong Redis
+         → Reset TTL 30 phút
+         → KHÔNG ghi DB
+
+3. Thí sinh đổi thiết bị
+   → Vào lại trang thi → Index đọc Redis → restore đúng thứ tự câu hỏi + đáp án + timer
+
+4. Thí sinh nộp bài (SubmitExamAjax)
+   ├─ Đọc ChosenAt từ Redis cho từng câu
+   ├─ Lưu BaiThi vào DB
+   ├─ Lưu CtbaiThi (Answer + Diem + ThoiGianChon) vào DB
+   └─ Xóa Redis key
+```
+
+---
+
+### Fallback khi Redis down
+
+- `AutoSave` trả về `{ success: true }` (không fail request)
+- Timer dùng localStorage như cũ
+- Đáp án restore từ localStorage
+- `ThoiGianChon` = null khi lưu DB (chấp nhận được)
+- Bài thi vẫn nộp được bình thường
+
+---
+
+### Các file đã thay đổi
+
+| File | Thay đổi |
+|------|----------|
+| `Models/ExamSession.cs` | Mới — class ExamSession + SessionAnswer |
+| `Data/Models/CtbaiThi.cs` | Thêm property `DateTime? ThoiGianChon` |
+| `Controllers/STestController.cs` | Inject IDistributedCache, cập nhật Index / AutoSave / SubmitExamAjax |
+| `Views/STest/Index.cshtml` | Timer dùng EndTimestamp, saveAnswer gọi AutoSave, restoreAnswers từ Redis session |
+| `Migrations/add_ctbaithi_thoigianchon.sql` | Mới — ALTER TABLE thêm cột ThoiGianChon |
+
+---
+
+### Migration DB cần chạy
+
+**File SQL**: `add_ctbaithi_thoigianchon.sql`
+
+```sql
+-- Chạy trên DB ELEARNING_DQ (1 lần, có thể chạy lại an toàn)
+ALTER TABLE [dbo].[CTBaiThi] ADD [ThoiGianChon] DATETIME NULL
+```
+
+Script tự kiểm tra `IF NOT EXISTS` — chạy nhiều lần không lỗi.
+
+---
+
+
 ## DataProtectionKeys — Web Farm Fix
 
 **File SQL**: `../migration_dataprotection.sql`
