@@ -1,0 +1,105 @@
+@model HeThongThiDQ.Models.GroupQuyenViewModel
+@{
+    ViewBag.Title = "Chi tiết phân quyền";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@if (TempData["msgSuccess"] != null) { @Html.Raw(TempData["msgSuccess"]) }
+@if (TempData["msgError"] != null)   { @Html.Raw(TempData["msgError"]) }
+
+<style>
+    input[type="checkbox"] { zoom: 1.3; position: relative; top: 3px; }
+</style>
+
+<div class="app-main__outer">
+    <div class="app-main__inner">
+
+        <div class="app-page-title mb-0">
+            <div class="page-title-wrapper">
+                <div class="page-title-heading">
+                    <div class="page-title-icon">
+                        <i class="pe-7s-id icon-gradient bg-grow-early"></i>
+                    </div>
+                    <div>Bảng chi tiết phân quyền</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-body">
+                <form asp-action="Edit" asp-controller="FPermision" method="post">
+                    <input type="hidden" name="IDQuyen" value="@Model.IDQuyen" />
+
+                    <div class="form-group col-md-5 px-0 mb-3">
+                        <label class="font-weight-bold">Tên nhóm quyền</label>
+                        @Html.DropDownList("SelectQuyen", null, "--Nhóm Quyền--",
+                            new { id = "SelectQuyen", @class = "form-control", onchange = "window.location.href=this.value" })
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th style="width:220px">Chức năng</th>
+                                    <th style="width:180px">Module</th>
+                                    <th>Quyền chi tiết</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @for (int i = 0; i < Model.ListController.Count; i++)
+                                {
+                                    <input type="hidden" name="ListController[@i].ID" value="@Model.ListController[i].ID" />
+                                    <tr>
+                                        <td class="font-weight-bold align-middle">@Model.ListController[i].Mota</td>
+                                        <td class="align-middle">
+                                            @Model.ListController[i].Controller
+                                            <input type="checkbox" id="chkAll_@i" class="chkAll float-right"
+                                                   @(Model.ListController[i].IsCheck ? "checked" : "") />
+                                        </td>
+                                        <td>
+                                            @for (int j = 0; j < Model.ListController[i].LSChecked.Count; j++)
+                                            {
+                                                <div class="d-inline-block mr-3 mb-1">
+                                                    <input type="checkbox"
+                                                           name="ListController[@i].LSChecked[@j].IsChecked"
+                                                           class="chkItem_@i"
+                                                           value="true"
+                                                           @(Model.ListController[i].LSChecked[j].IsChecked ? "checked" : "") />
+                                                    <input type="hidden"
+                                                           name="ListController[@i].LSChecked[@j].IsChecked"
+                                                           value="false" />
+                                                    <input type="hidden"
+                                                           name="ListController[@i].LSChecked[@j].IdCN"
+                                                           value="@Model.ListController[i].LSChecked[j].IdCN" />
+                                                    @Model.ListController[i].LSChecked[j].Name
+                                                </div>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="d-flex gap-2 mt-3">
+                        <button type="submit" class="btn btn-primary">Cập nhật</button>
+                        <a href="@Url.Action("Index","FPermision")" class="btn btn-danger"
+                           onclick="return confirm('Hủy cập nhật nội dung?')">Hủy</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Chọn/bỏ chọn tất cả quyền trong một controller
+    document.querySelectorAll('.chkAll').forEach(function (chk) {
+        chk.addEventListener('change', function () {
+            var idx = this.id.replace('chkAll_', '');
+            document.querySelectorAll('.chkItem_' + idx).forEach(function (c) {
+                c.checked = chk.checked;
+            });
+        });
+    });
+</script>

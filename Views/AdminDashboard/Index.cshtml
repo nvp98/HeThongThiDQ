@@ -1,0 +1,284 @@
+@model HeThongThiDQ.Controllers.AdminDashboardController.AdminDashboardData
+@{
+    ViewBag.Title = "Dashboard Quản trị";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<style>
+.dash-wrap   { padding: 24px; background: #f0f2f5; min-height: calc(100vh - 60px); }
+
+/* ---- Stat cards ---- */
+.stat-grid   { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.stat-card   {
+    background: #fff; border-radius: 14px;
+    padding: 20px 22px; display: flex; align-items: center; gap: 16px;
+    box-shadow: 0 1px 6px rgba(0,0,0,.07);
+    transition: transform .15s, box-shadow .15s;
+}
+.stat-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,.11); }
+.stat-icon   {
+    width: 52px; height: 52px; border-radius: 13px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; flex-shrink: 0;
+}
+.stat-icon.blue   { background: #e8f0fe; color: #1a73e8; }
+.stat-icon.green  { background: #e6f4ea; color: #1e7e34; }
+.stat-icon.orange { background: #fef3e2; color: #e65100; }
+.stat-icon.purple { background: #f3e8fd; color: #7b1fa2; }
+.stat-num    { font-size: 30px; font-weight: 800; color: #222; line-height: 1; }
+.stat-label  { font-size: 12px; color: #888; margin-top: 3px; }
+
+/* ---- Chart + Table row ---- */
+.dash-row    { display: grid; grid-template-columns: 1fr 1.6fr; gap: 16px; }
+@@media (max-width: 900px) { .dash-row { grid-template-columns: 1fr; } }
+
+/* ---- Panel ---- */
+.panel       {
+    background: #fff; border-radius: 14px;
+    box-shadow: 0 1px 6px rgba(0,0,0,.07); overflow: hidden;
+}
+.panel-head  {
+    padding: 14px 20px; border-bottom: 1px solid #f0f0f0;
+    font-size: 14px; font-weight: 700; color: #333;
+    display: flex; align-items: center; justify-content: space-between;
+}
+.panel-body  { padding: 16px 20px; }
+
+/* ---- Table ---- */
+.dash-table  { width: 100%; border-collapse: collapse; font-size: 13px; }
+.dash-table th {
+    background: #f8f9fa; color: #888; font-weight: 600;
+    padding: 9px 12px; text-align: left; border-bottom: 1px solid #eee;
+    font-size: 11px; text-transform: uppercase; letter-spacing: .4px;
+}
+.dash-table td { padding: 10px 12px; border-bottom: 1px solid #f5f5f5; color: #444; }
+.dash-table tr:last-child td { border-bottom: none; }
+.dash-table tr:hover td { background: #fafbff; }
+.badge-online {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: #e6f4ea; color: #1e7e34;
+    border-radius: 20px; padding: 2px 10px; font-size: 11px; font-weight: 600;
+}
+.badge-online::before {
+    content: ''; width: 6px; height: 6px; border-radius: 50%;
+    background: #34a853; animation: pulse-g .9s ease-in-out infinite;
+}
+@@keyframes pulse-g { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+/* ---- Refresh badge ---- */
+.refresh-badge {
+    font-size: 11px; color: #aaa; font-weight: 400;
+    display: flex; align-items: center; gap: 5px;
+}
+#refresh-dot {
+    width: 7px; height: 7px; border-radius: 50%; background: #bbb;
+    transition: background .3s;
+}
+#refresh-dot.active { background: #34a853; }
+
+/* ---- Empty state ---- */
+.empty-state { text-align: center; padding: 28px 0; color: #bbb; font-size: 13px; }
+</style>
+
+<div class="app-main__outer">
+    <div class="app-main__inner">
+        <div class="dash-wrap">
+
+            <!-- Header -->
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+                <div>
+                    <div style="font-size:20px;font-weight:800;color:#222;">Dashboard Quản trị</div>
+                    <div style="font-size:12px;color:#999;margin-top:2px;">Cập nhật mỗi 30 giây &nbsp;|&nbsp; Hôm nay: @DateTime.Now.ToString("dd/MM/yyyy")</div>
+                </div>
+                <div class="refresh-badge">
+                    <div id="refresh-dot"></div>
+                    <span id="refresh-text">Đang chờ...</span>
+                </div>
+            </div>
+
+            <!-- Stat cards -->
+            <div class="stat-grid" id="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-icon blue"><i class="fa fa-users"></i></div>
+                    <div>
+                        <div class="stat-num" id="s-online">@Model.OnlineCount</div>
+                        <div class="stat-label">Đang online (5 phút qua)</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green"><i class="fa fa-pencil-square-o"></i></div>
+                    <div>
+                        <div class="stat-num" id="s-exam">@Model.ExamCount</div>
+                        <div class="stat-label">Đang thi</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon orange"><i class="fa fa-sign-in"></i></div>
+                    <div>
+                        <div class="stat-num" id="s-today">@Model.TodayLogins</div>
+                        <div class="stat-label">Lượt đăng nhập hôm nay</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon purple"><i class="fa fa-bar-chart"></i></div>
+                    <div>
+                        <div class="stat-num" id="s-total">@Model.TotalLogins</div>
+                        <div class="stat-label">Tổng lượt đăng nhập</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Chart + Table -->
+            <div class="dash-row">
+
+                <!-- Bar chart theo giờ -->
+                <div class="panel">
+                    <div class="panel-head">
+                        <span><i class="fa fa-clock-o" style="margin-right:7px;color:#1a73e8;"></i>Lượt đăng nhập theo giờ hôm nay</span>
+                    </div>
+                    <div class="panel-body">
+                        <canvas id="hourlyChart" height="220"></canvas>
+                    </div>
+                </div>
+
+                <!-- Danh sách online -->
+                <div class="panel">
+                    <div class="panel-head">
+                        <span><i class="fa fa-circle" style="margin-right:7px;color:#34a853;font-size:10px;"></i>Người đang online</span>
+                        <span style="font-size:12px;color:#888;font-weight:400;" id="online-count-label">@Model.OnlineCount người</span>
+                    </div>
+                    <div class="panel-body" style="padding:0;max-height:380px;overflow-y:auto;">
+                        <div id="online-table-wrap">
+                            @if (Model.OnlineUsers.Any())
+                            {
+                                <table class="dash-table">
+                                    <thead>
+                                        <tr>
+                                            <th>Họ tên</th>
+                                            <th>Mã NV</th>
+                                            <th>Phòng ban</th>
+                                            <th>Hoạt động</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach (var u in Model.OnlineUsers)
+                                        {
+                                            <tr>
+                                                <td>
+                                                    <span class="badge-online"></span>
+                                                    &nbsp;@u.HoTen
+                                                </td>
+                                                <td style="color:#888;">@u.MaNV</td>
+                                                <td>@u.PhongBan</td>
+                                                <td style="color:#aaa;font-size:11px;">@u.LastActive</td>
+                                            </tr>
+                                        }
+                                    </tbody>
+                                </table>
+                            }
+                            else
+                            {
+                                <div class="empty-state">Chưa có người dùng online</div>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+    // ----- Biểu đồ theo giờ -----
+    var hourlyData  = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.HourlyLogins));
+    var hourLabels  = Array.from({ length: 24 }, function(_, i) { return i.toString().padStart(2,'0') + 'h'; });
+    var currentHour = new Date().getHours();
+
+    var barColors = hourLabels.map(function(_, i) {
+        return i === currentHour ? '#1a73e8' : '#c5d9fb';
+    });
+
+    var ctx   = document.getElementById('hourlyChart').getContext('2d');
+    var chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels:   hourLabels,
+            datasets: [{
+                data:            hourlyData,
+                backgroundColor: barColors,
+                borderRadius:    4,
+                borderSkipped:   false,
+            }]
+        },
+        options: {
+            plugins: { legend: { display: false } },
+            scales: {
+                y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: '#f0f0f0' } },
+                x: { ticks: { font: { size: 10 } }, grid: { display: false } }
+            },
+            animation: { duration: 400 }
+        }
+    });
+
+    // ----- Auto-refresh 30 giây -----
+    var refreshDot  = document.getElementById('refresh-dot');
+    var refreshText = document.getElementById('refresh-text');
+    var countdown   = 30;
+
+    function tick() {
+        countdown--;
+        refreshText.textContent = 'Làm mới sau ' + countdown + 's';
+        if (countdown <= 0) {
+            countdown = 30;
+            refreshData();
+        }
+    }
+
+    async function refreshData() {
+        refreshDot.classList.add('active');
+        refreshText.textContent = 'Đang cập nhật...';
+        try {
+            var res  = await fetch('/AdminDashboard/Data');
+            var data = await res.json();
+
+            document.getElementById('s-online').textContent = data.OnlineCount;
+            document.getElementById('s-exam').textContent   = data.ExamCount;
+            document.getElementById('s-today').textContent  = data.TodayLogins;
+            document.getElementById('s-total').textContent  = data.TotalLogins;
+            document.getElementById('online-count-label').textContent = data.OnlineCount + ' người';
+
+            // Cập nhật chart
+            chart.data.datasets[0].data = data.HourlyLogins;
+            currentHour = new Date().getHours();
+            chart.data.datasets[0].backgroundColor = data.HourlyLogins.map(function(_, i) {
+                return i === currentHour ? '#1a73e8' : '#c5d9fb';
+            });
+            chart.update('none');
+
+            // Cập nhật bảng online
+            var wrap = document.getElementById('online-table-wrap');
+            if (!data.OnlineUsers || data.OnlineUsers.length === 0) {
+                wrap.innerHTML = '<div class="empty-state">Chưa có người dùng online</div>';
+            } else {
+                var rows = data.OnlineUsers.map(function(u) {
+                    return '<tr>'
+                        + '<td><span class="badge-online"></span>&nbsp;' + u.HoTen + '</td>'
+                        + '<td style="color:#888;">' + u.MaNV + '</td>'
+                        + '<td>' + u.PhongBan + '</td>'
+                        + '<td style="color:#aaa;font-size:11px;">' + u.LastActive + '</td>'
+                        + '</tr>';
+                }).join('');
+                wrap.innerHTML = '<table class="dash-table"><thead><tr>'
+                    + '<th>Họ tên</th><th>Mã NV</th><th>Phòng ban</th><th>Hoạt động</th>'
+                    + '</tr></thead><tbody>' + rows + '</tbody></table>';
+            }
+        } catch (e) { }
+        setTimeout(function() { refreshDot.classList.remove('active'); }, 500);
+        refreshText.textContent = 'Làm mới sau 30s';
+    }
+
+    setInterval(tick, 1000);
+    tick();
+</script>

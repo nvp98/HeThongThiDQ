@@ -804,7 +804,7 @@
     // ----- Ping 15 giây — phát hiện thiết bị khác đăng nhập khi đang treo màn hình thi -----
     var pingInterval = setInterval(function () {
         if (!isExamStarted || isKicked) return;
-        fetch('/STest/PingSession')
+        fetch('/STest/PingSession?idlh=' + (examSession ? examSession.IDLH : 0))
             .then(function (res) {
                 if (isKickedResponse(res)) handleKicked();
             })

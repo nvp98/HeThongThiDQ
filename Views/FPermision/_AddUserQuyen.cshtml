@@ -1,0 +1,67 @@
+@model HeThongThiDQ.Models.AddUserQuyenViewModel
+
+<form asp-action="AddUserQuyen" asp-controller="FPermision" method="post">
+    <div class="modal-dialog" id="formE">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Thêm user vào nhóm quyền</h5>
+                <a href="#" class="close" data-dismiss="modal">&times;</a>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-12 form-group">
+                        <label class="font-weight-bold">Nhóm quyền</label>
+                        @Html.DropDownList("IDKNL", null, new { @class = "form-control" })
+                    </div>
+                    <div class="col-md-12 form-group">
+                        <label>Bộ phận</label>
+                        @Html.DropDownList("IDPB", null, "--Bộ Phận--",
+                            new { id = "IDPB", @class = "form-control SelectBP" })
+                    </div>
+                    <div class="col-md-12 form-group">
+                        <label class="font-weight-bold">Chọn nhân viên</label>
+                        @Html.DropDownList("Selected", null, "",
+                            new { id = "multiSelectNV", @class = "form-control", multiple = "multiple" })
+                    </div>
+                    <div class="col-md-12 form-group">
+                        <label class="font-weight-bold">Hoặc nhập danh sách mã NV</label>
+                        <textarea name="NVDG" id="NVDG" class="form-control" rows="2"
+                                  placeholder="Nhập danh sách mã nhân viên (cách nhau bởi dấu phẩy/xuống dòng)"></textarea>
+                    </div>
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-info btn-sm" id="btnCheckNV">Kiểm tra</button>
+                    </div>
+                    <div class="col-md-9">
+                        <div id="dsnv" class="border border-success rounded p-1 mt-1" style="min-height:30px;max-height:70px;overflow-y:auto;font-size:12px;"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="submit" class="btn btn-primary">Xác nhận</button>
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+    $(document).ready(function () {
+        $('#IDPB').on('change', function () {
+            var idpb = $(this).val();
+            $.get('/FPermision/CheckNV', { IDPB: idpb }, function (data) {
+                var sel = $('#multiSelectNV');
+                sel.empty().append('<option value="">--Chọn nhân viên--</option>');
+                $.each(data, function (i, row) {
+                    sel.append('<option value="' + row.MaNV + '">' + row.HoTen + '</option>');
+                });
+            });
+        });
+
+        $('#btnCheckNV').on('click', function () {
+            $.get('/FPermision/CheckLSNV', { lsnv: $('#NVDG').val() }, function (data) {
+                var div = $('#dsnv').empty();
+                $.each(data, function (i, row) { div.append('<div>' + row.HoTen + '</div>'); });
+            });
+        });
+    });
+</script>

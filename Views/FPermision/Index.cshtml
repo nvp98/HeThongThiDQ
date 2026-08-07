@@ -1,0 +1,105 @@
+@model List<HeThongThiDQ.Data.Models.Quyen>
+@using HeThongThiDQ.Common
+@{
+    ViewBag.Title = "Phân quyền";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@if (TempData["msgSuccess"] != null) { @Html.Raw(TempData["msgSuccess"]) }
+@if (TempData["msgError"] != null)   { @Html.Raw(TempData["msgError"]) }
+
+<div class="app-main__outer">
+    <div class="app-main__inner">
+
+        <div class="app-page-title">
+            <div class="page-title-wrapper">
+                <div class="page-title-heading">
+                    <div class="page-title-icon">
+                        <i class="pe-7s-id icon-gradient bg-grow-early"></i>
+                    </div>
+                    <div>Phân quyền hệ thống</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header d-flex align-items-center gap-2">
+                @if ((ViewBag.QUYENCN as List<string>).Contains(CONSTKEY.EDIT))
+                {
+                    <a class="btn btn-warning btn-sm" href="@Url.Action("AdminPermision","FPermision")">
+                        <i class="fa fa-random"></i>&nbsp;Quản trị bảng quyền
+                    </a>
+                }
+                @if ((ViewBag.QUYENCN as List<string>).Contains(CONSTKEY.ADD))
+                {
+                    <button type="button" class="btn btn-primary btn-sm" data-toggle="modal" data-target="#modalCreate">
+                        <i class="fa fa-plus"></i>&nbsp;Thêm nhóm quyền
+                    </button>
+                }
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered table-hover" id="table">
+                    <thead class="thead-light">
+                        <tr>
+                            <th class="text-center" width="60">STT</th>
+                            <th>Tên nhóm quyền</th>
+                            <th class="text-center" width="120">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int i = 0; i < Model.Count; i++)
+                        {
+                            var item = Model[i];
+                            <tr>
+                                <td class="text-center">@(i + 1)</td>
+                                <td>@item.TenQuyen</td>
+                                <td class="text-center">
+                                    @if ((ViewBag.QUYENCN as List<string>).Contains(CONSTKEY.PER))
+                                    {
+                                        <a href="@Url.Action("ListUser","FPermision",new{id=item.Idquyen})"
+                                           title="Danh sách user" class="fa fa-users icon_action mr-2"></a>
+                                    }
+                                    @if ((ViewBag.QUYENCN as List<string>).Contains(CONSTKEY.EDIT))
+                                    {
+                                        <a href="@Url.Action("Edit","FPermision",new{id=item.Idquyen})"
+                                           title="Chi tiết quyền" class="fa fa-list icon_action"></a>
+                                    }
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Thêm nhóm quyền -->
+<div class="modal fade" id="modalCreate" tabindex="-1" role="dialog">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            <form asp-action="Create" asp-controller="FPermision" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title">Thêm nhóm quyền mới</h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label class="font-weight-bold">Tên nhóm quyền</label>
+                        <input name="TenQuyen" class="form-control" placeholder="Nhập tên nhóm quyền" required />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Xác nhận</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        $('#table').DataTable({ pageLength: 25, language: { url: '' } });
+    });
+</script>

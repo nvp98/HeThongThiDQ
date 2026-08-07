@@ -31,6 +31,11 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.InstanceName = "HPDQ:";
 });
 
+// IConnectionMultiplexer — cho ZSET, INCR và các lệnh Redis nâng cao
+builder.Services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(
+    StackExchange.Redis.ConnectionMultiplexer.Connect(
+        builder.Configuration.GetConnectionString("Redis")!));
+
 // Cookie Authentication
 builder.Services.AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>

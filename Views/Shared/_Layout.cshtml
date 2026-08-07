@@ -315,7 +315,16 @@
                                     </li>
                                     showQuanTri = 1;
                                 }
-                                @if (ListControll.Contains("Notification"))
+                                @if (ListControll.Contains("AdminDashboard"))
+                                {
+                                    <li>
+                                        <a asp-controller="AdminDashboard" asp-action="Index">
+                                            <i class="nav-icon fa fa-tachometer"></i>Dashboard Quản trị
+                                        </a>
+                                    </li>
+                                    showQuanTri = 1;
+                                }
+                                @* @if (ListControll.Contains("Notification"))
                                 {
                                     <li>
                                         <a asp-controller="Notification" asp-action="Index">
@@ -323,7 +332,7 @@
                                         </a>
                                     </li>
                                     showQuanTri = 1;
-                                }
+                                } *@
 
                                 @if (User.Identity!.IsAuthenticated && Auth.IDQuyen == 1)
                                 {
@@ -357,7 +366,7 @@
 
                                 <li id="QuanTriKNL" style="display: none" class="app-sidebar__heading">Quản trị tổ chức</li>
 
-                                @if (ListControll.Contains("FDepartment"))
+                                @* @if (ListControll.Contains("FDepartment"))
                                 {
                                     <li>
                                         <a asp-controller="FDepartment" asp-action="Index">
@@ -365,7 +374,7 @@
                                         </a>
                                     </li>
                                     showQuanTriKNL = 1;
-                                }
+                                } *@
 
                             </ul>
                         </div>

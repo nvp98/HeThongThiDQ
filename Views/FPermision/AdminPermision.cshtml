@@ -1,0 +1,90 @@
+@model List<HeThongThiDQ.Models.ListControllerViewModel>
+@{
+    ViewBag.Title = "Quản trị bảng quyền";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+@if (TempData["msgSuccess"] != null) { @Html.Raw(TempData["msgSuccess"]) }
+@if (TempData["msgError"] != null)   { @Html.Raw(TempData["msgError"]) }
+
+<div class="app-main__outer">
+    <div class="app-main__inner">
+
+        <div class="app-page-title">
+            <div class="page-title-wrapper">
+                <div class="page-title-heading">
+                    <div class="page-title-icon">
+                        <i class="pe-7s-config icon-gradient bg-grow-early"></i>
+                    </div>
+                    <div>Quản trị Controller &amp; Quyền</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mb-4">
+            <div class="card-header">
+                <a href="@Url.Action("Sync","FPermision")" class="btn btn-warning btn-sm">
+                    <i class="fa fa-refresh"></i>&nbsp;Đồng bộ Controller
+                </a>
+                <a href="@Url.Action("Index","FPermision")" class="btn btn-secondary btn-sm ml-2">
+                    <i class="fa fa-arrow-left"></i>&nbsp;Về danh sách quyền
+                </a>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered table-hover" id="table">
+                    <thead class="thead-light">
+                        <tr>
+                            <th class="text-center" width="50">STT</th>
+                            <th>Tên chức năng</th>
+                            <th>Controller</th>
+                            <th class="text-center" width="80">Trạng thái</th>
+                            <th>Danh sách quyền</th>
+                            <th class="text-center" width="80">Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (int i = 0; i < Model.Count; i++)
+                        {
+                            var item = Model[i];
+                            <tr>
+                                <td class="text-center">@(i + 1)</td>
+                                <td>@item.Mota</td>
+                                <td><code>@item.Controller</code></td>
+                                <td class="text-center">
+                                    @if (item.IsActive == 1)
+                                    {
+                                        <span class="badge badge-success">Bật</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge badge-secondary">Tắt</span>
+                                    }
+                                </td>
+                                <td><small>@item.DsTenQuyen</small></td>
+                                <td class="text-center">
+                                    <a class="fa fa-edit icon_action btn-edit-controller" title="Sửa"
+                                       data-id="@item.ID" href="javascript:void(0)"></a>
+                                    <div class="modal fade" id="modalEdit_@item.ID" role="dialog"></div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        $('#table').DataTable({ pageLength: 50 });
+    });
+
+    $(document).on('click', '.btn-edit-controller', function () {
+        var id = $(this).data('id');
+        var modalId = '#modalEdit_' + id;
+        $.get('/FPermision/EditController/' + id, function (data) {
+            $(modalId).html(data).modal('show');
+        });
+    });
+</script>

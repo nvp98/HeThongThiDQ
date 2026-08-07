@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
+using StackExchange.Redis;
 using System.Text.Json;
 
 namespace HeThongThiDQ.Controllers
@@ -16,15 +17,18 @@ namespace HeThongThiDQ.Controllers
         private readonly ELEARNINGEntities _db;
         private readonly MyAuthentication _auth;
         private readonly IDistributedCache _cache;
+        private readonly IConnectionMultiplexer _mux;
 
         private static readonly DistributedCacheEntryOptions _sessionOpts =
             new() { SlidingExpiration = TimeSpan.FromMinutes(30) };
 
-        public STestController(ELEARNINGEntities db, MyAuthentication auth, IDistributedCache cache)
+        public STestController(ELEARNINGEntities db, MyAuthentication auth,
+                               IDistributedCache cache, IConnectionMultiplexer mux)
         {
             _db   = db;
             _auth = auth;
             _cache = cache;
+            _mux  = mux;
         }
 
         private string SessionKey(int idlh) => $"exam:session:{_auth.ID}:{idlh}";
@@ -137,6 +141,16 @@ namespace HeThongThiDQ.Controllers
             ViewBag.IDNV           = _auth.ID;
             ViewBag.IDLH           = LHID;
             ViewBag.ExamSession    = JsonSerializer.Serialize(session);
+
+            // Ghi nhận thí sinh đang thi vào Redis
+            try
+            {
+                await _mux.GetDatabase().SortedSetAddAsync(
+                    "HPDQ:online:exams",
+                    $"{_auth.ID}:{LHID}",
+                    DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+            }
+            catch { }
 
             return View(res);
         }
@@ -266,8 +280,19 @@ namespace HeThongThiDQ.Controllers
         }
 
         [HttpGet]
-        public IActionResult PingSession()
+        public async Task<IActionResult> PingSession(int idlh = 0)
         {
+            if (idlh > 0)
+            {
+                try
+                {
+                    await _mux.GetDatabase().SortedSetAddAsync(
+                        "HPDQ:online:exams",
+                        $"{_auth.ID}:{idlh}",
+                        DateTimeOffset.UtcNow.ToUnixTimeMilliseconds());
+                }
+                catch { }
+            }
             return Json(new { valid = true });
         }
 
@@ -367,8 +392,9 @@ namespace HeThongThiDQ.Controllers
             baiThi.TinhTrang = true;
             await _db.SaveChangesAsync();
 
-            // Clean up Redis session
+            // Clean up Redis session + xóa khỏi danh sách đang thi
             try { await _cache.RemoveAsync(SessionKey(dto.IDLH)); } catch { }
+            try { await _mux.GetDatabase().SortedSetRemoveAsync("HPDQ:online:exams", $"{_auth.ID}:{dto.IDLH}"); } catch { }
 
             TempData["Message"] = $"Với số điểm là: {diemSo}/100";
 

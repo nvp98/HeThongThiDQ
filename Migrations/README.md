@@ -104,6 +104,99 @@ Script tự kiểm tra `IF NOT EXISTS` — chạy nhiều lần không lỗi.
 ---
 
 
+## Single Device Login — 1 tài khoản chỉ 1 thiết bị đăng nhập
+
+### Mục tiêu
+
+- Tại một thời điểm chỉ cho phép **1 thiết bị** đăng nhập với cùng 1 tài khoản
+- Thiết bị 2 đăng nhập → thiết bị 1 bị kick tự động ở request tiếp theo
+- Trên màn hình thi (`STest`): phát hiện kick sau tối đa **15 giây** dù không có thao tác
+
+---
+
+### Cấu trúc Redis
+
+```
+Key:   user:session:{IDNV}
+Value: sessionToken (GUID 32 ký tự)
+TTL:   Sliding 360 phút (bằng thời gian sống cookie auth)
+```
+
+---
+
+### Luồng hoạt động
+
+```
+Thiết bị 1 đăng nhập
+  → sinh token "AAA"
+  → lưu Redis["user:session:123"] = "AAA"
+  → ghi claim NV_ST = "AAA" vào cookie
+
+Thiết bị 2 đăng nhập cùng tài khoản
+  → sinh token "BBB"
+  → ghi đè Redis["user:session:123"] = "BBB"
+  → cookie thiết bị 2 có NV_ST = "BBB"
+
+Thiết bị 1 request tiếp theo (bất kỳ trang nào)
+  → SessionGuardMiddleware đọc claim "AAA"
+  → Redis trả về "BBB"
+  → "AAA" ≠ "BBB" → SignOut → redirect /Login/Index?kicked=1
+  → Hiện alert: "Tài khoản đã đăng nhập ở thiết bị khác"
+```
+
+---
+
+### Phát hiện kick khi đang treo màn hình STest
+
+Middleware chỉ check khi có HTTP request. Nếu thí sinh ngồi đọc đề mà không thao tác → không có request → không bị kick ngay.
+
+**Giải pháp:** JS trên trang STest gọi `GET /STest/PingSession` mỗi **15 giây**.  
+Middleware xử lý request này → nếu token mismatch → redirect login → JS phát hiện redirect → hiện overlay kick.
+
+```
+Thiết bị 2 đăng nhập → Redis token đổi
+
+Thiết bị 1 (đang treo màn hình thi, không thao tác):
+  → 15s ping → middleware detect mismatch → redirect /Login
+  → fetch thấy response.redirected = true
+  → Overlay "Phiên thi bị gián đoạn" xuất hiện
+  → Đếm ngược 3 giây → redirect login
+```
+
+**Ngoài ping 15s**, response của `AutoSave` cũng được kiểm tra:  
+Nếu thí sinh chọn đáp án mà lúc đó đã bị kick → AutoSave response là redirect → cũng trigger overlay ngay lập tức.
+
+---
+
+### Fallback khi Redis down
+
+- Middleware bắt exception → cho request qua, không block
+- Người dùng vẫn dùng được bình thường
+- Tính năng single device tạm thời vô hiệu cho đến khi Redis phục hồi
+
+---
+
+### Các file đã thay đổi
+
+| File | Thay đổi |
+|------|----------|
+| `Middleware/SessionGuardMiddleware.cs` | Mới — check token mỗi request |
+| `Controllers/LoginController.cs` | Sinh token khi login, xóa token khi logout, inject IDistributedCache |
+| `Controllers/STestController.cs` | Thêm `GET /STest/PingSession` |
+| `Program.cs` | Đăng ký `UseMiddleware<SessionGuardMiddleware>()` |
+| `Views/Login/Index.cshtml` | Hiện alert khi URL có `?kicked=1` |
+| `Views/STest/Index.cshtml` | Overlay kicked, ping 15s, check AutoSave response |
+
+---
+
+### Lưu ý
+
+- Cookie cũ (trước khi tính năng được bật) không có claim `NV_ST` → middleware **bỏ qua**, không kick — tránh gián đoạn người dùng hiện tại
+- Refresh trang không bị kick vì JS cũ đã dừng trước khi trang mới load
+- Logout xóa Redis key → tài khoản hoàn toàn sạch, không thiết bị nào dùng lại token cũ được
+
+---
+
 ## DataProtectionKeys — Web Farm Fix
 
 **File SQL**: `../migration_dataprotection.sql`

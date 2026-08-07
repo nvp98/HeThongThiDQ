@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
+using StackExchange.Redis;
 using System.Security.Claims;
 
 namespace HeThongThiDQ.Controllers
@@ -16,15 +17,18 @@ namespace HeThongThiDQ.Controllers
         private readonly ELEARNINGEntities _db;
         private readonly MyAuthentication _auth;
         private readonly IDistributedCache _cache;
+        private readonly IConnectionMultiplexer _mux;
 
         private static readonly DistributedCacheEntryOptions _sessionOpts =
             new() { SlidingExpiration = TimeSpan.FromMinutes(360) };
 
-        public LoginController(ELEARNINGEntities db, MyAuthentication auth, IDistributedCache cache)
+        public LoginController(ELEARNINGEntities db, MyAuthentication auth,
+                               IDistributedCache cache, IConnectionMultiplexer mux)
         {
             _db    = db;
             _auth  = auth;
             _cache = cache;
+            _mux   = mux;
         }
 
         public async Task<IActionResult> Index()
@@ -81,6 +85,26 @@ namespace HeThongThiDQ.Controllers
                     }
                     catch { }
 
+                    // Ghi thống kê lượt truy cập
+                    try
+                    {
+                        var rdb  = _mux.GetDatabase();
+                        var now  = DateTime.Now;
+                        var date = now.ToString("yyyyMMdd");
+                        var hour = now.ToString("HH");
+
+                        await rdb.StringIncrementAsync("HPDQ:stats:logins:total");
+
+                        var dailyKey = $"HPDQ:stats:logins:daily:{date}";
+                        await rdb.StringIncrementAsync(dailyKey);
+                        await rdb.KeyExpireAsync(dailyKey, TimeSpan.FromDays(90));
+
+                        var hourlyKey = $"HPDQ:stats:logins:hourly:{date}:{hour}";
+                        await rdb.StringIncrementAsync(hourlyKey);
+                        await rdb.KeyExpireAsync(hourlyKey, TimeSpan.FromDays(7));
+                    }
+                    catch { }
+
                     TempData["ClearLocalStorage"] = true;
                     return RedirectToAction("Index", "EClassroom");
                 }
@@ -106,8 +130,9 @@ namespace HeThongThiDQ.Controllers
                 _db.HistoryLogs.RemoveRange(logs);
                 await _db.SaveChangesAsync();
 
-                // Xóa session token — đảm bảo không thiết bị nào dùng lại được
+                // Xóa session token + xóa khỏi danh sách online
                 try { await _cache.RemoveAsync($"user:session:{idNV}"); } catch { }
+                try { await _mux.GetDatabase().SortedSetRemoveAsync("HPDQ:online:users", idNV.ToString()); } catch { }
             }
 
             await HttpContext.SignOutAsync(CookieAuthenticationDefaults.AuthenticationScheme);
