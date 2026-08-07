@@ -4,16 +4,195 @@
 }
 <!DOCTYPE html>
 <html lang="vi">
+
 <head>
     <meta charset="utf-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no" />
-    <title>Đăng nhập</title>
+    <title>Đăng nhập — Hệ thống đánh giá năng lực</title>
     <link href="~/Content/main.css" rel="stylesheet" />
+    <link href="~/Content/custom_responsive_mobile.css" rel="stylesheet" />
     <script src="~/Content/jquery-3.0.0.min.js"></script>
     <script src="~/Content/bootstrap.min.js"></script>
+    <style>
+        .login-wrapper {
+        width: 100%;
+        max-width: 430px;
+        }
+
+        .login-card {
+        background: #fff;
+        border-radius: 14px;
+        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+        overflow: hidden;
+        }
+
+        .login-header {
+        background: #fff;
+        border-bottom: 3px solid #05418A;
+        padding: 24px 28px 18px;
+        text-align: center;
+        }
+
+        .login-header img {
+        max-width: 210px;
+        width: 100%;
+        height: auto;
+        }
+
+        .login-header .system-name {
+        color: #05418A;
+        font-size: 0.95rem;
+        font-weight: 800;
+        margin-top: 10px;
+        letter-spacing: 0.4px;
+        text-transform: uppercase;
+        }
+
+        .login-header .event-name {
+        color: #4b5563;
+        font-size: 0.8rem;
+        margin-top: 3px;
+        }
+
+        .login-body {
+        padding: 24px 28px 28px;
+        }
+
+        .info-box {
+        background: #EFF6FF;
+        border-left: 4px solid #05418A;
+        border-radius: 6px;
+        padding: 11px 14px;
+        margin-bottom: 20px;
+        font-size: 0.8rem;
+        color: #1e3a5f;
+        }
+
+        .info-box .info-title {
+        font-weight: 700;
+        margin-bottom: 5px;
+        }
+
+        .info-box ul {
+        margin: 0;
+        padding-left: 16px;
+        }
+
+        .info-box ul li {
+        margin-bottom: 2px;
+        line-height: 1.5;
+        }
+
+        .info-box ul li b {
+        color: #05418A;
+        }
+
+        .input-wrap {
+        position: relative;
+        margin-bottom: 14px;
+        }
+
+        .input-wrap .ico {
+        position: absolute;
+        left: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #9ca3af;
+        font-size: 14px;
+        pointer-events: none;
+        }
+
+        .input-wrap input {
+        width: 100%;
+        padding: 11px 38px;
+        border: 1.5px solid #d1d5db;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        outline: none;
+        transition: border-color 0.2s, box-shadow 0.2s;
+        color: #111827;
+        font-family: inherit;
+        }
+
+        .input-wrap input:focus {
+        border-color: #05418A;
+        box-shadow: 0 0 0 3px rgba(5, 65, 138, 0.1);
+        }
+
+        .input-wrap input::placeholder {
+        color: #9ca3af;
+        }
+
+        .toggle-pass {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+        cursor: pointer;
+        color: #9ca3af;
+        font-size: 14px;
+        }
+
+        .toggle-pass:hover {
+        color: #05418A;
+        }
+
+        .error-msg {
+        font-size: 0.76rem;
+        color: #dc2626;
+        margin-top: -10px;
+        margin-bottom: 8px;
+        padding-left: 4px;
+        min-height: 14px;
+        }
+
+        .btn-login {
+        width: 100%;
+        padding: 12px;
+        background: linear-gradient(135deg, #05418A, #1565C0);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-size: 0.93rem;
+        font-weight: 700;
+        letter-spacing: 0.4px;
+        cursor: pointer;
+        transition: opacity 0.2s, transform 0.1s;
+        margin-top: 4px;
+        font-family: inherit;
+        }
+
+        .btn-login:hover {
+        opacity: 0.9;
+        transform: translateY(-1px);
+        }
+
+        .btn-login:active {
+        transform: translateY(0);
+        }
+
+        .login-note {
+        text-align: center;
+        margin-top: 16px;
+        font-size: 0.76rem;
+        color: #9ca3af;
+        }
+
+        @@media (max-width: 480px) {
+        .login-body {
+        padding: 18px 18px 22px;
+        }
+
+        .login-header {
+        padding: 18px 18px 14px;
+        }
+        }
+    </style>
 </head>
+
 <body class="bg-login">
+
     @if (TempData["msglg"] != null)
     {
         @Html.Raw(TempData["msglg"])
@@ -25,68 +204,96 @@
 
     <div class="container" style="height:100%">
         <div class="main-content">
-            <div class="content-centered">
-                <div class="card shadow-lg border-0 rounded-lg">
-                    <div class="card-header">
-                        <img src="~/Content/assets/images/logo-inverse.png" style="width:100%; height:auto; max-width:230px; margin: 0 auto;" />
-                    </div>
-                    <div class="card-body">
-                        <p class="text-center font-weight-light">Hội thi tay nghề giỏi tập đoàn 2025</p>
+            <div class="content-centered" style="min-width:0; width:430px; max-width:95vw;">
 
-                        <form asp-action="LoginUser" asp-controller="Login" id="myForm" method="post">
-                            <div class="form-group">
-                                <input asp-for="SoDienThoai" class="form-control" placeholder="Số điện thoại" />
-                                <span asp-validation-for="SoDienThoai" class="text-danger"></span>
-                                <div id="show_error_user"></div>
+                <div class="login-card">
+
+                    <div class="login-header">
+                        <img src="~/Content/assets/images/logo.png" alt="Logo Hòa Phát Dung Quất" />
+                        <div class="system-name">Hệ thống thi trực tuyến</div>
+                        <div class="event-name">Hội thi tìm hiểu văn hóa lịch sử Q-Day 2026</div>
+                    </div>
+
+                    <div class="login-body">
+
+                        <div class="info-box">
+                            <div class="info-title"><i class="fa fa-info-circle"></i>&nbsp;Hướng dẫn đăng nhập</div>
+                            <ul>
+                                <li>Dùng tài khoản <b>Hệ thống HR</b> (hr.hoaphatdungquat.vn)</li>
+                                <li>Hoặc tài khoản <b>eLearning</b> (appelearning.hoaphatdungquat.vn)</li>
+                                <li>Hoặc tài khoản <b>nội bộ</b> do P.CNTT&amp;CĐS cấp</li>
+                            </ul>
+                        </div>
+
+                        <form asp-action="LoginUser" asp-controller="Login" id="myForm" method="post"
+                              autocomplete="off">
+
+                            <div class="input-wrap">
+                                <i class="fa fa-user ico"></i>
+                                <input asp-for="SoDienThoai" id="SoDienThoai" placeholder="Mã nhân viên (VD: HPDQ12345)"
+                                       autocomplete="username" />
                             </div>
-                            <div class="form-group">
-                                <input asp-for="MatKhau" type="password" class="form-control" placeholder="Mật khẩu" />
-                                <span asp-validation-for="MatKhau" class="text-danger"></span>
-                                <div id="show_error_pass"></div>
+                            <div id="show_error_user" class="error-msg"></div>
+
+                            <div class="input-wrap">
+                                <i class="fa fa-lock ico"></i>
+                                <input asp-for="MatKhau" id="MatKhau" type="password" placeholder="Mật khẩu"
+                                       autocomplete="current-password" />
+                                <span class="toggle-pass" id="togglePass" title="Hiện/ẩn mật khẩu">
+                                    <i class="fa fa-eye" id="eyeIcon"></i>
+                                </span>
                             </div>
-                            <div class="form-group">
-                                <button id="LoginUser" type="submit" class="form-control btn btn-primary submit px-3">
-                                    <strong>Đăng Nhập</strong>
-                                </button>
-                            </div>
-                            <div class="form-group">
-                                <div class="custom-control custom-checkbox">
-                                    <input class="custom-control-input" id="rememberPasswordCheck" type="checkbox" />
-                                    <label class="custom-control-label" for="rememberPasswordCheck">Nhớ tài khoản</label>
-                                </div>
-                            </div>
+                            <div id="show_error_pass" class="error-msg"></div>
+
+                            <button id="LoginUser" type="submit" class="btn-login">
+                                <i class="fa fa-sign-in"></i>&nbsp; Đăng nhập
+                            </button>
+
                         </form>
+
+                        <div class="login-note">
+                            Quên mật khẩu? Liên hệ <strong>P.CNTT&amp;CĐS</strong> để được hỗ trợ.
+                        </div>
+
                     </div>
                 </div>
+
             </div>
         </div>
     </div>
 
-    <link href="~/Content/custom_responsive_mobile.css" rel="stylesheet" />
 </body>
+
 </html>
 
 <script>
     localStorage.removeItem("IDNV");
     localStorage.removeItem("IDLH");
 
-    $("#MatKhau").keyup(function (event) {
-        if (event.keyCode === 13) {
-            $("#LoginUser").click();
-        }
+    $('#togglePass').on('click', function () {
+    var inp = $('#MatKhau');
+    var icon = $('#eyeIcon');
+    if (inp.attr('type') === 'password') {
+    inp.attr('type', 'text');
+    icon.removeClass('fa-eye').addClass('fa-eye-slash');
+    } else {
+    inp.attr('type', 'password');
+    icon.removeClass('fa-eye-slash').addClass('fa-eye');
+    }
     });
 
-    $("#LoginUser").on('click', function () {
-        var tendangnhap = $('#SoDienThoai').val();
-        var matkhau = $('#MatKhau').val();
-        if (tendangnhap === "") {
-            $('#show_error_user').html('Nhập tài khoản!').css('color', 'red');
-            return false;
-        }
-        if (matkhau === "") {
-            $('#show_error_pass').html('Nhập mật khẩu!').css('color', 'red');
-            return false;
-        }
-        return true;
+    $('#MatKhau').on('keyup', function (e) {
+    if (e.keyCode === 13) $('#LoginUser').click();
+    });
+
+    $('#LoginUser').on('click', function () {
+    var u = $('#SoDienThoai').val().trim();
+    var p = $('#MatKhau').val();
+    var ok = true;
+    if (!u) { $('#show_error_user').text('Vui lòng nhập mã nhân viên.'); ok = false; }
+    else { $('#show_error_user').text(''); }
+    if (!p) { $('#show_error_pass').text('Vui lòng nhập mật khẩu.'); ok = false; }
+    else { $('#show_error_pass').text(''); }
+    return ok;
     });
 </script>

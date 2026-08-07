@@ -9,6 +9,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
 using StackExchange.Redis;
 using System.Security.Claims;
+using System.Text;
+using System.Text.Json;
 
 namespace HeThongThiDQ.Controllers
 {
@@ -18,17 +20,21 @@ namespace HeThongThiDQ.Controllers
         private readonly MyAuthentication _auth;
         private readonly IDistributedCache _cache;
         private readonly IConnectionMultiplexer _mux;
+        private readonly IConfiguration _config;
 
         private static readonly DistributedCacheEntryOptions _sessionOpts =
             new() { SlidingExpiration = TimeSpan.FromMinutes(360) };
 
+
         public LoginController(ELEARNINGEntities db, MyAuthentication auth,
-                               IDistributedCache cache, IConnectionMultiplexer mux)
+                               IDistributedCache cache, IConnectionMultiplexer mux,
+                               IConfiguration config)
         {
-            _db    = db;
-            _auth  = auth;
-            _cache = cache;
-            _mux   = mux;
+            _db     = db;
+            _auth   = auth;
+            _cache  = cache;
+            _mux    = mux;
+            _config = config;
         }
 
         public async Task<IActionResult> Index()
@@ -43,12 +49,27 @@ namespace HeThongThiDQ.Controllers
         {
             if (!string.IsNullOrEmpty(u.SoDienThoai) && !string.IsNullOrEmpty(u.MatKhau))
             {
+                // 1. Thử local DB trước
                 string mk = Encryptor.MD5Hash(u.MatKhau);
                 NhanVien? user = await _db.NhanViens
                     .Where(x => (x.MaNv == u.SoDienThoai || x.DienThoai == u.SoDienThoai)
-                                && x.MatKhau == mk
-                                && x.IdtinhTrangLv == 1)
+                                && x.MatKhau == mk)
                     .FirstOrDefaultAsync();
+
+                // 2. Nếu local fail → thử HR API rồi Elearning API
+                if (user == null)
+                {
+                    bool apiOk = await TryLoginHRApi(u.SoDienThoai, u.MatKhau)
+                              || await TryLoginElearningApi(u.SoDienThoai, u.MatKhau);
+
+                    if (apiOk)
+                    {
+                        // Tìm NhanVien theo MaNV (API đã xác thực, không cần check password)
+                        user = await _db.NhanViens
+                            .Where(x => x.MaNv == u.SoDienThoai)
+                            .FirstOrDefaultAsync();
+                    }
+                }
 
                 if (user != null)
                 {
@@ -186,6 +207,41 @@ namespace HeThongThiDQ.Controllers
                 t.ExpireTime < DateTime.Now);
 
             return Json(new { isValid = token != null });
+        }
+
+        private async Task<bool> TryLoginHRApi(string username, string password)
+        {
+            try
+            {
+                var url = _config["AppSettings:LinkToken"] ?? "";
+                if (string.IsNullOrEmpty(url)) return false;
+                using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(8) };
+                var body = JsonSerializer.Serialize(new { username, password });
+                var resp = await client.PostAsync(url,
+                    new StringContent(body, Encoding.UTF8, "application/json"));
+                if (!resp.IsSuccessStatusCode) return false;
+                var json = await resp.Content.ReadAsStringAsync();
+                using var doc = JsonDocument.Parse(json);
+                var token = doc.RootElement
+                    .GetProperty("data").GetProperty("tokenLogin").GetString();
+                return !string.IsNullOrEmpty(token);
+            }
+            catch { return false; }
+        }
+
+        private async Task<bool> TryLoginElearningApi(string maNV, string password)
+        {
+            try
+            {
+                var url = _config["AppSettings:LinkAPI_Elearning"] ?? "";
+                if (string.IsNullOrEmpty(url)) return false;
+                using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(8) };
+                var body = JsonSerializer.Serialize(new { MaNV = maNV, password });
+                var resp = await client.PostAsync(url,
+                    new StringContent(body, Encoding.UTF8, "application/json"));
+                return resp.IsSuccessStatusCode;
+            }
+            catch { return false; }
         }
 
         public class TokenRequest
