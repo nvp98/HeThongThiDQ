@@ -10,6 +10,9 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using X.PagedList.Extensions;
 using System.Threading.Tasks;
+using System.Text.Json;
+using System.Text;
+using Microsoft.EntityFrameworkCore;
 
 namespace HeThongThiDQ.Controllers
 {
@@ -19,13 +22,15 @@ namespace HeThongThiDQ.Controllers
         private readonly ELEARNINGEntities _db;
         private readonly MyAuthentication _auth;
         private readonly HomeController _home;
+        private readonly IConfiguration _config;
         private const string ControllerName = "Account";
 
-        public AccountController(ELEARNINGEntities db, MyAuthentication auth, HomeController home)
+        public AccountController(ELEARNINGEntities db, MyAuthentication auth, HomeController home, IConfiguration config)
         {
             _db = db;
             _auth = auth;
             _home = home;
+            _config = config;
         }
 
         private List<EmployeeValidation> GetEmployeeList(string search)
@@ -157,17 +162,17 @@ namespace HeThongThiDQ.Controllers
 
                 for (int i = 1; i < dt.Rows.Count; i++)
                 {
-                    string chude       = dt.Rows[i][1].ToString()!.Trim();
-                    string tongcongty  = dt.Rows[i][2].ToString()!.Trim();
-                    string congtyC2    = dt.Rows[i][3].ToString()!.Trim();
-                    string congtyC4    = dt.Rows[i][4].ToString()!.Trim();
-                    string maNV        = dt.Rows[i][5].ToString()!.Trim();
-                    string hoTen       = dt.Rows[i][6].ToString()!.Trim();
-                    string viTri       = dt.Rows[i][7].ToString()!.Trim();
+                    string chude = dt.Rows[i][1].ToString()!.Trim();
+                    string tongcongty = dt.Rows[i][2].ToString()!.Trim();
+                    string congtyC2 = dt.Rows[i][3].ToString()!.Trim();
+                    string congtyC4 = dt.Rows[i][4].ToString()!.Trim();
+                    string maNV = dt.Rows[i][5].ToString()!.Trim();
+                    string hoTen = dt.Rows[i][6].ToString()!.Trim();
+                    string viTri = dt.Rows[i][7].ToString()!.Trim();
                     string ngaySinhRaw = dt.Rows[i][8].ToString()!.Trim();
-                    string email       = dt.Rows[i][9].ToString()!.Trim();
+                    string email = dt.Rows[i][9].ToString()!.Trim();
                     string soDienThoai = dt.Rows[i][10].ToString()!.Trim();
-                    string matKhau     = dt.Rows[i][11].ToString()!.Trim();
+                    string matKhau = dt.Rows[i][11].ToString()!.Trim();
 
                     string mkDecode = Encryptor.MD5Hash(matKhau);
                     DateOnly? ngaySinh = ParseNgaySinh(ngaySinhRaw);
@@ -335,6 +340,224 @@ namespace HeThongThiDQ.Controllers
             }
             return RedirectToAction("Index", "Account");
         }
+
+        // ── Đồng bộ tài khoản từ HR API ────────────────────────────────────────
+
+        public async Task<IActionResult> SyncHR()
+        {
+            var listQuyen = await _home.GetPermisionCN(_auth.IDQuyen, ControllerName);
+            if (!listQuyen.Contains(CONSTKEY.SYC))
+            {
+                TempData["msgError"] = "<script>alert('Bạn không có quyền thực hiện chức năng này');</script>";
+                return RedirectToAction("Index");
+            }
+
+            try
+            {
+                var listNV = await GetHRData();
+                if (listNV == null || listNV.Count == 0)
+                {
+                    TempData["msgError"] = "<script>alert('Không lấy được dữ liệu từ HR API');</script>";
+                    return RedirectToAction("Index");
+                }
+
+                var prefixes = new[] { "HPDQ", "HMN", "RAY" };
+
+                var hpdqList = listNV
+                    .Where(x => !string.IsNullOrEmpty(x.manv)
+                             //&& x.manv.Length >= 4
+                             && x.tinhtranglamviec == 1
+                             && prefixes.Any(p =>
+                                    x.manv.StartsWith(p, StringComparison.OrdinalIgnoreCase)))
+                    .ToList();
+
+                // Lọc chỉ lấy nhân viên HPDQ
+                //var hpdqList = listNV
+                //    .Where(x => !string.IsNullOrEmpty(x.manv)
+                //             //&& x.manv.Length >= 4
+                //             //&& x.manv.Length <= 10
+                //             && x.tinhtranglamviec == 1
+                //             //&& x.manv.StartsWith("HPDQ", StringComparison.OrdinalIgnoreCase)
+                //             )
+                //    .ToList();
+
+                // ── Bước 1: Pre-build PhongBan & ViTri maps ─────────────────
+                // Tránh SaveChanges bên trong loop NhanVien gây conflict tracking
+                // Where(!=null) tránh ArgumentNullException khi có record tên null trong DB
+                var pbMap = await _db.PhongBans
+                    .Where(x => x.TenPhongBan != null)
+                    .ToDictionaryAsync(x => x.TenPhongBan!, x => x.IdphongBan);
+                var vtMap = await _db.Vitris
+                    .Where(x => x.TenViTri != null)
+                    .ToDictionaryAsync(x => x.TenViTri!, x => x.IdviTri);
+
+                var newPBs = hpdqList
+                    .Where(x => !string.IsNullOrEmpty(x.phongban) && !pbMap.ContainsKey(x.phongban!))
+                    .Select(x => x.phongban!).Distinct().ToList();
+                var newVTs = hpdqList
+                    .Where(x => !string.IsNullOrEmpty(x.vitri) && !vtMap.ContainsKey(x.vitri!))
+                    .Select(x => x.vitri!).Distinct().ToList();
+
+                foreach (var name in newPBs)
+                {
+                    var pb = new Data.Models.PhongBan { TenPhongBan = name };
+                    _db.PhongBans.Add(pb);
+                    _db.SaveChanges();
+                    pbMap[name] = pb.IdphongBan;
+                }
+                foreach (var name in newVTs)
+                {
+                    var vt = new Data.Models.Vitri { TenViTri = name };
+                    _db.Vitris.Add(vt);
+                    _db.SaveChanges();
+                    vtMap[name] = vt.IdviTri;
+                }
+
+                // ── Bước 2: Sync NhanVien ────────────────────────────────────
+                int inserted = 0, updated = 0;
+                var allNV = await _db.NhanViens.ToListAsync();
+                var defaultMk = Encryptor.MD5Hash("hpdq@2026");
+
+                foreach (var item in hpdqList)
+                {
+                    pbMap.TryGetValue(item.phongban ?? "", out int idPB);
+                    vtMap.TryGetValue(item.vitri ?? "", out int idVT);
+                    int? kip = int.TryParse(item.makip, out int k) ? k : null;
+
+                    DateOnly? ngayVaoLam = null;
+                    if (!string.IsNullOrEmpty(item.ngayvaolam) &&
+                        DateTime.TryParseExact(item.ngayvaolam, "dd/MM/yyyy",
+                            CultureInfo.InvariantCulture, DateTimeStyles.None, out var dParsed))
+                        ngayVaoLam = DateOnly.FromDateTime(dParsed);
+
+                    var existing = allNV.FirstOrDefault(x =>
+                        string.Equals(x.MaNv, item.manv, StringComparison.OrdinalIgnoreCase));
+
+                    if (existing == null)
+                    {
+                        _db.NhanViens.Add(new NhanVien
+                        {
+                            MaNv          = item.manv,
+                            HoTen         = item.hoten,
+                            HoTenKhongDau = ConvertToUnSign(item.hoten ?? ""),
+                            MatKhau       = defaultMk,
+                            DiaChi        = item.diachi,
+                            DienThoai     = item.sodienthoai,
+                            Email         = item.email,
+                            NgayVaoLam    = ngayVaoLam,
+                            IdtinhTrangLv = item.tinhtranglamviec,
+                            IdphongBan    = idPB > 0 ? idPB : null,
+                            IdviTri       = idVT > 0 ? idVT : null,
+                            MaViTri       = item.mavitri,
+                            Idkip         = kip,
+                            Idquyen       = 4,
+                            IsGv          = false
+                        });
+                        inserted++;
+                    }
+                    else
+                    {
+                        bool changed = existing.IdphongBan != (idPB > 0 ? idPB : (int?)null)
+                                    || existing.IdviTri    != (idVT > 0 ? idVT : (int?)null)
+                                    || existing.MaViTri    != item.mavitri
+                                    || existing.Idkip      != kip;
+                        if (changed)
+                        {
+                            if (item.tinhtranglamviec == 0)
+                                existing.IdquyenKnl = null; // nghỉ việc → xóa KNL
+
+                            existing.IdphongBan = idPB > 0 ? idPB : null;
+                            existing.IdviTri    = idVT > 0 ? idVT : null;
+                            existing.MaViTri    = item.mavitri;
+                            existing.Idkip      = kip;
+                            existing.DiaChi     = item.diachi;
+                            existing.DienThoai  = item.sodienthoai;
+                            existing.IdtinhTrangLv  = item.tinhtranglamviec;
+                            updated++;
+                        }
+                    }
+                }
+
+                await _db.SaveChangesAsync();
+                var msg = $"Đồng bộ HR thành công: thêm mới {inserted}, cập nhật {updated} nhân viên";
+                TempData["msgSuccess"] = $"<script>alert('{msg}');</script>";
+            }
+            catch (Exception ex)
+            {
+                var inner = ex.InnerException?.InnerException?.Message
+                         ?? ex.InnerException?.Message
+                         ?? ex.Message;
+                TempData["msgError"] = $"<script>alert('Lỗi đồng bộ HR:\\n{inner}');</script>";
+            }
+
+            return RedirectToAction("Index");
+        }
+
+        private async Task<string> GetHRToken()
+        {
+            var url = _config["AppSettings:LinkToken"] ?? "";
+            var username = _config["AppSettings:Username"] ?? "";
+            var password = _config["AppSettings:Password"] ?? "";
+
+            using var client = new HttpClient();
+            var body = JsonSerializer.Serialize(new { username, password });
+            var resp = await client.PostAsync(url, new StringContent(body, Encoding.UTF8, "application/json"));
+            if (!resp.IsSuccessStatusCode) return "";
+
+            var json = await resp.Content.ReadAsStringAsync();
+            using var doc = JsonDocument.Parse(json);
+            return doc.RootElement
+                      .GetProperty("data")
+                      .GetProperty("tokenLogin")
+                      .GetString() ?? "";
+        }
+
+        private async Task<List<EmployeeHRData>> GetHRData()
+        {
+            var token = await GetHRToken();
+            if (string.IsNullOrEmpty(token)) return new();
+
+            var url = _config["AppSettings:LinkAPI"] ?? "";
+            using var client = new HttpClient();
+            client.DefaultRequestHeaders.Add("Authorization", "Bearer " + token);
+
+            var raw = await client.GetStringAsync(url);
+
+            // API trả về JSON không chuẩn: bỏ 36 ký tự đầu, fix đuôi }]} → }]
+            if (raw.Length > 36) raw = raw[36..];
+            raw = raw.Replace("}]}", "}]");
+
+            return JsonSerializer.Deserialize<List<EmployeeHRData>>(raw,
+                new JsonSerializerOptions
+                {
+                    PropertyNameCaseInsensitive = true,
+                    NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString
+                }) ?? new();
+        }
+
+        private static string ConvertToUnSign(string s)
+        {
+            var regex = new Regex("\\p{IsCombiningDiacriticalMarks}+");
+            var temp = s.Normalize(NormalizationForm.FormD);
+            return regex.Replace(temp, "").Replace('đ', 'd').Replace('Đ', 'D');
+        }
+
+        public class EmployeeHRData
+        {
+            public string? manv { get; set; }
+            public string? hoten { get; set; }
+            public string? diachi { get; set; }
+            public string? sodienthoai { get; set; }
+            public string? email { get; set; }
+            public string? ngayvaolam { get; set; }
+            public int     tinhtranglamviec { get; set; }
+            public string? phongban { get; set; }
+            public string? mavitri { get; set; }
+            public string? vitri { get; set; }
+            public string? makip { get; set; }
+        }
+
+        // ── Helpers ────────────────────────────────────────────────────────────
 
         private int GetOrCreateViTri(string tenViTri)
         {

@@ -21,3 +21,13 @@ BEGIN
     PRINT 'Cot ThoiGianChon da ton tai, bo qua.';
 END
 GO
+
+
+ALTER TABLE [dbo].[PhongBan]
+ALTER COLUMN [TenPhongBan] NVARCHAR(250) NULL;
+
+ALTER TABLE dbo.NhanVien
+ALTER COLUMN MaNV NVARCHAR(20) NULL;
+
+  ALTER TABLE dbo.NhanVien
+ALTER COLUMN DienThoai NVARCHAR(50) NULL;

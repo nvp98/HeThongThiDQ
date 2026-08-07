@@ -50,6 +50,16 @@
                                     <div class="modal fade" id="myModalRe" role="dialog" data-url="@Url.Action("ResetListPass","Account")"></div>
                                 </div>
                             }
+                            @if ((ViewBag.QUYENCN as List<string>).Contains(CONSTKEY.SYC))
+                            {
+                                <div class="col-md-auto m-l-auto">
+                                    <a href="@Url.Action("SyncHR","Account")"
+                                       class="btn btn-warning m-l-auto"
+                                       onclick="return confirm('Đồng bộ dữ liệu từ HR API? Quá trình này có thể mất vài giây.')">
+                                        <i class="fa fa-refresh"></i>&nbsp;Đồng bộ HR
+                                    </a>
+                                </div>
+                            }
                             <div class="col-md-3 m-l-auto">
                                 <button type="button" id="btn-add" class="btn btn-primary m-l-auto"><i class="fa fa-plus">&nbsp;</i>&nbsp;Thêm mới</button>
                                 <div class="modal fade" id="myModal" role="dialog" data-url="@Url.Action("Create","Account")"></div>
