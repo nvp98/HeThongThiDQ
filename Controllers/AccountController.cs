@@ -437,42 +437,46 @@ namespace HeThongThiDQ.Controllers
                     {
                         _db.NhanViens.Add(new NhanVien
                         {
-                            MaNv          = item.manv,
-                            HoTen         = item.hoten,
+                            MaNv = item.manv,
+                            HoTen = item.hoten,
                             HoTenKhongDau = ConvertToUnSign(item.hoten ?? ""),
-                            MatKhau       = defaultMk,
-                            DiaChi        = item.diachi,
-                            DienThoai     = item.sodienthoai,
-                            Email         = item.email,
-                            NgayVaoLam    = ngayVaoLam,
+                            MatKhau = defaultMk,
+                            DiaChi = item.diachi,
+                            DienThoai = item.sodienthoai,
+                            Email = item.email,
+                            NgayVaoLam = ngayVaoLam,
                             IdtinhTrangLv = item.tinhtranglamviec,
-                            IdphongBan    = idPB > 0 ? idPB : null,
-                            IdviTri       = idVT > 0 ? idVT : null,
-                            MaViTri       = item.mavitri,
-                            Idkip         = kip,
-                            Idquyen       = 4,
-                            IsGv          = false
+                            IdphongBan = idPB > 0 ? idPB : null,
+                            IdviTri = idVT > 0 ? idVT : null,
+                            MaViTri = item.mavitri,
+                            Idkip = kip,
+                            Idquyen = 4,
+                            IsGv = false,
+                            CCCD = item.cmnd
                         });
                         inserted++;
                     }
                     else
                     {
                         bool changed = existing.IdphongBan != (idPB > 0 ? idPB : (int?)null)
-                                    || existing.IdviTri    != (idVT > 0 ? idVT : (int?)null)
-                                    || existing.MaViTri    != item.mavitri
-                                    || existing.Idkip      != kip;
+                                    || existing.IdviTri != (idVT > 0 ? idVT : (int?)null)
+                                    || existing.MaViTri != item.mavitri
+                                    || existing.Idkip != kip
+                                    || existing.CCCD != item.cmnd;
                         if (changed)
                         {
                             if (item.tinhtranglamviec == 0)
                                 existing.IdquyenKnl = null; // nghỉ việc → xóa KNL
 
                             existing.IdphongBan = idPB > 0 ? idPB : null;
-                            existing.IdviTri    = idVT > 0 ? idVT : null;
-                            existing.MaViTri    = item.mavitri;
-                            existing.Idkip      = kip;
-                            existing.DiaChi     = item.diachi;
-                            existing.DienThoai  = item.sodienthoai;
-                            existing.IdtinhTrangLv  = item.tinhtranglamviec;
+                            existing.IdviTri = idVT > 0 ? idVT : null;
+                            existing.MaViTri = item.mavitri;
+                            existing.Idkip = kip;
+                            existing.DiaChi = item.diachi;
+                            existing.DienThoai = item.sodienthoai;
+                            existing.IdtinhTrangLv = item.tinhtranglamviec;
+                            if (!string.IsNullOrEmpty(item.cmnd))
+                                existing.CCCD = item.cmnd;
                             updated++;
                         }
                     }
@@ -550,11 +554,12 @@ namespace HeThongThiDQ.Controllers
             public string? sodienthoai { get; set; }
             public string? email { get; set; }
             public string? ngayvaolam { get; set; }
-            public int     tinhtranglamviec { get; set; }
+            public int tinhtranglamviec { get; set; }
             public string? phongban { get; set; }
             public string? mavitri { get; set; }
             public string? vitri { get; set; }
             public string? makip { get; set; }
+            public string? cmnd { get; set; }
         }
 
         // ── Helpers ────────────────────────────────────────────────────────────

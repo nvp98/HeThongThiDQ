@@ -1,19 +1,33 @@
 @using HeThongThiDQ.Common
 @using HeThongThiDQ.Data
-@using Microsoft.Extensions.Caching.Memory
+@using Microsoft.Extensions.Caching.Distributed
+@using System.Text.Json
 @inject MyAuthentication Auth
 @inject ELEARNINGEntities Db
-@inject IMemoryCache _cache
+@inject IDistributedCache _distCache
 @{
     int idQuyen = Auth.IDQuyen;
 
-    var ListControll = _cache.GetOrCreate($"perm_ctrl_{idQuyen}", entry =>
+    List<string> ListControll = new();
+    try
     {
-        entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(5);
-        return (from a in Db.QuyenDetails.Where(x => x.Idquyen == idQuyen && x.IdquyenCn == 1 && x.IsActive == 1)
-                join b in Db.ListControllers.Where(x => x.IsActive == 1) on a.Idcontroller equals b.Id
-                select b.Controller).ToList();
-    }) ?? new List<string>();
+        var _permCached = await _distCache.GetStringAsync($"perm:ctrl:{idQuyen}");
+        if (_permCached != null)
+        {
+            ListControll = JsonSerializer.Deserialize<List<string>>(_permCached) ?? new();
+        }
+        else
+        {
+            ListControll = (from a in Db.QuyenDetails.Where(x => x.Idquyen == idQuyen && x.IdquyenCn == 1 && x.IsActive == 1)
+                            join b in Db.ListControllers.Where(x => x.IsActive == 1) on a.Idcontroller equals b.Id
+                            select b.Controller).ToList();
+            await _distCache.SetStringAsync(
+                $"perm:ctrl:{idQuyen}",
+                JsonSerializer.Serialize(ListControll),
+                new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30) });
+        }
+    }
+    catch { }
 
     var showQuanTriKNL = 0;
     var showKNL = 0;
@@ -175,9 +189,9 @@
                 <div class="logo-src"></div>
                 <div class="header__pane ml-auto">
                     <div>
-                        <button type="button" class="hamburger close-sidebar-btn hamburger--elastic"
-                                data-class="closed-sidebar">
-                            <span class="hamburger-box"><span class="hamburger-inner"></span></span>
+                        <button type="button" class="close-sidebar-btn btn btn-link px-2" data-class="closed-sidebar"
+                                style="color:#05418A;font-size:1.25rem;line-height:1">
+                            <i class="fa fa-bars"></i>
                         </button>
                     </div>
                 </div>
@@ -252,9 +266,9 @@
                         <div class="logo-src"></div>
                         <div class="header__pane ml-auto">
                             <div>
-                                <button type="button" class="hamburger close-sidebar-btn hamburger--elastic"
-                                        data-class="closed-sidebar">
-                                    <span class="hamburger-box"><span class="hamburger-inner"></span></span>
+                                <button type="button" class="close-sidebar-btn btn btn-link px-2"
+                                        data-class="closed-sidebar" style="color:#05418A;font-size:1.25rem;line-height:1">
+                                    <i class="fa fa-bars"></i>
                                 </button>
                             </div>
                         </div>
@@ -277,7 +291,7 @@
                                     </a>
                                 </li>
 
-                                @if (ListControll.Contains("Statistic"))
+                                @* @if (ListControll.Contains("Statistic"))
                                 {
                                     <li>
                                         <a href="#" id="IDTK">
@@ -292,7 +306,7 @@
                                             </li>
                                         </ul>
                                     </li>
-                                }
+                                } *@
 
                                
 
@@ -325,7 +339,7 @@
                                     </li>
                                     showQuanTri = 1;
                                 }
-                                @if (ListControll.Contains("XepHangCaNhan"))
+                                @if (ListControll.Contains("XepHangCaNhan") || true)
                                 {
                                     <li>
                                         <a asp-controller="XepHangCaNhan" asp-action="Index">
@@ -401,7 +415,8 @@
                                 <li>
                                     <a style="padding-left:0" href="tel:0946455576">
                                         <i class="metismenu-icon"></i>
-                                        <strong>Mr. Trần Quang Huy</strong> - 0946455576
+                                        <strong>P.CNTT&CĐS -</strong>
+                                        <strong>P.NS</strong>
                                     </a>
                                 </li>
                             </ul>
@@ -416,11 +431,27 @@
 
         <link href="~/Content/custom_responsive_mobile.css" rel="stylesheet" />
         <script type="text/javascript" src="~/Content/assets/scripts/main.js"></script>
+        @* @if (Auth.IDQuyen != 1)
+        {
+            <!-- Non-admin: ẩn nút hamburger desktop, giữ mobile toggle hoạt động bình thường -->
+            <style>
+                @@media (min-width: 992px) {
+                .close-sidebar-btn {
+                display: none !important;
+                }
+                }
+            </style>
+        } *@
         <script>
-            // Dùng $(function) để queue SAU ready handler của main.js (FIFO)
-            $(function () {
+            @* $(function () {
+            @if (Auth.IDQuyen != 1)
+            {
+            <text>
+            // Non-admin: luôn ẩn sidebar trên desktop
             $('.app-container').addClass('closed-sidebar');
-            });
+            </text>
+            }
+            }); *@
         </script>
         <script>
             $(document).ready(function () {

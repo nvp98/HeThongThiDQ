@@ -16,21 +16,21 @@ namespace HeThongThiDQ.Controllers
 
         public XepHangCaNhanController(ELEARNINGEntities db, MyAuthentication auth, HomeController home)
         {
-            _db   = db;
+            _db = db;
             _auth = auth;
             _home = home;
         }
 
         public async Task<IActionResult> Index()
         {
-            var listQuyen = await _home.GetPermisionCN(_auth.IDQuyen, ControllerName);
-            ViewBag.QUYENCN = listQuyen;
+            // var listQuyen = await _home.GetPermisionCN(_auth.IDQuyen, ControllerName);
+            // ViewBag.QUYENCN = listQuyen;
 
-            if (!listQuyen.Contains(CONSTKEY.V))
-            {
-                TempData["msgError"] = "<script>alert('Bạn không có quyền truy cập chức năng này');</script>";
-                return RedirectToAction("", "Home");
-            }
+            // if (!listQuyen.Contains(CONSTKEY.V))
+            // {
+            //     TempData["msgError"] = "<script>alert('Bạn không có quyền truy cập chức năng này');</script>";
+            //     return RedirectToAction("", "Home");
+            // }
 
             ViewBag.LopHocList = await _db.LopHocs
                 .Where(x => x.ToChucThi == true)
@@ -51,17 +51,17 @@ namespace HeThongThiDQ.Controllers
         [HttpGet]
         public async Task<IActionResult> GetStats(int? idLH)
         {
-            var allQ  = _db.BaiThis.AsQueryable();
+            var allQ = _db.BaiThis.AsQueryable();
             if (idLH.HasValue && idLH > 0) allQ = allQ.Where(x => x.Idlh == idLH);
             var doneQ = allQ.Where(x => x.DiemSo != null);
 
-            var tongLuotThi   = await allQ.CountAsync();
+            var tongLuotThi = await allQ.CountAsync();
             var tongHoanThanh = await doneQ.CountAsync();
-            var tongNguoi     = await doneQ.Select(x => x.Idnv).Distinct().CountAsync();
-            var tongDonVi     = await (from bt in doneQ
-                                       join nv in _db.NhanViens on bt.Idnv equals nv.Id
-                                       where nv.IdphongBan != null
-                                       select nv.IdphongBan).Distinct().CountAsync();
+            var tongNguoi = await doneQ.Select(x => x.Idnv).Distinct().CountAsync();
+            var tongDonVi = await (from bt in doneQ
+                                   join nv in _db.NhanViens on bt.Idnv equals nv.Id
+                                   where nv.IdphongBan != null
+                                   select nv.IdphongBan).Distinct().CountAsync();
 
             return Json(new { tongNguoi, tongDonVi, tongLuotThi, tongHoanThanh });
         }
@@ -82,11 +82,11 @@ namespace HeThongThiDQ.Controllers
                              from pb in pbj.DefaultIfEmpty()
                              select new
                              {
-                                 IDNV       = nv.Id,
+                                 IDNV = nv.Id,
                                  nv.MaNv,
                                  nv.HoTen,
                                  IDPhongBan = nv.IdphongBan,
-                                 TenPB      = pb != null ? pb.TenPhongBan : "Chưa phân công",
+                                 TenPB = pb != null ? pb.TenPhongBan : "Chưa phân công",
                                  bt.DiemSo,
                                  bt.TinhTrang,
                                  bt.GioBatDau,
@@ -119,15 +119,15 @@ namespace HeThongThiDQ.Controllers
                     {
                         g.Key.MaNv,
                         g.Key.HoTen,
-                        PhongBan      = g.Key.TenPB,
-                        DiemCaoNhat   = Math.Round(g.Max(x => x.DiemSo ?? 0), 1),
+                        PhongBan = g.Key.TenPB,
+                        DiemCaoNhat = Math.Round(g.Max(x => x.DiemSo ?? 0), 1),
                         DiemTrungBinh = Math.Round(g.Average(x => x.DiemSo ?? 0), 1),
-                        SoLanThi      = soLanThi,
-                        SoLanDat      = soLanDat,
-                        TiLeDat       = soLanThi > 0
+                        SoLanThi = soLanThi,
+                        SoLanDat = soLanDat,
+                        TiLeDat = soLanThi > 0
                                         ? Math.Round((double)soLanDat * 100 / soLanThi, 1)
                                         : 0.0,
-                        ThoiGian      = giay.HasValue
+                        ThoiGian = giay.HasValue
                                         ? $"{giay.Value / 60:D2}:{giay.Value % 60:D2}"
                                         : "--"
                     };
@@ -139,9 +139,15 @@ namespace HeThongThiDQ.Controllers
             return Json(ranked.Select((x, i) => new
             {
                 Rank = i + 1,
-                x.MaNv, x.HoTen, x.PhongBan,
-                x.DiemCaoNhat, x.DiemTrungBinh, x.TiLeDat,
-                x.SoLanThi, x.SoLanDat, x.ThoiGian
+                x.MaNv,
+                x.HoTen,
+                x.PhongBan,
+                x.DiemCaoNhat,
+                x.DiemTrungBinh,
+                x.TiLeDat,
+                x.SoLanThi,
+                x.SoLanDat,
+                x.ThoiGian
             }));
         }
     }

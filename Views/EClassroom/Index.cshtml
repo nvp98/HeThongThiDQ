@@ -6,401 +6,684 @@
 @using HeThongThiDQ.Models
 @model List<EClassroomValidation>
 
-@if (TempData["msgSuccess"] != null) { @Html.Raw(TempData["msgSuccess"]) }
-@if (TempData["msgError"]   != null) { @Html.Raw(TempData["msgError"])   }
+@if (TempData["msgSuccess"] != null)
+{
+    @Html.Raw(TempData["msgSuccess"])
+}
+@if (TempData["msgError"] != null)
+{
+    @Html.Raw(TempData["msgError"])
+}
 @if (TempData["ClearLocalStorage"] != null)
 {
     <script>localStorage.removeItem("IDNV"); localStorage.removeItem("IDLH");</script>
 }
 
 @{
-    var chudeondien   = Model.Where(x => x.ThiNhieuLan == 1 && x.TenLH != null && x.TenLH.Contains("Điện")).ToList();
-    var chudeoncokhi  = Model.Where(x => x.ThiNhieuLan == 1 && x.TenLH != null && x.TenLH.Contains("Cơ khí")).ToList();
+    var chudeondien = Model.Where(x => x.ThiNhieuLan == 1 && x.TenLH != null && x.TenLH.Contains("Điện")).ToList();
+    var chudeoncokhi = Model.Where(x => x.ThiNhieuLan == 1 && x.TenLH != null && x.TenLH.Contains("Cơ khí")).ToList();
     var chudeonantoan = Model.Where(x => x.ThiNhieuLan == 1 && x.TenLH != null && x.TenLH.Contains("ATMT")).ToList();
-    var checkontap    = Model.Where(x => x.ThiNhieuLan == 1).ToList();
-    var checkthi      = Model.Where(x => x.ThiNhieuLan != 1).ToList();
+    var checkontap = Model.Where(x => x.ThiNhieuLan == 1).ToList();
+    var checkthi = Model.Where(x => x.ThiNhieuLan != 1).ToList();
 }
 
 <style>
-/* === ĐỔI ẢNH NỀN TẠI ĐÂY === */
-.ec-wrap {
-    min-height:calc(100vh - 60px); padding-bottom:32px;
+    /* === ĐỔI ẢNH NỀN TẠI ĐÂY === */
+    .ec-wrap {
+    min-height: calc(100vh - 60px);
+    padding-bottom: 32px;
     background-image: url('/Content/assets/images/bg4.jpg');
     background-size: cover;
     background-position: center;
     background-attachment: fixed;
     position: relative;
-}
-.ec-wrap::before {
-    content:''; position:absolute; inset:0;
-    background:rgba(0,0,0,.52);
-    pointer-events:none; z-index:0;
-}
-.ec-banner, .ec-featured-wrap, .ec-practice-wrap { position:relative; z-index:1; }
+    }
 
-/* ---- Banner ---- */
-.ec-banner {
-    background: linear-gradient(120deg,#1a2744 0%,#1565c0 100%);
+    .ec-wrap::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, .52);
+    pointer-events: none;
+    z-index: 0;
+    }
+
+    .ec-banner,
+    .ec-featured-wrap,
+    .ec-practice-wrap {
+    position: relative;
+    z-index: 1;
+    }
+
+    /* ---- Banner ---- */
+    .ec-banner {
+    background: linear-gradient(120deg, #1a2744 0%, #1565c0 100%);
     padding: 22px 28px 20px;
-    color:#fff; position:relative; overflow:hidden;
-}
-.ec-banner::before {
-    content:''; position:absolute; right:-30px; top:-30px;
-    width:180px; height:180px; border-radius:50%;
-    background:rgba(255,255,255,.05);
-}
-.ec-banner-title { font-size:18px; font-weight:800; margin:0 0 4px; position:relative; z-index:1; }
-.ec-banner-sub   { font-size:12px; color:rgba(255,255,255,.7); margin:0; position:relative; z-index:1; }
+    color: #fff;
+    position: relative;
+    overflow: hidden;
+    }
 
-/* ---- Featured exam card (đề thi chính thức) ---- */
-.ec-featured-wrap { padding:18px 24px 0; }
-.ec-featured {
-    border-radius:14px; overflow:hidden;
-    background:#fff;
-    box-shadow:0 4px 20px rgba(0,0,0,.1);
-    display:flex; align-items:stretch;
-}
-.ec-featured-left {
-    background:linear-gradient(160deg,#c62828,#e53935);
-    width:6px; flex-shrink:0;
-}
-.ec-featured-body {
-    flex:1; padding:18px 20px;
-    display:flex; align-items:center; gap:20px; flex-wrap:wrap;
-}
-.ec-featured-label {
-    font-size:10px; font-weight:800; letter-spacing:1.2px;
-    text-transform:uppercase; color:#e53935; margin-bottom:4px;
-}
-.ec-featured-name  { font-size:16px; font-weight:800; color:#1a2744; }
-.ec-featured-time  { font-size:12px; color:#777; margin-top:3px; }
-.ec-featured-stats { display:flex; gap:20px; margin-left:auto; }
-.ec-stat { text-align:center; }
-.ec-stat-val   { font-size:20px; font-weight:800; color:#1a2744; line-height:1; }
-.ec-stat-label { font-size:11px; color:#999; }
-.ec-featured-action { flex-shrink:0; }
+    .ec-banner::before {
+    content: '';
+    position: absolute;
+    right: -30px;
+    top: -30px;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .05);
+    }
 
-/* ---- Practice section ---- */
-.ec-practice-wrap { padding:16px 24px 0; }
-.ec-practice-header {
-    display:flex; align-items:center; gap:12px;
-    margin-bottom:12px; flex-wrap:wrap;
-}
-.ec-practice-title { font-size:14px; font-weight:800; color:#fff; margin:0; }
-.ec-practice-total { font-size:12px; color:rgba(255,255,255,.7); background:rgba(255,255,255,.15); border-radius:20px; padding:2px 10px; }
+    .ec-banner-title {
+    font-size: 18px;
+    font-weight: 800;
+    margin: 0 0 4px;
+    position: relative;
+    z-index: 1;
+    }
 
-/* ---- Filter tabs ---- */
-.ec-tabs { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; }
-.ec-tab {
-    padding:5px 14px; border-radius:20px; font-size:12px; font-weight:700;
-    border:1.5px solid rgba(255,255,255,.3); background:rgba(255,255,255,.12); color:rgba(255,255,255,.8);
-    cursor:pointer; transition:all .15s; user-select:none;
-}
-.ec-tab:hover { border-color:#fff; color:#fff; background:rgba(255,255,255,.22); }
-.ec-tab.active { background:#1a73e8; border-color:#1a73e8; color:#fff; }
-.ec-tab-dot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-right:5px; vertical-align:middle; }
+    .ec-banner-sub {
+    font-size: 12px;
+    color: rgba(255, 255, 255, .7);
+    margin: 0;
+    position: relative;
+    z-index: 1;
+    }
 
-/* ---- Grid ---- */
-.ec-grid {
-    display:grid;
-    grid-template-columns:repeat(auto-fill, minmax(200px,1fr));
-    gap:12px;
-}
-.ec-card-item { display:none; }
-.ec-card-item.show { display:block; }
+    /* ---- Featured exam card (đề thi chính thức) ---- */
+    .ec-featured-wrap {
+    padding: 18px 24px 0;
+    }
 
-/* ---- Card ---- */
-.ec-card {
-    background:#fff; border-radius:12px;
-    box-shadow:0 2px 8px rgba(0,0,0,.07);
-    overflow:hidden; height:100%;
-    display:flex; flex-direction:column;
-    transition:transform .16s, box-shadow .16s;
-}
-.ec-card:hover { transform:translateY(-2px); box-shadow:0 6px 18px rgba(0,0,0,.11); }
-.ec-card-top { height:3px; width:100%; }
-.ec-card-body { padding:12px 14px; flex:1; display:flex; flex-direction:column; gap:8px; }
-.ec-card-name { font-size:13px; font-weight:700; color:#1a2744; line-height:1.4; }
-.ec-card-time { font-size:11px; color:#999; display:flex; align-items:flex-start; gap:5px; }
-.ec-card-time i { margin-top:1px; color:#bbb; }
+    .ec-featured {
+    border-radius: 14px;
+    overflow: hidden;
+    background: #fff;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, .1);
+    display: flex;
+    align-items: stretch;
+    }
 
-/* badges */
-.ec-badge {
-    display:inline-flex; align-items:center; gap:4px;
-    font-size:10.5px; font-weight:700;
-    padding:2px 9px; border-radius:20px; width:fit-content;
-}
-.ec-badge-open    { background:#e8f5e9; color:#2e7d32; }
-.ec-badge-done    { background:#e8f0fe; color:#1558b0; }
-.ec-badge-locked  { background:#fff3e0; color:#e65100; }
-.ec-badge-expired { background:#fce4ec; color:#b71c1c; }
+    .ec-featured-left {
+    background: linear-gradient(160deg, #c62828, #e53935);
+    width: 6px;
+    flex-shrink: 0;
+    }
 
-/* score */
-.ec-mini-score {
-    background:#f8f9ff; border-radius:8px;
-    padding:7px 10px;
-    display:grid; grid-template-columns:1fr 1fr; gap:4px;
-    font-size:11px;
-}
-.ec-mini-score-val  { font-size:14px; font-weight:800; }
-.ec-mini-score-label{ color:#999; }
-.green { color:#2e7d32; } .blue { color:#1558b0; }
+    .ec-featured-body {
+    flex: 1;
+    padding: 18px 20px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    }
 
-/* card footer */
-.ec-card-foot { padding:10px 14px; border-top:1px solid #f0f2f5; display:flex; flex-direction:column; gap:6px; }
+    .ec-featured-label {
+    font-size: 10px;
+    font-weight: 800;
+    letter-spacing: 1.2px;
+    text-transform: uppercase;
+    color: #e53935;
+    margin-bottom: 4px;
+    }
 
-/* buttons */
-.ec-btn {
-    display:flex; align-items:center; justify-content:center; gap:6px;
-    border:none; border-radius:8px; padding:8px 12px;
-    font-size:12px; font-weight:700; text-decoration:none;
-    cursor:pointer; transition:opacity .15s, transform .12s; width:100%;
-}
-.ec-btn:hover { opacity:.88; transform:translateY(-1px); text-decoration:none; }
-.ec-btn-green   { background:linear-gradient(135deg,#43a047,#2e7d32); color:#fff; }
-.ec-btn-blue    { background:linear-gradient(135deg,#1a73e8,#1558b0); color:#fff; }
-.ec-btn-red     { background:linear-gradient(135deg,#e53935,#c62828); color:#fff; }
-.ec-btn-outline { background:#fff; color:#1a73e8; border:1.5px solid #1a73e8; }
-.ec-locked-msg  { font-size:11px; color:#e65100; display:flex; gap:5px; align-items:flex-start; line-height:1.5; }
+    .ec-featured-name {
+    font-size: 16px;
+    font-weight: 800;
+    color: #1a2744;
+    }
 
-@@media (max-width:640px) {
-    .ec-featured-body  { flex-direction:column; gap:12px; }
-    .ec-featured-stats { margin-left:0; }
-    .ec-featured-wrap, .ec-practice-wrap { padding:14px 14px 0; }
-    .ec-grid { grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:10px; }
-    .ec-banner { padding:18px 16px; }
-}
+    .ec-featured-time {
+    font-size: 12px;
+    color: #777;
+    margin-top: 3px;
+    }
+
+    .ec-featured-stats {
+    display: flex;
+    gap: 20px;
+    margin-left: auto;
+    }
+
+    .ec-stat {
+    text-align: center;
+    }
+
+    .ec-stat-val {
+    font-size: 20px;
+    font-weight: 800;
+    color: #1a2744;
+    line-height: 1;
+    }
+
+    .ec-stat-label {
+    font-size: 11px;
+    color: #999;
+    }
+
+    .ec-featured-action {
+    flex-shrink: 0;
+    }
+
+    /* ---- Practice section ---- */
+    .ec-practice-wrap {
+    padding: 16px 24px 0;
+    }
+
+    .ec-practice-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+    }
+
+    .ec-practice-title {
+    font-size: 14px;
+    font-weight: 800;
+    color: #fff;
+    margin: 0;
+    }
+
+    .ec-practice-total {
+    font-size: 12px;
+    color: rgba(255, 255, 255, .7);
+    background: rgba(255, 255, 255, .15);
+    border-radius: 20px;
+    padding: 2px 10px;
+    }
+
+    /* ---- Filter tabs ---- */
+    .ec-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+    }
+
+    .ec-tab {
+    padding: 5px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    border: 1.5px solid rgba(255, 255, 255, .3);
+    background: rgba(255, 255, 255, .12);
+    color: rgba(255, 255, 255, .8);
+    cursor: pointer;
+    transition: all .15s;
+    user-select: none;
+    }
+
+    .ec-tab:hover {
+    border-color: #fff;
+    color: #fff;
+    background: rgba(255, 255, 255, .22);
+    }
+
+    .ec-tab.active {
+    background: #1a73e8;
+    border-color: #1a73e8;
+    color: #fff;
+    }
+
+    .ec-tab-dot {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 5px;
+    vertical-align: middle;
+    }
+
+    /* ---- Grid ---- */
+    .ec-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 12px;
+    }
+
+    .ec-card-item {
+    display: none;
+    }
+
+    .ec-card-item.show {
+    display: block;
+    }
+
+    /* ---- Card ---- */
+    .ec-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, .07);
+    overflow: hidden;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    transition: transform .16s, box-shadow .16s;
+    }
+
+    .ec-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 18px rgba(0, 0, 0, .11);
+    }
+
+    .ec-card-top {
+    height: 3px;
+    width: 100%;
+    }
+
+    .ec-card-body {
+    padding: 12px 14px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    }
+
+    .ec-card-name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #1a2744;
+    line-height: 1.4;
+    }
+
+    .ec-card-time {
+    font-size: 11px;
+    color: #999;
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+    }
+
+    .ec-card-time i {
+    margin-top: 1px;
+    color: #bbb;
+    }
+
+    /* badges */
+    .ec-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 2px 9px;
+    border-radius: 20px;
+    width: fit-content;
+    }
+
+    .ec-badge-open {
+    background: #e8f5e9;
+    color: #2e7d32;
+    }
+
+    .ec-badge-done {
+    background: #e8f0fe;
+    color: #1558b0;
+    }
+
+    .ec-badge-locked {
+    background: #fff3e0;
+    color: #e65100;
+    }
+
+    .ec-badge-expired {
+    background: #fce4ec;
+    color: #b71c1c;
+    }
+
+    /* score */
+    .ec-mini-score {
+    background: #f8f9ff;
+    border-radius: 8px;
+    padding: 7px 10px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 4px;
+    font-size: 11px;
+    }
+
+    .ec-mini-score-val {
+    font-size: 14px;
+    font-weight: 800;
+    }
+
+    .ec-mini-score-label {
+    color: #999;
+    }
+
+    .green {
+    color: #2e7d32;
+    }
+
+    .blue {
+    color: #1558b0;
+    }
+
+    /* card footer */
+    .ec-card-foot {
+    padding: 10px 14px;
+    border-top: 1px solid #f0f2f5;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    }
+
+    /* buttons */
+    .ec-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: opacity .15s, transform .12s;
+    width: 100%;
+    }
+
+    .ec-btn:hover {
+    opacity: .88;
+    transform: translateY(-1px);
+    text-decoration: none;
+    }
+
+    .ec-btn-green {
+    background: linear-gradient(135deg, #43a047, #2e7d32);
+    color: #fff;
+    }
+
+    .ec-btn-blue {
+    background: linear-gradient(135deg, #1a73e8, #1558b0);
+    color: #fff;
+    }
+
+    .ec-btn-red {
+    background: linear-gradient(135deg, #e53935, #c62828);
+    color: #fff;
+    }
+
+    .ec-btn-outline {
+    background: #fff;
+    color: #1a73e8;
+    border: 1.5px solid #1a73e8;
+    }
+
+    .ec-locked-msg {
+    font-size: 11px;
+    color: #e65100;
+    display: flex;
+    gap: 5px;
+    align-items: flex-start;
+    line-height: 1.5;
+    }
+
+    @@media (max-width:640px) {
+    .ec-featured-body {
+    flex-direction: column;
+    gap: 12px;
+    }
+
+    .ec-featured-stats {
+    margin-left: 0;
+    }
+
+    .ec-featured-wrap,
+    .ec-practice-wrap {
+    padding: 14px 14px 0;
+    }
+
+    .ec-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 10px;
+    }
+
+    .ec-banner {
+    padding: 18px 16px;
+    }
+    }
 </style>
 
 <div class="app-main__outer">
-<div class="app-main__inner" style="padding:0;">
-<div class="ec-wrap">
+    <div class="app-main__inner" style="padding:0;">
+        <div class="ec-wrap">
 
-    <!-- Banner -->
-    <div class="ec-banner">
-        <div class="ec-banner-title">
-            <i class="fa fa-trophy" style="color:#ffd54f;margin-right:8px;"></i>Hội thi Tay nghề giỏi — Tập đoàn Hòa Phát 2025
-        </div>
-        <p class="ec-banner-sub">Chọn đề ôn luyện hoặc tham gia Phần thi Lý thuyết chính thức bên dưới</p>
-    </div>
-
-    @* ===== ĐỀ THI CHÍNH THỨC ===== *@
-    @if (checkthi.Count > 0)
-    {
-        <div class="ec-featured-wrap">
-        @foreach (var item in checkthi)
-        {
-            var isOpen    = DateTime.Now >= item.TGBDLH && DateTime.Now <= item.TGKTLH;
-            var isExpired = DateTime.Now > item.TGKTLH;
-            var hasResult = item.BaiThiCount > 0;
-            <div class="ec-featured" style="margin-bottom:12px;">
-                <div class="ec-featured-left"></div>
-                <div class="ec-featured-body">
-                    <div style="flex:1;min-width:200px;">
-                        <div class="ec-featured-label"><i class="fa fa-flag-checkered" style="margin-right:4px;"></i>Đề thi chính thức</div>
-                        <div class="ec-featured-name">@item.TenLH</div>
-                        <div class="ec-featured-time">
-                            <i class="fa fa-clock-o" style="margin-right:4px;"></i>
-                            @item.TGBDLH.ToString("HH:mm dd/MM/yyyy") — @item.TGKTLH.ToString("HH:mm dd/MM/yyyy")
-                        </div>
-                    </div>
-                    @if (hasResult)
-                    {
-                        <div class="ec-featured-stats">
-                            <div class="ec-stat">
-                                <div class="ec-stat-val" style="color:#2e7d32;">@item.LastDiemSo/@item.TongDiem</div>
-                                <div class="ec-stat-label">Điểm thi</div>
-                            </div>
-                            <div class="ec-stat">
-                                <div class="ec-stat-val" style="color:#1558b0;">@item.SoCauDung/@item.TongSoCau</div>
-                                <div class="ec-stat-label">Câu đúng</div>
-                            </div>
-                        </div>
-                    }
-                    <div class="ec-featured-action">
-                        @if (!isOpen && !isExpired)
-                        {
-                            <span class="ec-badge ec-badge-locked" style="font-size:12px;padding:6px 14px;">
-                                <i class="fa fa-lock"></i> Mở lúc @item.TGBDLH.ToString("HH:mm dd/MM")
-                            </span>
-                        }
-                        else if (hasResult)
-                        {
-                            <a class="ec-btn ec-btn-blue" style="min-width:160px;"
-                               href="@Url.Action("TestView","ConfirmEStudy",new{LHID=item.LHID,IDNV=item.NVID,IDBaiThi=item.LastIDBaiThi})">
-                                <i class="fa fa-bar-chart"></i> Xem kết quả
-                            </a>
-                        }
-                        else if (isOpen)
-                        {
-                            <a id="@item.LHID" data-lhid="@item.LHID" class="ec-btn ec-btn-red exam-link" style="min-width:160px;"
-                               href="/STest/Index?LHID=@item.LHID">
-                                <i class="fa fa-edit"></i> Vào làm bài thi
-                            </a>
-                        }
-                        else
-                        {
-                            <span class="ec-badge ec-badge-expired" style="font-size:12px;padding:6px 14px;">
-                                <i class="fa fa-times-circle"></i> Đã hết hạn
-                            </span>
-                        }
-                    </div>
+            <!-- Banner -->
+            <div class="ec-banner">
+                <div class="ec-banner-title">
+                    <i class="fa fa-trophy" style="color:#ffd54f;margin-right:8px;"></i>Q.Day – Cuộc thi tìm hiểu lịch
+                    sử hình thành và phát triển Công ty
                 </div>
-            </div>
-        }
-        </div>
-    }
-
-    @* ===== ÔN LUYỆN ===== *@
-    @if (checkontap.Count > 0)
-    {
-        <div class="ec-practice-wrap">
-            <div class="ec-practice-header">
-                <h6 class="ec-practice-title"><i class="fa fa-book" style="color:#1a73e8;margin-right:6px;"></i>Đề ôn luyện</h6>
-                <span class="ec-practice-total">@checkontap.Count đề</span>
+                <p class="ec-banner-sub">Chọn đề ôn luyện hoặc tham gia Phần thi chính thức bên dưới</p>
             </div>
 
-            <!-- Filter tabs -->
-            <div class="ec-tabs">
-                <div class="ec-tab active" data-filter="all">Tất cả (@checkontap.Count)</div>
-                @if (chudeonantoan.Count > 0)
-                {
-                    <div class="ec-tab" data-filter="atmt">
-                        <span class="ec-tab-dot" style="background:#43a047;"></span>An toàn (@chudeonantoan.Count)
-                    </div>
-                }
-                @if (chudeoncokhi.Count > 0)
-                {
-                    <div class="ec-tab" data-filter="cokhi">
-                        <span class="ec-tab-dot" style="background:#f57c00;"></span>Cơ khí (@chudeoncokhi.Count)
-                    </div>
-                }
-                @if (chudeondien.Count > 0)
-                {
-                    <div class="ec-tab" data-filter="dien">
-                        <span class="ec-tab-dot" style="background:#1a73e8;"></span>Điện (@chudeondien.Count)
-                    </div>
-                }
-            </div>
-
-            <!-- Grid -->
-            <div class="ec-grid">
-            @foreach (var item in checkontap)
+            @* ===== ĐỀ THI CHÍNH THỨC ===== *@
+            @if (checkthi.Count > 0)
             {
-                var isOpen    = DateTime.Now >= item.TGBDLH && DateTime.Now <= item.TGKTLH;
-                var isExpired = DateTime.Now > item.TGKTLH;
-                var hasResult = item.BaiThiCount > 0;
-
-                string cat = "all";
-                string stripe = "#1a73e8";
-                if (item.TenLH != null && item.TenLH.Contains("ATMT"))   { cat = "atmt";  stripe = "#43a047"; }
-                else if (item.TenLH != null && item.TenLH.Contains("Cơ khí")) { cat = "cokhi"; stripe = "#f57c00"; }
-                else if (item.TenLH != null && item.TenLH.Contains("Điện"))   { cat = "dien";  stripe = "#1a73e8"; }
-
-                <div class="ec-card-item show" data-cat="@cat">
-                    <div class="ec-card">
-                        <div class="ec-card-top" style="background:@stripe;"></div>
-                        <div class="ec-card-body">
-                            <div class="ec-card-name">@item.TenLH</div>
-                            <div class="ec-card-time">
-                                <i class="fa fa-calendar-o"></i>
-                                <span>@item.TGBDLH.ToString("dd/MM HH:mm") — @item.TGKTLH.ToString("dd/MM HH:mm")</span>
+                <div class="ec-featured-wrap">
+                    @foreach (var item in checkthi)
+                    {
+                        var isOpen = DateTime.Now >= item.TGBDLH && DateTime.Now <= item.TGKTLH;
+                        var isExpired = DateTime.Now > item.TGKTLH;
+                        var hasResult = item.BaiThiCount > 0;
+                        <div class="ec-featured" style="margin-bottom:12px;">
+                            <div class="ec-featured-left"></div>
+                            <div class="ec-featured-body">
+                                <div style="flex:1;min-width:200px;">
+                                    <div class="ec-featured-label"><i class="fa fa-flag-checkered"
+                                                                          style="margin-right:4px;"></i>Đề thi chính thức</div>
+                                        <div class="ec-featured-name">@item.TenLH</div>
+                                        <div class="ec-featured-time">
+                                            <i class="fa fa-clock-o" style="margin-right:4px;"></i>
+                                            @item.TGBDLH.ToString("HH:mm dd/MM/yyyy") — @item.TGKTLH.ToString("HH:mm dd/MM/yyyy")
+                                        </div>
+                                    </div>
+                                    @if (hasResult)
+                                    {
+                                        <div class="ec-featured-stats">
+                                            <div class="ec-stat">
+                                                <div class="ec-stat-val" style="color:#2e7d32;">@item.LastDiemSo/@item.TongDiem</div>
+                                                <div class="ec-stat-label">Điểm thi</div>
+                                            </div>
+                                            <div class="ec-stat">
+                                                <div class="ec-stat-val" style="color:#1558b0;">@item.SoCauDung/@item.TongSoCau</div>
+                                                <div class="ec-stat-label">Câu đúng</div>
+                                            </div>
+                                        </div>
+                                    }
+                                    <div class="ec-featured-action">
+                                        @if (!isOpen && !isExpired)
+                                        {
+                                            <span class="ec-badge ec-badge-locked" style="font-size:12px;padding:6px 14px;">
+                                                <i class="fa fa-lock"></i> Mở lúc @item.TGBDLH.ToString("HH:mm dd/MM")
+                                            </span>
+                                        }
+                                        else if (hasResult)
+                                        {
+                                            <a class="ec-btn ec-btn-blue" style="min-width:160px;"
+                                               href="@Url.Action("TestView","ConfirmEStudy",new{LHID=item.LHID,IDNV=item.NVID,IDBaiThi=item.LastIDBaiThi})">
+                                                <i class="fa fa-bar-chart"></i> Xem kết quả
+                                            </a>
+                                        }
+                                        else if (isOpen)
+                                        {
+                                            <a id="@item.LHID" data-lhid="@item.LHID" class="ec-btn ec-btn-red exam-link"
+                                               style="min-width:160px;" href="/STest/Index?LHID=@item.LHID">
+                                                <i class="fa fa-edit"></i> Vào làm bài thi
+                                            </a>
+                                        }
+                                        else
+                                        {
+                                            <span class="ec-badge ec-badge-expired" style="font-size:12px;padding:6px 14px;">
+                                                <i class="fa fa-times-circle"></i> Đã hết hạn
+                                            </span>
+                                        }
+                                    </div>
+                                </div>
                             </div>
-                            @if (!isOpen && !isExpired)
-                            {
-                                <span class="ec-badge ec-badge-locked"><i class="fa fa-lock"></i> Chưa mở</span>
-                            }
-                            else if (isExpired && !hasResult)
-                            {
-                                <span class="ec-badge ec-badge-expired"><i class="fa fa-times-circle"></i> Hết hạn</span>
-                            }
+                        }
+                    </div>
+                }
+
+                @* ===== ÔN LUYỆN ===== *@
+                @if (checkontap.Count > 0)
+                {
+                    <div class="ec-practice-wrap">
+                        <div class="ec-practice-header">
+                            <h6 class="ec-practice-title"><i class="fa fa-book" style="color:#1a73e8;margin-right:6px;"></i>Đề
+                                ôn luyện</h6>
+                                <span class="ec-practice-total">@checkontap.Count đề</span>
+                            </div>
+
+                            <!-- Filter tabs -->
+                            <div class="ec-tabs">
+                                <div class="ec-tab active" data-filter="all">Tất cả (@checkontap.Count)</div>
+                                @if (chudeonantoan.Count > 0)
+                                {
+                                    <div class="ec-tab" data-filter="atmt">
+                                        <span class="ec-tab-dot" style="background:#43a047;"></span>An toàn (@chudeonantoan.Count)
+                                    </div>
+                                }
+                                @if (chudeoncokhi.Count > 0)
+                                {
+                                    <div class="ec-tab" data-filter="cokhi">
+                                        <span class="ec-tab-dot" style="background:#f57c00;"></span>Cơ khí (@chudeoncokhi.Count)
+                                    </div>
+                                }
+                                @if (chudeondien.Count > 0)
+                                {
+                                    <div class="ec-tab" data-filter="dien">
+                                        <span class="ec-tab-dot" style="background:#1a73e8;"></span>Điện (@chudeondien.Count)
+                                    </div>
+                                }
+                            </div>
+
+                            <!-- Grid -->
+                            <div class="ec-grid">
+                                @foreach (var item in checkontap)
+                                {
+                                    var isOpen = DateTime.Now >= item.TGBDLH && DateTime.Now <= item.TGKTLH;
+                                    var isExpired = DateTime.Now > item.TGKTLH;
+                                    var hasResult = item.BaiThiCount > 0;
+
+                                    string cat = "all";
+                                    string stripe = "#1a73e8";
+                                    if (item.TenLH != null && item.TenLH.Contains("ATMT")) { cat = "atmt"; stripe = "#43a047"; }
+                                    else if (item.TenLH != null && item.TenLH.Contains("Cơ khí")) { cat = "cokhi"; stripe = "#f57c00"; }
+                                    else if (item.TenLH != null && item.TenLH.Contains("Điện")) { cat = "dien"; stripe = "#1a73e8"; }
+
+                                    <div class="ec-card-item show" data-cat="@cat">
+                                        <div class="ec-card">
+                                            <div class="ec-card-top" style="background:@stripe;"></div>
+                                            <div class="ec-card-body">
+                                                <div class="ec-card-name">@item.TenLH</div>
+                                                <div class="ec-card-time">
+                                                    <i class="fa fa-calendar-o"></i>
+                                                    <span>@item.TGBDLH.ToString("dd/MM HH:mm") — @item.TGKTLH.ToString("dd/MM HH:mm")</span>
+                                                </div>
+                                                @if (!isOpen && !isExpired)
+                                                {
+                                                    <span class="ec-badge ec-badge-locked"><i class="fa fa-lock"></i> Chưa mở</span>
+                                                }
+                                                else if (isExpired && !hasResult)
+                                                {
+                                                    <span class="ec-badge ec-badge-expired"><i class="fa fa-times-circle"></i> Hết
+                                                        hạn</span>
+                                                    }
                             else if (hasResult)
-                            {
-                                <span class="ec-badge ec-badge-done"><i class="fa fa-check-circle"></i> @item.BaiThiCount lượt</span>
-                                <div class="ec-mini-score">
-                                    <div>
-                                        <div class="ec-mini-score-val green">@item.LastDiemSo/@item.TongDiem</div>
-                                        <div class="ec-mini-score-label">Điểm</div>
-                                    </div>
-                                    <div>
-                                        <div class="ec-mini-score-val blue">@item.SoCauDung/@item.TongSoCau</div>
-                                        <div class="ec-mini-score-label">Câu đúng</div>
+                                                    {
+                                                        <span class="ec-badge ec-badge-done"><i class="fa fa-check-circle"></i>
+                                                            @item.BaiThiCount lượt</span>
+                                                            <div class="ec-mini-score">
+                                                                <div>
+                                                                    <div class="ec-mini-score-val green">@item.LastDiemSo/@item.TongDiem</div>
+                                                                    <div class="ec-mini-score-label">Điểm</div>
+                                                                </div>
+                                                                <div>
+                                                                    <div class="ec-mini-score-val blue">@item.SoCauDung/@item.TongSoCau</div>
+                                                                    <div class="ec-mini-score-label">Câu đúng</div>
+                                                                </div>
+                                                            </div>
+                                                        }
+                            else
+                                                        {
+                                                            <span class="ec-badge ec-badge-open"><i class="fa fa-play-circle"></i> Đang mở</span>
+                                                        }
+                                                    </div>
+                                                    <div class="ec-card-foot">
+                                                        @if (!isOpen && !isExpired)
+                                                        {
+                                                            <div class="ec-locked-msg">
+                                                                <i class="fa fa-clock-o"></i> Mở lúc @item.TGBDLH.ToString("HH:mm dd/MM")
+                                                            </div>
+                                                        }
+                                                        else
+                                                        {
+                                                            if (isOpen)
+                                                            {
+                                                                <a id="@item.LHID" data-lhid="@item.LHID" class="ec-btn ec-btn-green exam-link"
+                                                                   href="/STest/Index?LHID=@item.LHID">
+                                                                    <i class="fa fa-pencil"></i> Ôn luyện
+                                                                </a>
+                                                            }
+                                                            if (hasResult)
+                                                            {
+                                                                <a class="ec-btn ec-btn-outline"
+                                                                   href="@Url.Action("TestView","ConfirmEStudy",new{LHID=item.LHID,IDNV=item.NVID,IDBaiThi=item.LastIDBaiThi})">
+                                                                    <i class="fa fa-bar-chart"></i> Kết quả
+                                                                </a>
+                                                            }
+                                                        }
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        }
                                     </div>
                                 </div>
                             }
-                            else
-                            {
-                                <span class="ec-badge ec-badge-open"><i class="fa fa-play-circle"></i> Đang mở</span>
-                            }
-                        </div>
-                        <div class="ec-card-foot">
-                            @if (!isOpen && !isExpired)
-                            {
-                                <div class="ec-locked-msg">
-                                    <i class="fa fa-clock-o"></i> Mở lúc @item.TGBDLH.ToString("HH:mm dd/MM")
-                                </div>
-                            }
-                            else
-                            {
-                                if (isOpen)
-                                {
-                                    <a id="@item.LHID" data-lhid="@item.LHID" class="ec-btn ec-btn-green exam-link"
-                                       href="/STest/Index?LHID=@item.LHID">
-                                        <i class="fa fa-pencil"></i> Ôn luyện
-                                    </a>
-                                }
-                                if (hasResult)
-                                {
-                                    <a class="ec-btn ec-btn-outline"
-                                       href="@Url.Action("TestView","ConfirmEStudy",new{LHID=item.LHID,IDNV=item.NVID,IDBaiThi=item.LastIDBaiThi})">
-                                        <i class="fa fa-bar-chart"></i> Kết quả
-                                    </a>
-                                }
-                            }
+
                         </div>
                     </div>
                 </div>
-            }
-            </div>
-        </div>
-    }
 
-</div>
-</div>
-</div>
+                <script>
+                    $(document).ready(function () {
 
-<script>
-$(document).ready(function () {
+                    // Filter tabs
+                    $('.ec-tab').on('click', function () {
+                    $('.ec-tab').removeClass('active');
+                    $(this).addClass('active');
+                    var filter = $(this).data('filter');
+                    $('.ec-card-item').each(function () {
+                    if (filter === 'all' || $(this).data('cat') === filter) {
+                    $(this).addClass('show');
+                    } else {
+                    $(this).removeClass('show');
+                    }
+                    });
+                    });
 
-    // Filter tabs
-    $('.ec-tab').on('click', function () {
-        $('.ec-tab').removeClass('active');
-        $(this).addClass('active');
-        var filter = $(this).data('filter');
-        $('.ec-card-item').each(function () {
-            if (filter === 'all' || $(this).data('cat') === filter) {
-                $(this).addClass('show');
-            } else {
-                $(this).removeClass('show');
-            }
-        });
-    });
-
-    // Unfinished exam check
-    const unfinishedIDLH = localStorage.getItem("IDLH");
-    $('.exam-link').each(function () {
-        const currentLHID = $(this).data('lhid');
-        if (unfinishedIDLH && unfinishedIDLH !== currentLHID.toString()) {
-            $(this).on('click', function (e) {
-                e.preventDefault();
-                alert('Bạn cần hoàn thành bài đang thi !');
-            });
-        }
-        if (unfinishedIDLH && unfinishedIDLH === currentLHID.toString()) {
-            $(this).removeClass('ec-btn-green ec-btn-red')
-                   .addClass('ec-btn-blue')
-                   .html('<i class="fa fa-spinner fa-spin"></i> Đang thi — Tiếp tục');
-        }
-    });
-});
-</script>
+                    // Unfinished exam check
+                    const unfinishedIDLH = localStorage.getItem("IDLH");
+                    $('.exam-link').each(function () {
+                    const currentLHID = $(this).data('lhid');
+                    if (unfinishedIDLH && unfinishedIDLH !== currentLHID.toString()) {
+                    $(this).on('click', function (e) {
+                    e.preventDefault();
+                    alert('Bạn cần hoàn thành bài đang thi !');
+                    });
+                    }
+                    if (unfinishedIDLH && unfinishedIDLH === currentLHID.toString()) {
+                    $(this).removeClass('ec-btn-green ec-btn-red')
+                    .addClass('ec-btn-blue')
+                    .html('<i class="fa fa-spinner fa-spin"></i> Đang thi — Tiếp tục');
+                    }
+                    });
+                    });
+                </script>

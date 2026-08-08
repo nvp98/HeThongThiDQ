@@ -30,10 +30,10 @@ namespace HeThongThiDQ.Controllers
                                IDistributedCache cache, IConnectionMultiplexer mux,
                                IConfiguration config)
         {
-            _db     = db;
-            _auth   = auth;
-            _cache  = cache;
-            _mux    = mux;
+            _db = db;
+            _auth = auth;
+            _cache = cache;
+            _mux = mux;
             _config = config;
         }
 
@@ -53,14 +53,15 @@ namespace HeThongThiDQ.Controllers
                 string mk = Encryptor.MD5Hash(u.MatKhau);
                 NhanVien? user = await _db.NhanViens
                     .Where(x => (x.MaNv == u.SoDienThoai || x.DienThoai == u.SoDienThoai)
-                                && x.MatKhau == mk)
+                                && (x.MatKhau == mk
+                                    || (x.CCCD != null && x.CCCD.Length >= 5 && x.CCCD.Substring(x.CCCD.Length - 5) == u.MatKhau)))
                     .FirstOrDefaultAsync();
 
                 // 2. Nếu local fail → thử HR API rồi Elearning API
                 if (user == null)
                 {
-                    bool apiOk = await TryLoginHRApi(u.SoDienThoai, u.MatKhau)
-                              || await TryLoginElearningApi(u.SoDienThoai, u.MatKhau);
+                    bool apiOk = await TryLoginHRApi(u.SoDienThoai, u.MatKhau);
+                    //   || await TryLoginElearningApi(u.SoDienThoai, u.MatKhau);
 
                     if (apiOk)
                     {
@@ -109,8 +110,8 @@ namespace HeThongThiDQ.Controllers
                     // Ghi thống kê lượt truy cập
                     try
                     {
-                        var rdb  = _mux.GetDatabase();
-                        var now  = DateTime.Now;
+                        var rdb = _mux.GetDatabase();
+                        var now = DateTime.Now;
                         var date = now.ToString("yyyyMMdd");
                         var hour = now.ToString("HH");
 

@@ -53,6 +53,8 @@ public partial class NhanVien
 
     public string? DonViToChucC4 { get; set; }
 
+    public string? CCCD { get; set; }
+
     public virtual PhongBan? IdphongBanNavigation { get; set; }
 
     public virtual TinhTrangLv? IdtinhTrangLvNavigation { get; set; }

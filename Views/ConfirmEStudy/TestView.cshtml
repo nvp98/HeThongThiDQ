@@ -71,8 +71,64 @@
 }
 .tv-print:hover { background: #d2e3fc; }
 
-/* ---- content ---- */
-.tv-content { max-width: 900px; margin: 0 auto; padding: 24px 16px 0; }
+/* ---- body layout ---- */
+.tv-body-wrap {
+    display: flex;
+    gap: 16px;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 16px 40px;
+    align-items: flex-start;
+}
+.tv-content { flex: 1; min-width: 0; }
+
+/* ---- question navigator (left panel) ---- */
+.tv-qnav { width: 168px; min-width: 152px; flex-shrink: 0; }
+.tv-qnav-inner {
+    position: sticky;
+    top: 74px;
+    background: #fff;
+    border-radius: 14px;
+    box-shadow: 0 1px 6px rgba(0,0,0,.08);
+    padding: 14px 12px;
+    max-height: calc(100vh - 90px);
+    overflow-y: auto;
+}
+.tv-qnav-title {
+    font-size: 11px; font-weight: 700; color: #888;
+    text-transform: uppercase; letter-spacing: .5px;
+    margin-bottom: 10px;
+}
+.tv-qnav-legend {
+    display: flex; flex-direction: column; gap: 5px;
+    font-size: 11px; color: #555;
+    margin-bottom: 12px; padding-bottom: 10px;
+    border-bottom: 1px solid #f0f0f0;
+}
+.qnl-item { display: flex; align-items: center; gap: 6px; }
+.qnl-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.tv-qnav-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; }
+.qn-btn {
+    width: 100%; aspect-ratio: 1 / 1;
+    border: none; border-radius: 7px;
+    font-size: 11px; font-weight: 700;
+    cursor: pointer; line-height: 1;
+    transition: transform .12s, box-shadow .12s;
+    padding: 0;
+}
+.qn-btn:hover { transform: scale(1.18); box-shadow: 0 2px 8px rgba(0,0,0,.22); }
+.qn-c { background: #34a853; color: #fff; }
+.qn-w { background: #d32f2f; color: #fff; }
+.qn-s { background: #f59e0b; color: #fff; }
+@@media (max-width: 860px) {
+    .tv-body-wrap { flex-direction: column-reverse; gap: 10px; }
+    .tv-qnav { width: 100%; min-width: unset; }
+    .tv-qnav-inner { position: static; max-height: none; }
+    .tv-qnav-grid { grid-template-columns: repeat(10, 1fr); }
+}
+@@media (max-width: 480px) {
+    .tv-qnav-grid { grid-template-columns: repeat(7, 1fr); }
+}
 
 /* ---- info card ---- */
 .tv-info-card {
@@ -202,8 +258,9 @@
 
 /* ---- print ---- */
 @@media print {
-    .tv-topbar, .tv-print { display: none !important; }
+    .tv-topbar, .tv-print, .tv-qnav { display: none !important; }
     .tv-wrapper { background: white; }
+    .tv-body-wrap { display: block; padding: 0; }
     .q-card { page-break-inside: avoid; box-shadow: none; border: 1px solid #ccc; }
     .tv-info-card, .tv-stat-card { box-shadow: none; border: 1px solid #ccc; }
 }
@@ -228,6 +285,33 @@
                 </button>
             </div>
 
+            <div class="tv-body-wrap">
+
+            <!-- Left: question navigator -->
+            <div class="tv-qnav">
+                <div class="tv-qnav-inner">
+                    <div class="tv-qnav-title">Câu hỏi (@totalQ)</div>
+                    <div class="tv-qnav-legend">
+                        <div class="qnl-item"><span class="qnl-dot" style="background:#34a853"></span> Đúng (@correctQ)</div>
+                        <div class="qnl-item"><span class="qnl-dot" style="background:#d32f2f"></span> Sai (@wrongQ)</div>
+                        <div class="qnl-item"><span class="qnl-dot" style="background:#f59e0b"></span> Bỏ qua (@skippedQ)</div>
+                    </div>
+                    <div class="tv-qnav-grid">
+                        @{ int navNo = 1; }
+                        @foreach (var nq in Model.CauHois)
+                        {
+                            bool nAns = nq.IDDAHocVien != null;
+                            bool nCor = nAns && nq.IDDAHocVien == nq.IDDADung;
+                            bool nWrg = nAns && nq.IDDAHocVien != nq.IDDADung;
+                            string nCls = nCor ? "qn-c" : nWrg ? "qn-w" : "qn-s";
+                            <button class="qn-btn @nCls" onclick="scrollToQ(@navNo)" title="Câu @navNo">@navNo</button>
+                            navNo++;
+                        }
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: main content -->
             <div class="tv-content">
 
                 <!-- Info card -->
@@ -330,7 +414,7 @@
                         new { Label = "D", Text = q.DapAnD, Val = 4 },
                     };
 
-                    <div class="q-card @cardClass">
+                    <div class="q-card @cardClass" id="q-@rowNo">
                         <div class="q-header">
                             <span class="q-num">Câu @rowNo</span>
                             <span class="q-result-badge @badgeClass">@badgeText</span>
@@ -377,13 +461,21 @@
                 }
 
             </div><!-- /tv-content -->
+            </div><!-- /tv-body-wrap -->
         </div><!-- /tv-wrapper -->
     </div>
 </div>
 
 <script>
-    // Xóa các đoạn p rỗng trong nội dung câu hỏi
     document.querySelectorAll('.q-text p, .ans-row p').forEach(function (p) {
         if (p.innerHTML.trim() === '&nbsp;' || p.innerHTML.trim() === '') p.remove();
     });
+
+    function scrollToQ(n) {
+        var el = document.getElementById('q-' + n);
+        if (!el) return;
+        var offset = 80;
+        var top = el.getBoundingClientRect().top + window.pageYOffset - offset;
+        window.scrollTo({ top: top, behavior: 'smooth' });
+    }
 </script>
