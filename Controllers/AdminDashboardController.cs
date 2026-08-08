@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StackExchange.Redis;
+using System.Diagnostics;
 
 namespace HeThongThiDQ.Controllers
 {
@@ -14,7 +15,13 @@ namespace HeThongThiDQ.Controllers
         private readonly MyAuthentication _auth;
         private readonly IConnectionMultiplexer _mux;
 
-        private const int OnlineWindowMs = 5 * 60 * 1000; // 5 phút
+        private const int OnlineWindowMs = 5 * 60 * 1000;
+
+        // CPU delta tracking (shared across requests)
+        private static DateTime _lastCpuCheck = DateTime.MinValue;
+        private static TimeSpan _lastProcCpu  = TimeSpan.Zero;
+        private static double   _cpuPct       = 0;
+        private static readonly object _cpuLock = new();
 
         public AdminDashboardController(ELEARNINGEntities db, MyAuthentication auth, IConnectionMultiplexer mux)
         {
@@ -34,6 +41,56 @@ namespace HeThongThiDQ.Controllers
         {
             if (_auth.IDQuyen != 1) return Json(new { });
             return Json(await GetDashboardData());
+        }
+
+        [HttpGet]
+        public IActionResult SysInfo()
+        {
+            if (_auth.IDQuyen != 1) return Json(new { });
+
+            var proc = Process.GetCurrentProcess();
+
+            lock (_cpuLock)
+            {
+                var now    = DateTime.UtcNow;
+                var wallMs = (_lastCpuCheck == DateTime.MinValue)
+                    ? 0
+                    : (now - _lastCpuCheck).TotalMilliseconds;
+
+                if (wallMs >= 500)
+                {
+                    var cpuMs = (proc.TotalProcessorTime - _lastProcCpu).TotalMilliseconds;
+                    _cpuPct = Math.Round(cpuMs / wallMs / Environment.ProcessorCount * 100, 1);
+                }
+                _lastCpuCheck = now;
+                _lastProcCpu  = proc.TotalProcessorTime;
+            }
+
+            var ramMb  = Math.Round(proc.WorkingSet64 / 1024.0 / 1024.0, 1);
+            var gcMb   = Math.Round(GC.GetTotalMemory(false) / 1024.0 / 1024.0, 1);
+            var gcInfo = GC.GetGCMemoryInfo();
+            var totalRamMb = Math.Round(gcInfo.TotalAvailableMemoryBytes / 1024.0 / 1024.0, 0);
+
+            string uptimeStr;
+            try
+            {
+                var uptime = DateTime.Now - proc.StartTime;
+                uptimeStr = uptime.TotalHours >= 1
+                    ? $"{(int)uptime.TotalHours}h {uptime.Minutes:D2}m"
+                    : $"{uptime.Minutes}m {uptime.Seconds}s";
+            }
+            catch { uptimeStr = "--"; }
+
+            return Json(new
+            {
+                CpuPct         = _cpuPct,
+                RamMb          = ramMb,
+                TotalRamMb     = totalRamMb,
+                GcMb           = gcMb,
+                Threads        = proc.Threads.Count,
+                Uptime         = uptimeStr,
+                ProcessorCount = Environment.ProcessorCount,
+            });
         }
 
         private async Task<AdminDashboardData> GetDashboardData()
