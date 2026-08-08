@@ -1,0 +1,344 @@
+@{
+    ViewBag.Title = "Xếp hạng";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var lopHocList  = ViewBag.LopHocList  as IEnumerable<dynamic>;
+    var phongBanList = ViewBag.PhongBanList as IEnumerable<dynamic>;
+}
+
+<div class="app-main__outer">
+    <div class="app-main__inner">
+
+        <div class="app-page-title">
+            <div class="page-title-wrapper">
+                <div class="page-title-heading">
+                    <div class="page-title-icon">
+                        <i class="fa fa-trophy icon-gradient bg-sunny-morning"></i>
+                    </div>
+                    <div>
+                        Xếp hạng
+                        <div class="page-title-subheading">Theo dõi thành tích cá nhân và tập thể</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bộ lọc chung -->
+        <div class="card mb-3 shadow-sm">
+            <div class="card-body py-2">
+                <div class="row align-items-center g-2">
+                    <div class="col-md-4">
+                        <label class="form-label mb-1 small fw-bold">Lọc theo khóa thi</label>
+                        <select id="filterLopHoc" class="form-control form-control-sm">
+                            <option value="">-- Tất cả khóa thi --</option>
+                            @if (lopHocList != null)
+                            {
+                                foreach (var lh in lopHocList)
+                                {
+                                    <option value="@lh.Idlh">@lh.TenLh</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-4" id="wrapFilterPB">
+                        <label class="form-label mb-1 small fw-bold">Lọc theo phòng ban (cá nhân)</label>
+                        <select id="filterPhongBan" class="form-control form-control-sm">
+                            <option value="">-- Tất cả phòng ban --</option>
+                            @if (phongBanList != null)
+                            {
+                                foreach (var pb in phongBanList)
+                                {
+                                    <option value="@pb.IdphongBan">@pb.TenPhongBan</option>
+                                }
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-auto d-flex align-items-end">
+                        <button class="btn btn-primary btn-sm mt-3" id="btnLoad">
+                            <i class="fa fa-refresh"></i>&nbsp; Tải dữ liệu
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Tabs -->
+        <ul class="nav nav-tabs" id="rankTab" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" id="tab-cn" data-toggle="tab" href="#panel-cn" role="tab">
+                    <i class="fa fa-user"></i>&nbsp; Xếp hạng cá nhân
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" id="tab-tt" data-toggle="tab" href="#panel-tt" role="tab"
+                   onclick="loadTapThe()">
+                    <i class="fa fa-users"></i>&nbsp; Xếp hạng tập thể
+                </a>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="rankTabContent">
+
+            <!-- ── CÁ NHÂN ── -->
+            <div class="tab-pane fade show active" id="panel-cn" role="tabpanel">
+                <div class="card border-top-0 rounded-0 rounded-bottom shadow-sm">
+                    <div class="card-body">
+
+                        <!-- Top 3 podium -->
+                        <div id="podiumCN" class="d-flex justify-content-center align-items-end mb-4 gap-3" style="display:none!important"></div>
+
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover table-sm" id="tblCaNhan">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th class="text-center" width="50">Hạng</th>
+                                        <th class="text-center" width="110">Mã NV</th>
+                                        <th>Họ tên</th>
+                                        <th>Phòng ban</th>
+                                        <th class="text-center" width="90">Điểm cao nhất</th>
+                                        <th class="text-center" width="90">Điểm TB</th>
+                                        <th class="text-center" width="70">Số lần thi</th>
+                                        <th class="text-center" width="90">Tỉ lệ đạt</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bodyCaNhan">
+                                    <tr><td colspan="8" class="text-center text-muted py-4"><i class="fa fa-spinner fa-spin"></i> Đang tải...</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ── TẬP THỂ ── -->
+            <div class="tab-pane fade" id="panel-tt" role="tabpanel">
+                <div class="card border-top-0 rounded-0 rounded-bottom shadow-sm">
+                    <div class="card-body">
+
+                        <!-- Top 3 podium tập thể -->
+                        <div id="podiumTT" class="d-flex justify-content-center align-items-end mb-4 gap-3"></div>
+
+                        <div class="table-responsive">
+                            <table class="table table-bordered table-hover table-sm" id="tblTapThe">
+                                <thead class="thead-light">
+                                    <tr>
+                                        <th class="text-center" width="50">Hạng</th>
+                                        <th>Phòng ban</th>
+                                        <th class="text-center" width="90">Số NV thi</th>
+                                        <th class="text-center" width="90">Số NV đạt</th>
+                                        <th class="text-center" width="100">Điểm TB tập thể</th>
+                                        <th class="text-center" width="90">Điểm cao nhất</th>
+                                        <th class="text-center" width="120">Tỉ lệ đạt</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bodyTapThe">
+                                    <tr><td colspan="7" class="text-center text-muted py-4">Chọn tab để tải dữ liệu</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="app-wrapper-footer">
+        <div class="app-footer"><div class="app-footer__inner"></div></div>
+    </div>
+</div>
+
+<style>
+    .medal-gold   { color: #f59e0b; font-size: 1.3rem; }
+    .medal-silver { color: #9ca3af; font-size: 1.3rem; }
+    .medal-bronze { color: #b45309; font-size: 1.3rem; }
+
+    .podium-card {
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 4px 16px rgba(0,0,0,.12);
+        padding: 14px 18px 10px;
+        text-align: center;
+        min-width: 130px;
+        border-top: 4px solid #e5e7eb;
+    }
+    .podium-card.rank-1 { border-top-color: #f59e0b; }
+    .podium-card.rank-2 { border-top-color: #9ca3af; }
+    .podium-card.rank-3 { border-top-color: #b45309; }
+
+    .podium-card .podium-rank  { font-size: 1.6rem; line-height: 1; }
+    .podium-card .podium-name  { font-weight: 700; font-size: .85rem; margin-top: 6px; color: #111; }
+    .podium-card .podium-unit  { font-size: .72rem; color: #6b7280; }
+    .podium-card .podium-score { font-size: 1.2rem; font-weight: 800; color: #05418A; margin-top: 4px; }
+    .podium-card .podium-lbl   { font-size: .68rem; color: #9ca3af; }
+
+    .rate-bar { height: 16px; border-radius: 8px; background: #e5e7eb; overflow: hidden; }
+    .rate-bar-inner { height: 100%; border-radius: 8px; transition: width .5s; }
+
+    .rank-cell { font-weight: 700; font-size: 1rem; }
+    tr.rank-top td { background: #fffbeb !important; }
+</style>
+
+<script>
+    var cnLoaded = false;
+    var ttLoaded = false;
+
+    function getFilters() {
+        return {
+            idLH: $('#filterLopHoc').val(),
+            idPB: $('#filterPhongBan').val()
+        };
+    }
+
+    function medalIcon(rank) {
+        if (rank === 1) return '<i class="fa fa-trophy medal-gold"></i>';
+        if (rank === 2) return '<i class="fa fa-trophy medal-silver"></i>';
+        if (rank === 3) return '<i class="fa fa-trophy medal-bronze"></i>';
+        return '<span class="rank-cell text-muted">' + rank + '</span>';
+    }
+
+    function rateColor(rate) {
+        if (rate >= 80) return '#22c55e';
+        if (rate >= 50) return '#f59e0b';
+        return '#ef4444';
+    }
+
+    // ── Cá nhân ──────────────────────────────────────────────────────────────
+
+    function loadCaNhan() {
+        var f = getFilters();
+        $('#bodyCaNhan').html('<tr><td colspan="8" class="text-center text-muted py-3"><i class="fa fa-spinner fa-spin"></i> Đang tải...</td></tr>');
+        $('#podiumCN').empty();
+
+        $.get('/XepHang/GetCaNhan', { idLH: f.idLH, idPB: f.idPB }, function (data) {
+            if (!Array.isArray(data) || data.length === 0) {
+                $('#bodyCaNhan').html('<tr><td colspan="8" class="text-center text-muted py-4">Không có dữ liệu</td></tr>');
+                return;
+            }
+
+            // Podium top 3
+            var podiumOrder = [2, 1, 3];
+            var podiumHtml = '';
+            podiumOrder.forEach(function (r) {
+                var d = data.find(function (x) { return x.rank === r; });
+                if (!d) return;
+                var icon = r === 1 ? '🥇' : r === 2 ? '🥈' : '🥉';
+                podiumHtml += '<div class="podium-card rank-' + r + '">' +
+                    '<div class="podium-rank">' + icon + '</div>' +
+                    '<div class="podium-name">' + (d.hoTen || d.hoTen) + '</div>' +
+                    '<div class="podium-unit">' + (d.phongBan || '') + '</div>' +
+                    '<div class="podium-score">' + d.diemCaoNhat + '</div>' +
+                    '<div class="podium-lbl">điểm cao nhất</div>' +
+                    '</div>';
+            });
+            $('#podiumCN').html(podiumHtml).show();
+
+            // Table rows
+            var rows = '';
+            data.forEach(function (d) {
+                var isTop = d.rank <= 3;
+                var barColor = rateColor(d.tiLeDat);
+                rows += '<tr class="' + (isTop ? 'rank-top' : '') + '">' +
+                    '<td class="text-center">' + medalIcon(d.rank) + '</td>' +
+                    '<td class="text-center"><code>' + (d.maNv || '') + '</code></td>' +
+                    '<td>' + (d.hoTen || '') + '</td>' +
+                    '<td>' + (d.phongBan || '') + '</td>' +
+                    '<td class="text-center fw-bold text-primary">' + d.diemCaoNhat + '</td>' +
+                    '<td class="text-center">' + d.diemTrungBinh + '</td>' +
+                    '<td class="text-center">' + d.soLanThi + '</td>' +
+                    '<td>' +
+                        '<div class="d-flex align-items-center gap-2">' +
+                        '<div class="rate-bar flex-grow-1"><div class="rate-bar-inner" style="width:' + d.tiLeDat + '%;background:' + barColor + '"></div></div>' +
+                        '<span class="small fw-bold" style="color:' + barColor + ';min-width:40px">' + d.tiLeDat + '%</span>' +
+                        '</div>' +
+                    '</td>' +
+                    '</tr>';
+            });
+            $('#bodyCaNhan').html(rows);
+            cnLoaded = true;
+        });
+    }
+
+    // ── Tập thể ──────────────────────────────────────────────────────────────
+
+    function loadTapThe() {
+        var f = getFilters();
+        $('#bodyTapThe').html('<tr><td colspan="7" class="text-center text-muted py-3"><i class="fa fa-spinner fa-spin"></i> Đang tải...</td></tr>');
+        $('#podiumTT').empty();
+
+        $.get('/XepHang/GetTapThe', { idLH: f.idLH }, function (data) {
+            if (!Array.isArray(data) || data.length === 0) {
+                $('#bodyTapThe').html('<tr><td colspan="7" class="text-center text-muted py-4">Không có dữ liệu</td></tr>');
+                return;
+            }
+
+            // Podium top 3
+            var podiumOrder = [2, 1, 3];
+            var podiumHtml = '';
+            podiumOrder.forEach(function (r) {
+                var d = data.find(function (x) { return x.rank === r; });
+                if (!d) return;
+                var icon = r === 1 ? '🥇' : r === 2 ? '🥈' : '🥉';
+                podiumHtml += '<div class="podium-card rank-' + r + '">' +
+                    '<div class="podium-rank">' + icon + '</div>' +
+                    '<div class="podium-name">' + (d.phongBan || '') + '</div>' +
+                    '<div class="podium-unit">' + d.soNhanVien + ' NV tham gia</div>' +
+                    '<div class="podium-score">' + d.diemTrungBinh + '</div>' +
+                    '<div class="podium-lbl">điểm TB tập thể</div>' +
+                    '</div>';
+            });
+            $('#podiumTT').html(podiumHtml);
+
+            // Table rows
+            var rows = '';
+            data.forEach(function (d) {
+                var isTop = d.rank <= 3;
+                var barColor = rateColor(d.tiLeDat);
+                rows += '<tr class="' + (isTop ? 'rank-top' : '') + '">' +
+                    '<td class="text-center">' + medalIcon(d.rank) + '</td>' +
+                    '<td class="fw-bold">' + (d.phongBan || '') + '</td>' +
+                    '<td class="text-center">' + d.soNhanVien + '</td>' +
+                    '<td class="text-center text-success fw-bold">' + d.soNguoiDat + '</td>' +
+                    '<td class="text-center fw-bold text-primary">' + d.diemTrungBinh + '</td>' +
+                    '<td class="text-center">' + d.diemCaoNhat + '</td>' +
+                    '<td>' +
+                        '<div class="d-flex align-items-center gap-2">' +
+                        '<div class="rate-bar flex-grow-1"><div class="rate-bar-inner" style="width:' + d.tiLeDat + '%;background:' + barColor + '"></div></div>' +
+                        '<span class="small fw-bold" style="color:' + barColor + ';min-width:40px">' + d.tiLeDat + '%</span>' +
+                        '</div>' +
+                    '</td>' +
+                    '</tr>';
+            });
+            $('#bodyTapThe').html(rows);
+            ttLoaded = true;
+        });
+    }
+
+    // ── Init ─────────────────────────────────────────────────────────────────
+
+    $(document).ready(function () {
+        loadCaNhan();
+
+        $('#btnLoad').on('click', function () {
+            cnLoaded = false;
+            ttLoaded = false;
+            if ($('#panel-cn').hasClass('active')) loadCaNhan();
+            else loadTapThe();
+        });
+
+        // Khi chuyển tab tập thể, chỉ load lần đầu
+        $('a[href="#panel-tt"]').on('shown.bs.tab', function () {
+            if (!ttLoaded) loadTapThe();
+        });
+
+        // Khi lọc thay đổi, bấm Load mới áp dụng
+        $('#filterLopHoc, #filterPhongBan').on('change', function () {
+            // Ẩn filter phòng ban ở tab tập thể
+        });
+
+        // Ẩn/hiện filter phòng ban theo tab
+        $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+            var target = $(e.target).attr('href');
+            $('#wrapFilterPB').toggle(target === '#panel-cn');
+        });
+    });
+</script>

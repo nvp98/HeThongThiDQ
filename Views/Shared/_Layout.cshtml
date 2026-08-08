@@ -294,6 +294,8 @@
                                     </li>
                                 }
 
+                               
+
                                 <li id="QuanTri" style="display: none" class="app-sidebar__heading">Quản trị</li>
                                 @if (ListControll.Contains("Account"))
                                 {
@@ -322,6 +324,22 @@
                                         </a>
                                     </li>
                                     showQuanTri = 1;
+                                }
+                                @if (ListControll.Contains("XepHangCaNhan"))
+                                {
+                                    <li>
+                                        <a asp-controller="XepHangCaNhan" asp-action="Index">
+                                            <i class="nav-icon fa fa-user"></i>Xếp hạng cá nhân
+                                        </a>
+                                    </li>
+                                }
+                                @if (ListControll.Contains("XepHangTapThe"))
+                                {
+                                    <li>
+                                        <a asp-controller="XepHangTapThe" asp-action="Index">
+                                            <i class="nav-icon fa fa-users"></i>Xếp hạng tập thể
+                                        </a>
+                                    </li>
                                 }
                                 @* @if (ListControll.Contains("Notification"))
                                 {

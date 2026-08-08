@@ -1,0 +1,138 @@
+@{
+    ViewBag.Title = "Xếp hạng tập thể";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="app-main__outer">
+    <div class="app-main__inner">
+
+        <div class="app-page-title">
+            <div class="page-title-wrapper">
+                <div class="page-title-heading">
+                    <div class="page-title-icon">
+                        <i class="fa fa-users icon-gradient bg-sunny-morning"></i>
+                    </div>
+                    <div>
+                        Xếp hạng tập thể
+                        <div class="page-title-subheading">Thành tích thi theo phòng ban / đơn vị</div>
+                    </div>
+                </div>
+                <div class="page-title-actions">
+                    <a asp-controller="XepHang" asp-action="CaNhan" class="btn btn-outline-primary btn-sm">
+                        <i class="fa fa-user"></i>&nbsp;Xem xếp hạng cá nhân
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Bộ lọc -->
+        <div class="card mb-3 shadow-sm">
+            <div class="card-body py-2">
+                <div class="row align-items-end g-2">
+                    <div class="col-md-4">
+                        <label class="form-label mb-1 small font-weight-bold">Khóa thi</label>
+                        <select id="filterLopHoc" class="form-control form-control-sm">
+                            <option value="">-- Tất cả khóa thi --</option>
+                            @foreach (var lh in (ViewBag.LopHocList as IEnumerable<dynamic> ?? []))
+                            {
+                                <option value="@lh.Idlh">@lh.TenLh</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-auto">
+                        <button class="btn btn-primary btn-sm" id="btnLoad">
+                            <i class="fa fa-search"></i>&nbsp; Lọc
+                        </button>
+                    </div>
+                    <div class="col-md-auto ml-auto">
+                        <span class="badge badge-info" id="badgeTotal"></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Podium top 3 -->
+        <div id="podiumWrap" class="d-flex justify-content-center align-items-end mb-3" style="gap:16px;min-height:130px"></div>
+
+        <!-- Bảng -->
+        <div class="card shadow-sm">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-bordered table-hover table-sm mb-0" id="tblTapThe">
+                        <thead style="background:#05418A;color:#fff;">
+                            <tr>
+                                <th class="text-center" width="50">Hạng</th>
+                                <th>Phòng ban / Đơn vị</th>
+                                <th class="text-center" width="90">Số NV thi</th>
+                                <th class="text-center" width="90">Số NV đạt</th>
+                                <th class="text-center" width="120">Điểm TB tập thể</th>
+                                <th class="text-center" width="100">Điểm cao nhất</th>
+                                <th class="text-center" width="140">Tỉ lệ đạt</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tblBody">
+                            <tr><td colspan="7" class="text-center text-muted py-4"><i class="fa fa-spinner fa-spin"></i> Đang tải...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+    </div>
+    <div class="app-wrapper-footer"><div class="app-footer"><div class="app-footer__inner"></div></div></div>
+</div>
+
+@Html.Partial("_XepHangStyle")
+
+<script>
+    function load() {
+        var idLH = $('#filterLopHoc').val();
+        $('#tblBody').html('<tr><td colspan="7" class="text-center text-muted py-4"><i class="fa fa-spinner fa-spin"></i> Đang tải...</td></tr>');
+        $('#podiumWrap').empty();
+        $('#badgeTotal').text('');
+
+        $.get('/XepHang/GetTapThe', { idLH: idLH }, function (data) {
+            if (!Array.isArray(data) || data.length === 0) {
+                $('#tblBody').html('<tr><td colspan="7" class="text-center text-muted py-4">Không có dữ liệu</td></tr>');
+                return;
+            }
+
+            $('#badgeTotal').text('Tổng: ' + data.length + ' đơn vị');
+
+            // Podium
+            var podiumHtml = '';
+            [2, 1, 3].forEach(function (r) {
+                var d = data.find(function (x) { return x.rank === r; });
+                if (!d) return;
+                podiumHtml += podiumCard(r, d.phongBan, d.soNhanVien + ' NV tham gia', d.diemTrungBinh, 'điểm TB tập thể');
+            });
+            $('#podiumWrap').html(podiumHtml);
+
+            // Rows
+            var rows = '';
+            data.forEach(function (d) {
+                var bc = rateColor(d.tiLeDat);
+                rows += '<tr' + (d.rank <= 3 ? ' class="rank-top"' : '') + '>' +
+                    '<td class="text-center">' + medalHtml(d.rank) + '</td>' +
+                    '<td class="font-weight-bold">' + (d.phongBan || '') + '</td>' +
+                    '<td class="text-center">' + d.soNhanVien + '</td>' +
+                    '<td class="text-center text-success font-weight-bold">' + d.soNguoiDat + '</td>' +
+                    '<td class="text-center font-weight-bold" style="color:#05418A;font-size:1.05rem">' + d.diemTrungBinh + '</td>' +
+                    '<td class="text-center">' + d.diemCaoNhat + '</td>' +
+                    '<td><div class="d-flex align-items-center" style="gap:6px">' +
+                        '<div style="flex:1;height:14px;border-radius:7px;background:#e5e7eb;overflow:hidden">' +
+                            '<div style="width:' + d.tiLeDat + '%;height:100%;border-radius:7px;background:' + bc + '"></div>' +
+                        '</div>' +
+                        '<span class="font-weight-bold small" style="color:' + bc + ';min-width:38px">' + d.tiLeDat + '%</span>' +
+                    '</div></td>' +
+                    '</tr>';
+            });
+            $('#tblBody').html(rows);
+        });
+    }
+
+    $(document).ready(function () {
+        load();
+        $('#btnLoad').on('click', load);
+    });
+</script>
