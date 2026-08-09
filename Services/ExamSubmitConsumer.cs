@@ -48,6 +48,9 @@ public class ExamSubmitConsumer : BackgroundService
         }
     }
 
+    // Giới hạn số SQL operations đồng thời từ consumer, tránh cạnh tranh connection pool với web requests
+    private readonly SemaphoreSlim _sqlSem = new(5, 5);
+
     private async Task ConsumeAsync(CancellationToken ct)
     {
         var factory = new ConnectionFactory
@@ -63,11 +66,13 @@ public class ExamSubmitConsumer : BackgroundService
 
         channel.QueueDeclare(RabbitMqPublisher.QueueName,
             durable: true, exclusive: false, autoDelete: false);
+        // prefetchCount=5: mỗi lần lấy 5 message, tránh race condition BasicAck trên shared channel
         channel.BasicQos(0, prefetchCount: 5, global: false);
 
         var consumer = new AsyncEventingBasicConsumer(channel);
         consumer.Received += async (_, ea) =>
         {
+            await _sqlSem.WaitAsync(ct);
             try
             {
                 var msg = JsonSerializer.Deserialize<ExamSubmitMessage>(
@@ -83,6 +88,10 @@ public class ExamSubmitConsumer : BackgroundService
                 _logger.LogError(ex, "[ExamConsumer] lỗi xử lý message {Id}", ea.BasicProperties.MessageId);
                 // requeue: false → vào dead-letter nếu đã cấu hình, không loop vô hạn
                 channel.BasicNack(ea.DeliveryTag, false, requeue: false);
+            }
+            finally
+            {
+                _sqlSem.Release();
             }
         };
 

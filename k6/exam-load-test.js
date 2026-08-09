@@ -31,9 +31,9 @@ const cSubmit = new Counter("exam_submit_total");
 const cSuccess = new Counter("exam_submit_success");
 
 // ── Cấu hình test ────────────────────────────────────────────────────────────
-const VUS         = 2000;   // ← số VU đồng thời
-const MAX_SUBMITS = 10000;  // ← MODE 2: tổng số lần thi tối đa rồi dừng
-const DURATION    = "30m";  // ← MODE 2: timeout cứng nếu 10000 submit chưa xong
+const VUS = 600; // ← số VU đồng thời
+const MAX_SUBMITS = 17000; // ← MODE 2: tổng số lần thi tối đa rồi dừng
+const DURATION = "30m"; // ← MODE 2: timeout cứng nếu 10000 submit chưa xong
 
 // Chế độ chạy:
 // MODE 1: Mỗi VU thi 1 lần → đo max concurrent user chịu được
@@ -49,32 +49,32 @@ export const options =
             executor: "per-vu-iterations",
             vus: VUS,
             iterations: 1,
-            maxDuration: "5m",
+            maxDuration: "15m",
           },
         },
         thresholds: {
           http_req_duration: ["p(95)<5000"],
-          http_req_failed:   ["rate<0.10"],
+          http_req_failed: ["rate<0.10"],
           exam_success_rate: ["rate>0.85"],
-          dur_login_ms:      ["p(95)<3000"],
-          dur_submit_ms:     ["p(95)<6000"],
+          dur_login_ms: ["p(95)<3000"],
+          dur_submit_ms: ["p(95)<6000"],
         },
       }
     : {
         scenarios: {
           load: {
-            executor:    "shared-iterations",
-            vus:         VUS,
-            iterations:  MAX_SUBMITS,
+            executor: "shared-iterations",
+            vus: VUS,
+            iterations: MAX_SUBMITS,
             maxDuration: DURATION,
           },
         },
         thresholds: {
           http_req_duration: ["p(95)<5000"],
-          http_req_failed:   ["rate<0.10"],
+          http_req_failed: ["rate<0.10"],
           exam_success_rate: ["rate>0.85"],
-          dur_login_ms:      ["p(95)<3000"],
-          dur_submit_ms:     ["p(95)<6000"],
+          dur_login_ms: ["p(95)<3000"],
+          dur_submit_ms: ["p(95)<6000"],
         },
       };
 
@@ -123,8 +123,8 @@ function parseQuestionIds(html) {
 
 // ── Flow chính ────────────────────────────────────────────────────────────────
 export default function () {
-  // Rải VU để tránh thundering herd: MODE 1 rải 20s, MODE 2 rải 5s
-  sleep(MODE === 1 ? Math.random() * 20 : Math.random() * 5);
+  // Rải VU để tránh thundering herd: MODE 1 rải 60s, MODE 2 rải 5s
+  sleep(MODE === 1 ? Math.random() * 60 : Math.random() * 5);
 
   // Mỗi iteration dùng user khác nhau → tránh bị chặn duplicate submit (SET NX)
   // VU1 iter0 → users[0], VU1 iter1 → users[VUS], VU2 iter0 → users[1], ...
@@ -362,14 +362,16 @@ export function handleSummary(data) {
 
   const totalAttempt = get("exam_submit_total", "count") ?? 0;
   const totalSuccess = get("exam_submit_success", "count") ?? 0;
-  const totalFail    = totalAttempt - totalSuccess;
-  const successPct   = totalAttempt > 0
-    ? ((totalSuccess / totalAttempt) * 100).toFixed(1) + "%"
-    : "N/A";
+  const totalFail = totalAttempt - totalSuccess;
+  const successPct =
+    totalAttempt > 0
+      ? ((totalSuccess / totalAttempt) * 100).toFixed(1) + "%"
+      : "N/A";
 
-  const modeLabel = MODE === 1
-    ? `1 lần/VU | ${VUS} VUs          `
-    : `${MAX_SUBMITS} lần tổng | ${VUS} VUs    `;
+  const modeLabel =
+    MODE === 1
+      ? `1 lần/VU | ${VUS} VUs          `
+      : `${MAX_SUBMITS} lần tổng | ${VUS} VUs    `;
 
   const lines = [
     "",

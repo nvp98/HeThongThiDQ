@@ -6,6 +6,9 @@ using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.EntityFrameworkCore;
 
+// Tăng min thread pool để tránh starvation dưới tải lớn (10k+ concurrent)
+ThreadPool.SetMinThreads(300, 300);
+
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews()
