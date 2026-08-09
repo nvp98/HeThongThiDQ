@@ -1,0 +1,139 @@
+@{
+    ViewBag.Title = "Kết quả bài thi";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+    var idlh  = (int)ViewBag.IDLH;
+    var score = (double)ViewBag.Score;
+}
+
+<style>
+    .wr-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: calc(100vh - 120px);
+        gap: 24px;
+        font-family: inherit;
+    }
+    .wr-card {
+        background: #fff;
+        border-radius: 20px;
+        box-shadow: 0 4px 24px rgba(0,0,0,.09);
+        padding: 48px 56px;
+        text-align: center;
+        max-width: 480px;
+        width: 100%;
+    }
+    .wr-score {
+        font-size: 64px;
+        font-weight: 900;
+        color: #1a73e8;
+        line-height: 1;
+        margin-bottom: 6px;
+    }
+    .wr-score-label {
+        font-size: 15px;
+        color: #888;
+        margin-bottom: 32px;
+    }
+    .wr-status {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 10px;
+        font-size: 14px;
+        color: #555;
+        margin-bottom: 8px;
+    }
+    .wr-spinner {
+        width: 18px;
+        height: 18px;
+        border: 2.5px solid #e0e0e0;
+        border-top-color: #1a73e8;
+        border-radius: 50%;
+        animation: spin .8s linear infinite;
+        flex-shrink: 0;
+    }
+    @@keyframes spin { to { transform: rotate(360deg); } }
+    .wr-done-icon {
+        font-size: 20px;
+        color: #34a853;
+    }
+    .wr-sub {
+        font-size: 12px;
+        color: #bbb;
+    }
+    .wr-btn {
+        display: inline-block;
+        margin-top: 24px;
+        padding: 10px 28px;
+        background: #1a73e8;
+        color: #fff;
+        border-radius: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        text-decoration: none;
+        display: none;
+    }
+    .wr-btn:hover { background: #1557b0; color:#fff; }
+</style>
+
+<div class="app-main__outer">
+    <div class="app-main__inner">
+        <div class="wr-wrap">
+            <div class="wr-card">
+                <div class="wr-score">@score.ToString("0.##")</div>
+                <div class="wr-score-label">điểm / 100</div>
+
+                <div class="wr-status" id="wr-status">
+                    <div class="wr-spinner" id="wr-spinner"></div>
+                    <span id="wr-msg">Đang lưu kết quả...</span>
+                </div>
+                <div class="wr-sub" id="wr-sub">Vui lòng chờ trong giây lát</div>
+
+                <a href="#" class="wr-btn" id="wr-btn">Xem chi tiết kết quả</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (function () {
+        var maxTries = 30; // 30 × 1s = 30 giây timeout
+        var tries    = 0;
+        var idlh     = @idlh;
+
+        function poll() {
+            fetch('/STest/ResultReady?IDLH=' + idlh)
+                .then(function (r) { return r.json(); })
+                .then(function (d) {
+                    if (d.ready) {
+                        document.getElementById('wr-spinner').style.display = 'none';
+                        document.getElementById('wr-msg').innerHTML =
+                            '<i class="fa fa-check-circle" style="color:#34a853;margin-right:6px;"></i>Đã lưu xong!';
+                        document.getElementById('wr-sub').style.display = 'none';
+                        var btn = document.getElementById('wr-btn');
+                        btn.href  = d.redirectUrl;
+                        btn.style.display = 'inline-block';
+                        // Tự chuyển sau 1.5s
+                        setTimeout(function () { window.location.href = d.redirectUrl; }, 1500);
+                    } else {
+                        tries++;
+                        if (tries < maxTries) {
+                            setTimeout(poll, 1000);
+                        } else {
+                            document.getElementById('wr-msg').textContent = 'Mất kết nối — hãy vào Lịch sử thi để xem kết quả';
+                            document.getElementById('wr-spinner').style.display = 'none';
+                            document.getElementById('wr-sub').style.display = 'none';
+                        }
+                    }
+                })
+                .catch(function () {
+                    tries++;
+                    if (tries < maxTries) setTimeout(poll, 2000);
+                });
+        }
+
+        setTimeout(poll, 800);
+    })();
+</script>

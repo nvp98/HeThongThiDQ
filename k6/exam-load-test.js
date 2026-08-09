@@ -28,27 +28,55 @@ const mAutosave = new Trend("dur_autosave_ms", true);
 const mSubmit = new Trend("dur_submit_ms", true);
 const rSuccess = new Rate("exam_success_rate");
 const cSubmit = new Counter("exam_submit_total");
+const cSuccess = new Counter("exam_submit_success");
 
-// ── Mỗi VU thi đúng 1 lần — tăng VUS để tìm giới hạn ───────────────────────
-const VUS = 100; // ← chỉnh con số này để test các mức: 100, 200, 300, 500, 1000
+// ── Cấu hình test ────────────────────────────────────────────────────────────
+const VUS         = 2000;   // ← số VU đồng thời
+const MAX_SUBMITS = 10000;  // ← MODE 2: tổng số lần thi tối đa rồi dừng
+const DURATION    = "30m";  // ← MODE 2: timeout cứng nếu 10000 submit chưa xong
 
-export const options = {
-  scenarios: {
-    one_exam_per_user: {
-      executor: "per-vu-iterations",
-      vus: VUS,
-      iterations: 1,
-      maxDuration: "5m", // timeout toàn bộ test nếu VU bị treo
-    },
-  },
-  thresholds: {
-    http_req_duration: ["p(95)<5000"],
-    http_req_failed: ["rate<0.10"],
-    exam_success_rate: ["rate>0.85"],
-    dur_login_ms: ["p(95)<3000"],
-    dur_submit_ms: ["p(95)<6000"],
-  },
-};
+// Chế độ chạy:
+// MODE 1: Mỗi VU thi 1 lần → đo max concurrent user chịu được
+// MODE 2: Tổng MAX_SUBMITS lần thi, 2000 VU chạy song song → đo throughput
+
+const MODE = 2; // 1 = single-shot | 2 = shared-iterations
+
+export const options =
+  MODE === 1
+    ? {
+        scenarios: {
+          single: {
+            executor: "per-vu-iterations",
+            vus: VUS,
+            iterations: 1,
+            maxDuration: "5m",
+          },
+        },
+        thresholds: {
+          http_req_duration: ["p(95)<5000"],
+          http_req_failed:   ["rate<0.10"],
+          exam_success_rate: ["rate>0.85"],
+          dur_login_ms:      ["p(95)<3000"],
+          dur_submit_ms:     ["p(95)<6000"],
+        },
+      }
+    : {
+        scenarios: {
+          load: {
+            executor:    "shared-iterations",
+            vus:         VUS,
+            iterations:  MAX_SUBMITS,
+            maxDuration: DURATION,
+          },
+        },
+        thresholds: {
+          http_req_duration: ["p(95)<5000"],
+          http_req_failed:   ["rate<0.10"],
+          exam_success_rate: ["rate>0.85"],
+          dur_login_ms:      ["p(95)<3000"],
+          dur_submit_ms:     ["p(95)<6000"],
+        },
+      };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function parseCsrf(html) {
@@ -95,7 +123,13 @@ function parseQuestionIds(html) {
 
 // ── Flow chính ────────────────────────────────────────────────────────────────
 export default function () {
-  const user = users[(__VU - 1) % users.length];
+  // Rải VU để tránh thundering herd: MODE 1 rải 20s, MODE 2 rải 5s
+  sleep(MODE === 1 ? Math.random() * 20 : Math.random() * 5);
+
+  // Mỗi iteration dùng user khác nhau → tránh bị chặn duplicate submit (SET NX)
+  // VU1 iter0 → users[0], VU1 iter1 → users[VUS], VU2 iter0 → users[1], ...
+  const userIndex = (__VU - 1 + __ITER * VUS) % users.length;
+  const user = users[userIndex];
   const lhid = user.lhid || 1;
   let loggedIn = false;
   let examSession = null;
@@ -306,6 +340,7 @@ export default function () {
       submit_success: () => success,
     });
     rSuccess.add(success);
+    if (success) cSuccess.add(1);
   });
 
   sleep(1);
@@ -325,15 +360,28 @@ export function handleSummary(data) {
           ? Math.round(v) + "ms"
           : String(v);
 
+  const totalAttempt = get("exam_submit_total", "count") ?? 0;
+  const totalSuccess = get("exam_submit_success", "count") ?? 0;
+  const totalFail    = totalAttempt - totalSuccess;
+  const successPct   = totalAttempt > 0
+    ? ((totalSuccess / totalAttempt) * 100).toFixed(1) + "%"
+    : "N/A";
+
+  const modeLabel = MODE === 1
+    ? `1 lần/VU | ${VUS} VUs          `
+    : `${MAX_SUBMITS} lần tổng | ${VUS} VUs    `;
+
   const lines = [
     "",
     "╔══════════════════════════════════════════╗",
     "║     KẾT QUẢ LOAD TEST — HỆ THỐNG THI    ║",
     "╠══════════════════════════════════════════╣",
-    `║  VUs: ${String(VUS).padEnd(6)}| Mỗi VU thi đúng 1 lần      ║`,
+    `║  Mode ${MODE} — ${modeLabel.substring(0, 28)}║`,
     "╠══════════════════════════════════════════╣",
-    `║  Tổng nộp bài        : ${String(get("exam_submit_total", "count") ?? 0).padEnd(18)}║`,
-    `║  Nộp bài thành công  : ${fmt(get("exam_success_rate", "rate"), "%").padEnd(18)}║`,
+    `║  Tổng lần thi        : ${String(totalAttempt).padEnd(18)}║`,
+    `║  ✔ Thành công        : ${String(totalSuccess).padEnd(18)}║`,
+    `║  ✘ Thất bại          : ${String(totalFail).padEnd(18)}║`,
+    `║  Tỉ lệ thành công    : ${successPct.padEnd(18)}║`,
     `║  HTTP lỗi            : ${fmt(get("http_req_failed", "rate"), "%").padEnd(18)}║`,
     "╠══════════════════════════════════════════╣",
     `║  Login p95           : ${fmt(get("dur_login_ms", "p(95)"), "ms").padEnd(18)}║`,

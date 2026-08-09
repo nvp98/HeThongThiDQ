@@ -56,6 +56,11 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
+// RabbitMQ — publisher singleton, consumer background service
+builder.Services.AddSingleton<HeThongThiDQ.Services.IExamQueuePublisher,
+                               HeThongThiDQ.Services.RabbitMqPublisher>();
+builder.Services.AddHostedService<HeThongThiDQ.Services.ExamSubmitConsumer>();
+
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<MyAuthentication>();
 builder.Services.AddScoped<HeThongThiDQ.Controllers.HomeController>();

@@ -1,4 +1,6 @@
+using HeThongThiDQ.Services;
 using HeThongThiDQ.Common;
+using Microsoft.Data.SqlClient;
 using HeThongThiDQ.Data;
 using HeThongThiDQ.Data.Models;
 using HeThongThiDQ.Models;
@@ -22,19 +24,60 @@ namespace HeThongThiDQ.Controllers
         private static readonly DistributedCacheEntryOptions _sessionOpts =
             new() { SlidingExpiration = TimeSpan.FromMinutes(30) };
 
+        private readonly IExamQueuePublisher _queue;
+
         public STestController(ELEARNINGEntities db, MyAuthentication auth,
-                               IDistributedCache cache, IConnectionMultiplexer mux)
+                               IDistributedCache cache, IConnectionMultiplexer mux,
+                               IExamQueuePublisher queue)
         {
-            _db   = db;
-            _auth = auth;
+            _db    = db;
+            _auth  = auth;
             _cache = cache;
-            _mux  = mux;
+            _mux   = mux;
+            _queue = queue;
         }
 
         private string SessionKey(int idlh) => $"exam:session:{_auth.ID}:{idlh}";
 
         private static readonly DistributedCacheEntryOptions _qCacheOpts =
             new() { AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(2) };
+
+        private static readonly DistributedCacheEntryOptions _lhOpts =
+            new() { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10) };
+
+        private record LopHocDto(
+            int Idlh, int? IddeThi, int? Ndid, int? IsCoCtdt,
+            DateTime? Tgbdlh, DateTime? Tgktlh, double? ThoiGianLamBai);
+
+        private async Task<LopHocDto?> GetLopHocCachedAsync(int lhid)
+        {
+            var key = $"lophoc:{lhid}";
+            try
+            {
+                var cached = await _cache.GetStringAsync(key);
+                if (cached != null) return JsonSerializer.Deserialize<LopHocDto>(cached);
+            }
+            catch { }
+
+            var lh = await _db.LopHocs.AsNoTracking().FirstOrDefaultAsync(x => x.Idlh == lhid);
+            if (lh == null) return null;
+
+            var dethi = lh.IddeThi.HasValue
+                ? await _db.DeThis.AsNoTracking()
+                    .Where(x => x.IddeThi == lh.IddeThi)
+                    .Select(x => new { x.ThoiGianLamBai })
+                    .FirstOrDefaultAsync()
+                : null;
+
+            var dto = new LopHocDto(
+                lh.Idlh, lh.IddeThi, lh.Ndid, lh.IsCoCtdt,
+                lh.Tgbdlh, lh.Tgktlh, dethi?.ThoiGianLamBai);
+
+            try { await _cache.SetStringAsync(key, JsonSerializer.Serialize(dto), _lhOpts); }
+            catch { }
+
+            return dto;
+        }
 
         public async Task<IActionResult> Index(int LHID)
         {
@@ -330,39 +373,20 @@ namespace HeThongThiDQ.Controllers
             if (dto.Answers == null || dto.Answers.Count == 0)
                 return Json(new { success = false, message = "Không có câu trả lời" });
 
-            var lanthi = await _db.BaiThis
-                .Where(x => x.Idnv == _auth.ID && x.IddeThi == dto.IDDeThi && x.Idlh == dto.IDLH)
-                .ToListAsync();
-            var lophoc = await _db.LopHocs.FirstOrDefaultAsync(x => x.Idlh == dto.IDLH);
+            var lophoc = await GetLopHocCachedAsync(dto.IDLH);
 
-            if (lanthi.Count >= 1 && lophoc?.IsCoCtdt == 0)
-                return Json(new { success = false, message = "Bạn đã hoàn thành bài thi", redirectUrl = Url.Action("Index", "EClassroom") });
-
-            var baiThi = new BaiThi
+            // Dùng Redis SET NX để chặn duplicate submit atomic (nhanh hơn DB query)
+            var rdbCheck = _mux.GetDatabase();
+            var submitKey = $"exam:submitted:{_auth.ID}:{dto.IDLH}";
+            if (lophoc?.IsCoCtdt == 0)
             {
-                Idlh       = dto.IDLH,
-                IddeThi    = dto.IDDeThi,
-                Idnd       = dto.IDND,
-                Idnv       = _auth.ID,
-                IdphongBan = _auth.IDPhongban,
-                IdviTri    = _auth.IDViTri,
-                DiemSo     = 0,
-                NgayThi    = DateOnly.FromDateTime(DateTime.Now),
-                TinhTrang  = false,
-                LanThi     = lanthi.Count + 1,
-                GioBatDau  = lophoc?.Tgbdlh,
-                GioKetThuc = lophoc?.Tgktlh
-            };
-
-            if (dto.ThoiGianSec > 0) baiThi.ThoiGianThi = dto.ThoiGianSec;
-            if (dto.TGBDLamBaiThi > 0)
-            {
-                baiThi.GioBatDau  = DateTimeOffset.FromUnixTimeMilliseconds(dto.TGBDLamBaiThi).LocalDateTime;
-                baiThi.GioKetThuc = DateTime.Now;
+                var isNew = await rdbCheck.StringSetAsync(submitKey, "1", TimeSpan.FromDays(1), When.NotExists);
+                if (!isNew)
+                    return Json(new { success = false, message = "Bạn đã hoàn thành bài thi", redirectUrl = Url.Action("Index", "EClassroom") });
             }
 
-            _db.BaiThis.Add(baiThi);
-            await _db.SaveChangesAsync();
+            var lanthi = await _db.BaiThis
+                .CountAsync(x => x.Idnv == _auth.ID && x.IddeThi == dto.IDDeThi && x.Idlh == dto.IDLH);
 
             // Load correct answers — ưu tiên cache, fallback DB
             Dictionary<int, (int? Iddađung, double? Diem)> cauHoiMap;
@@ -392,7 +416,7 @@ namespace HeThongThiDQ.Controllers
 
             answersReady:
 
-            // Read per-answer timestamps from Redis
+            // Lấy timestamp từng câu từ Redis session
             Dictionary<int, long?> chosenAtMap = new();
             try
             {
@@ -407,7 +431,9 @@ namespace HeThongThiDQ.Controllers
             }
             catch { }
 
+            // Tính điểm + build danh sách câu trả lời — hoàn toàn in-memory, không cần DB
             double diemSo = 0;
+            var answerRecords = new List<AnswerRecord>();
             foreach (var ans in dto.Answers)
             {
                 if (!cauHoiMap.TryGetValue(ans.IDCH, out var info)) continue;
@@ -417,34 +443,64 @@ namespace HeThongThiDQ.Controllers
                     chosenAt = DateTimeOffset.FromUnixTimeMilliseconds(ts.Value).LocalDateTime;
 
                 var diem = info.Iddađung == ans.Answer ? (info.Diem ?? 0) : 0;
-                diemSo += diem;
-
-                _db.CtbaiThis.Add(new CtbaiThi
+                diemSo  += diem;
+                answerRecords.Add(new AnswerRecord
                 {
-                    IdbaiThi     = baiThi.IdbaiThi,
-                    IdcauHoi     = ans.IDCH,
-                    IddapAnDung  = info.Iddađung,
-                    IddapAnNv    = ans.Answer,
-                    Diem         = (double)diem,
+                    IDCH         = ans.IDCH,
+                    DapAnDung    = info.Iddađung,
+                    DapAnNv      = ans.Answer,
+                    Diem         = diem,
                     ThoiGianChon = chosenAt,
                 });
             }
 
-            baiThi.DiemSo    = diemSo;
-            baiThi.TinhTrang = true;
-            await _db.SaveChangesAsync();
+            // Publish vào queue — HTTP request trả về ngay, không đợi DB
+            await _queue.PublishAsync(new ExamSubmitMessage
+            {
+                IDLH          = dto.IDLH,
+                IDDeThi       = dto.IDDeThi,
+                IDND          = dto.IDND,
+                IDNV          = _auth.ID,
+                IDPhongBan    = _auth.IDPhongban,
+                IDViTri       = _auth.IDViTri,
+                LanThi        = lanthi + 1,
+                ThoiGianSec   = dto.ThoiGianSec,
+                TGBDLamBaiThi = dto.TGBDLamBaiThi,
+                DiemSo        = diemSo,
+                Answers       = answerRecords,
+            });
 
-            // Clean up Redis session + xóa khỏi danh sách đang thi
+            // Dọn Redis session
             try { await _cache.RemoveAsync(SessionKey(dto.IDLH)); } catch { }
             try { await _mux.GetDatabase().SortedSetRemoveAsync("HPDQ:online:exams", $"{_auth.ID}:{dto.IDLH}"); } catch { }
 
-            TempData["Message"] = $"Với số điểm là: {diemSo}/100";
-
+            // Trả về điểm ngay, client chuyển sang trang chờ DB ghi xong
             return Json(new
             {
                 success     = true,
-                redirectUrl = Url.Action("ViewResult", "EClassroom", new { IDLH = dto.IDLH, IDBaiThi = baiThi.IdbaiThi })
+                score       = diemSo,
+                redirectUrl = Url.Action("WaitResult", "STest",
+                    new { IDLH = dto.IDLH, score = diemSo }),
             });
+        }
+
+        [HttpGet]
+        public IActionResult WaitResult(int IDLH, double score)
+        {
+            ViewBag.IDLH  = IDLH;
+            ViewBag.Score = score;
+            return View();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> ResultReady(int IDLH)
+        {
+            var rdb = _mux.GetDatabase();
+            var val = await rdb.StringGetAsync($"exam:result:{_auth.ID}:{IDLH}");
+            if (val.HasValue && int.TryParse(val.ToString(), out int idbaithi))
+                return Json(new { ready = true, idbaithi, redirectUrl = Url.Action("ViewResult", "EClassroom", new { IDLH, IDBaiThi = idbaithi }) });
+
+            return Json(new { ready = false });
         }
 
         public class AutoSaveDto
