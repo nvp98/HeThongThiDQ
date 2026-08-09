@@ -1,0 +1,92 @@
+@using HeThongThiDQ.Models
+@model List<PracticeAttemptView>
+@{
+    ViewBag.Title = "Lịch sử ôn luyện";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<div class="app-main__outer">
+    <div class="app-main__inner">
+
+        <div class="app-page-title">
+            <div class="page-title-wrapper">
+                <div class="page-title-heading">
+                    <div class="page-title-icon">
+                        <i class="pe-7s-note2 icon-gradient bg-grow-early"></i>
+                    </div>
+                    <div>
+                        Lịch sử ôn luyện
+                        <div class="page-title-subheading">@ViewBag.TenLH</div>
+                    </div>
+                </div>
+                <div class="page-title-actions">
+                    <a href="@Url.Action("Index","EClassroom")" class="btn btn-outline-secondary">
+                        <i class="fa fa-arrow-left"></i> Quay lại
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="main-card mb-3 card">
+            <div class="card-body p-0">
+                @if (!Model.Any())
+                {
+                    <div class="text-center py-5">
+                        <i class="fa fa-inbox fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Chưa có lần ôn luyện nào.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover mb-0">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th class="text-center" width="80px">Lần thi</th>
+                                    <th class="text-center">Ngày thi</th>
+                                    <th class="text-center">Điểm số</th>
+                                    <th class="text-center">Thời gian làm bài</th>
+                                    <th class="text-center" width="140px">Thao tác</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in Model)
+                                {
+                                    var phut = item.ThoiGianThi / 60;
+                                    var giay = item.ThoiGianThi % 60;
+                                    <tr>
+                                        <td class="text-center">
+                                            <span class="badge badge-primary">Lần @item.LanThi</span>
+                                        </td>
+                                        <td class="text-center">
+                                            @(item.NgayThi.HasValue ? item.NgayThi.Value.ToString("dd/MM/yyyy HH:mm") : "—")
+                                        </td>
+                                        <td class="text-center">
+                                            <strong style="font-size:1.05em;">
+                                                @(item.DiemSo.HasValue ? item.DiemSo.Value.ToString("0.##") : "—")
+                                            </strong>
+                                        </td>
+                                        <td class="text-center">@phut phút @giay giây</td>
+                                        <td class="text-center">
+                                            <a href="@Url.Action("TestView","ConfirmEStudy", new { LHID = item.IDLH, IDNV = item.IDNV, IDBaiThi = item.IDBaiThi })"
+                                               class="btn btn-sm btn-outline-primary">
+                                                <i class="fa fa-eye"></i> Xem chi tiết
+                                            </a>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                }
+            </div>
+        </div>
+
+    </div>
+
+    <div class="app-wrapper-footer">
+        <div class="app-footer">
+            <div class="app-footer__inner"></div>
+        </div>
+    </div>
+</div>

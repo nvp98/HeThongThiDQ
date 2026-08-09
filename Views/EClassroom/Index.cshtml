@@ -638,6 +638,11 @@
                                                                    href="@Url.Action("TestView","ConfirmEStudy",new{LHID=item.LHID,IDNV=item.NVID,IDBaiThi=item.LastIDBaiThi})">
                                                                     <i class="fa fa-bar-chart"></i> Kết quả
                                                                 </a>
+                                                                <a class="ec-btn ec-btn-outline"
+                                                                   href="@Url.Action("PracticeHistory","EClassroom",new{IDLH=item.LHID})"
+                                                                   style="margin-top:6px;">
+                                                                    <i class="fa fa-history"></i> Lịch sử ôn luyện
+                                                                </a>
                                                             }
                                                         }
                                                     </div>

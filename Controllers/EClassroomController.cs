@@ -117,6 +117,38 @@ namespace HeThongThiDQ.Controllers
             return View(model);
         }
 
+        public async Task<IActionResult> PracticeHistory(int IDLH)
+        {
+            int id = _auth.ID;
+
+            var tenLH = await _db.LopHocs.AsNoTracking()
+                .Where(x => x.Idlh == IDLH)
+                .Select(x => x.TenLh)
+                .FirstOrDefaultAsync() ?? "";
+
+            var res = await (from b in _db.BaiThis
+                             join l in _db.LopHocs on b.Idlh equals l.Idlh
+                             where b.Idnv == id && b.Idlh == IDLH && l.IsCoCtdt == 1
+                             select new PracticeAttemptView
+                             {
+                                 IDBaiThi    = b.IdbaiThi,
+                                 IDNV        = id,
+                                 IDLH        = IDLH,
+                                 TenLH       = l.TenLh,
+                                 LanThi      = b.LanThi ?? 1,
+                                 DiemSo      = b.DiemSo,
+                                 NgayThi     = b.NgayThi.HasValue
+                                     ? b.NgayThi.Value.ToDateTime(TimeOnly.MinValue)
+                                     : (DateTime?)null,
+                                 ThoiGianThi = b.ThoiGianThi ?? 0
+                             })
+                             .OrderBy(x => x.LanThi)
+                             .ToListAsync();
+
+            ViewBag.TenLH = tenLH;
+            return View(res);
+        }
+
         public async Task<IActionResult> HistoryTest(int? page, int? IDLH, int? IDNV)
         {
             var res = await (from h in _db.BaiThis

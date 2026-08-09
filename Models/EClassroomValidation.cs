@@ -48,4 +48,16 @@ namespace HeThongThiDQ.Models
         public DateTime? NgayThi { get; set; }
         public int IDBaiThi { get; set; }
     }
+
+    public class PracticeAttemptView
+    {
+        public int IDBaiThi { get; set; }
+        public int IDNV { get; set; }
+        public int IDLH { get; set; }
+        public string? TenLH { get; set; }
+        public int LanThi { get; set; }
+        public double? DiemSo { get; set; }
+        public DateTime? NgayThi { get; set; }
+        public int ThoiGianThi { get; set; }
+    }
 }
