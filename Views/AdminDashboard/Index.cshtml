@@ -301,6 +301,60 @@
         font-weight: 800;
         color: #222;
     }
+
+    /* ---- Trend chart panel ---- */
+    .trend-header-info {
+        display: flex;
+        align-items: center;
+        gap: 18px;
+    }
+
+    .trend-legend {
+        display: flex;
+        gap: 14px;
+    }
+
+    .trend-leg-item {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+        font-size: 12px;
+        color: #666;
+        font-weight: 500;
+    }
+
+    .trend-leg-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        flex-shrink: 0;
+    }
+
+    .trend-stat-chips {
+        display: flex;
+        gap: 8px;
+    }
+
+    .trend-stat-chip {
+        background: #f0f7ff;
+        border-radius: 8px;
+        padding: 3px 10px;
+        font-size: 12px;
+        color: #1a73e8;
+        font-weight: 700;
+    }
+
+    .trend-stat-chip.green {
+        background: #e6f4ea;
+        color: #1e7e34;
+    }
+
+    #trendEmpty {
+        text-align: center;
+        padding: 40px 0;
+        color: #ccc;
+        font-size: 13px;
+    }
 </style>
 
 <div class="app-main__outer">
@@ -349,6 +403,36 @@
                             <div class="stat-num" id="s-total">@Model.TotalLogins</div>
                             <div class="stat-label">Tổng lượt đăng nhập</div>
                         </div>
+                    </div>
+                </div>
+
+                <!-- Trend truy cập -->
+                <div class="panel" style="margin-bottom:16px;">
+                    <div class="panel-head">
+                        <div class="trend-header-info">
+                            <span>
+                                <i class="fa fa-line-chart" style="margin-right:7px;color:#1a73e8;"></i>
+                                Xu hướng truy cập (30 phút gần nhất)
+                            </span>
+                            <div class="trend-legend">
+                                <div class="trend-leg-item">
+                                    <div class="trend-leg-dot" style="background:#1a73e8;"></div>
+                                    Online
+                                </div>
+                                <div class="trend-leg-item">
+                                    <div class="trend-leg-dot" style="background:#34a853;"></div>
+                                    Đang thi
+                                </div>
+                            </div>
+                        </div>
+                        <div class="trend-stat-chips">
+                            <div class="trend-stat-chip" id="trend-peak-online">Đỉnh: --</div>
+                            <div class="trend-stat-chip green" id="trend-peak-exam">Đỉnh thi: --</div>
+                        </div>
+                    </div>
+                    <div class="panel-body" style="position:relative;height:110px;overflow:hidden;">
+                        <div id="trendEmpty">Chưa có dữ liệu — biểu đồ sẽ tự cập nhật mỗi 30 giây</div>
+                        <canvas id="trendChart" style="display:none;max-height:110px;"></canvas>
                     </div>
                 </div>
 
@@ -568,6 +652,12 @@
                         + '<th>Họ tên</th><th>Mã NV</th><th>Phòng ban</th><th>Hoạt động</th>'
                         + '</tr></thead><tbody>' + rows + '</tbody></table>';
                         }
+
+                        // Cập nhật trend chart
+                        if (data.TrendPoints && data.TrendPoints.length > 0) {
+                        applyTrendData(data.TrendPoints);
+                        }
+
                         } catch (e) { }
                         setTimeout(function () { refreshDot.classList.remove('active'); }, 500);
                         refreshText.textContent = 'Làm mới sau 30s';
@@ -575,6 +665,103 @@
 
                         setInterval(tick, 1000);
                         tick();
+
+                        // ----- Trend chart -----
+                        var trendInitData = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.TrendPoints));
+
+                        function fmtTime(ms) {
+                        var d = new Date(ms);
+                        return d.getHours().toString().padStart(2,'0') + ':'
+                             + d.getMinutes().toString().padStart(2,'0') + ':'
+                             + d.getSeconds().toString().padStart(2,'0');
+                        }
+
+                        var trendCtx = document.getElementById('trendChart').getContext('2d');
+                        var gradBlue = trendCtx.createLinearGradient(0, 0, 0, 240);
+                        gradBlue.addColorStop(0, 'rgba(26,115,232,0.25)');
+                        gradBlue.addColorStop(1, 'rgba(26,115,232,0)');
+                        var gradGreen = trendCtx.createLinearGradient(0, 0, 0, 240);
+                        gradGreen.addColorStop(0, 'rgba(52,168,83,0.18)');
+                        gradGreen.addColorStop(1, 'rgba(52,168,83,0)');
+
+                        var trendChart = new Chart(trendCtx, {
+                        type: 'line',
+                        data: {
+                          labels: [],
+                          datasets: [
+                            {
+                              label: 'Online',
+                              data: [],
+                              borderColor: '#1a73e8',
+                              backgroundColor: gradBlue,
+                              borderWidth: 2,
+                              pointRadius: 3,
+                              pointHoverRadius: 5,
+                              tension: 0.4,
+                              fill: true,
+                            },
+                            {
+                              label: 'Đang thi',
+                              data: [],
+                              borderColor: '#34a853',
+                              backgroundColor: gradGreen,
+                              borderWidth: 2,
+                              pointRadius: 3,
+                              pointHoverRadius: 5,
+                              tension: 0.4,
+                              fill: true,
+                              borderDash: [5, 3],
+                            }
+                          ]
+                        },
+                        options: {
+                          responsive: true,
+                          maintainAspectRatio: false,
+                          interaction: { mode: 'index', intersect: false },
+                          plugins: {
+                            legend: { display: false },
+                            tooltip: {
+                              callbacks: {
+                                title: function(items) { return items[0].label; },
+                              }
+                            }
+                          },
+                          scales: {
+                            x: {
+                              ticks: { font: { size: 10 }, maxTicksLimit: 10 },
+                              grid: { display: false }
+                            },
+                            y: {
+                              beginAtZero: true,
+                              ticks: { stepSize: 1, font: { size: 11 } },
+                              grid: { color: '#f5f5f5' }
+                            }
+                          },
+                          animation: { duration: 300 }
+                        }
+                        });
+
+                        function applyTrendData(points) {
+                        if (!points || points.length === 0) {
+                          document.getElementById('trendEmpty').style.display = 'block';
+                          document.getElementById('trendChart').style.display = 'none';
+                          return;
+                        }
+                        document.getElementById('trendEmpty').style.display = 'none';
+                        document.getElementById('trendChart').style.display = '';
+
+                        trendChart.data.labels = points.map(function(p) { return fmtTime(p.T); });
+                        trendChart.data.datasets[0].data = points.map(function(p) { return p.O; });
+                        trendChart.data.datasets[1].data = points.map(function(p) { return p.E; });
+                        trendChart.update('none');
+
+                        var peakO = Math.max.apply(null, points.map(function(p){return p.O;}));
+                        var peakE = Math.max.apply(null, points.map(function(p){return p.E;}));
+                        document.getElementById('trend-peak-online').textContent = 'Đỉnh: ' + peakO + ' người';
+                        document.getElementById('trend-peak-exam').textContent   = 'Đỉnh thi: ' + peakE;
+                        }
+
+                        applyTrendData(trendInitData);
 
                         // ----- System performance (refresh mỗi 5s) -----
                         var sysDot = document.getElementById('sys-dot');

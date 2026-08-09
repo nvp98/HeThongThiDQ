@@ -33,6 +33,9 @@ namespace HeThongThiDQ.Controllers
 
         private string SessionKey(int idlh) => $"exam:session:{_auth.ID}:{idlh}";
 
+        private static readonly DistributedCacheEntryOptions _qCacheOpts =
+            new() { AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(2) };
+
         public async Task<IActionResult> Index(int LHID)
         {
             var random = new Random();
@@ -62,27 +65,47 @@ namespace HeThongThiDQ.Controllers
                 session = null;
             }
 
-            var allQuestions = await (
-                from cd in _db.CauHoiDeThis.Where(x => x.IddeThi == lh.IddeThi)
-                join ch in _db.CauHois on cd.IdcauHoi equals ch.Idch
-                join da in _db.DanhSachDa on ch.Iddađung equals da.Iddsđa
-                select new TestValidation
+            // Cache câu hỏi theo LHID — tránh query DB mỗi lần load đề
+            var qKey = $"exam:q:{LHID}";
+            List<TestValidation>? allQuestions = null;
+            try
+            {
+                var qCached = await _cache.GetStringAsync(qKey);
+                if (qCached != null)
+                    allQuestions = JsonSerializer.Deserialize<List<TestValidation>>(qCached);
+            }
+            catch { }
+
+            if (allQuestions == null)
+            {
+                allQuestions = await (
+                    from cd in _db.CauHoiDeThis.Where(x => x.IddeThi == lh.IddeThi)
+                    join ch in _db.CauHois on cd.IdcauHoi equals ch.Idch
+                    join da in _db.DanhSachDa on ch.Iddađung equals da.Iddsđa
+                    select new TestValidation
+                    {
+                        IDCH      = ch.Idch,
+                        NoiDungCH = ch.NoiDungCh,
+                        DapAnA    = ch.DapAnA,
+                        DapAnB    = ch.DapAnB,
+                        DapAnC    = ch.DapAnC,
+                        DapAnD    = ch.DapAnD,
+                        IDDADung  = ch.Iddađung ?? 0,
+                        DapAnDung = da.TenĐa,
+                        Diem      = cd.Diem ?? 0,
+                        IDLH      = LHID,
+                        IDDeThi   = lh.IddeThi ?? 0,
+                        IDND      = lh.Ndid ?? 0,
+                        IsDao     = ch.IsDao ?? false,
+                        GioBatDau = DateTime.Now,
+                    }).ToListAsync();
+
+                try
                 {
-                    IDCH      = ch.Idch,
-                    NoiDungCH = ch.NoiDungCh,
-                    DapAnA    = ch.DapAnA,
-                    DapAnB    = ch.DapAnB,
-                    DapAnC    = ch.DapAnC,
-                    DapAnD    = ch.DapAnD,
-                    IDDADung  = ch.Iddađung ?? 0,
-                    DapAnDung = da.TenĐa,
-                    Diem      = cd.Diem ?? 0,
-                    IDLH      = LHID,
-                    IDDeThi   = lh.IddeThi ?? 0,
-                    IDND      = lh.Ndid ?? 0,
-                    IsDao     = ch.IsDao ?? false,
-                    GioBatDau = DateTime.Now,
-                }).ToListAsync();
+                    await _cache.SetStringAsync(qKey, JsonSerializer.Serialize(allQuestions), _qCacheOpts);
+                }
+                catch { }
+            }
 
             List<TestValidation> res;
 
@@ -341,13 +364,33 @@ namespace HeThongThiDQ.Controllers
             _db.BaiThis.Add(baiThi);
             await _db.SaveChangesAsync();
 
-            // Load correct answers from DB
-            var idCHList = dto.Answers.Select(a => a.IDCH).ToList();
-            var cauHoiMap = await (
-                from cd in _db.CauHoiDeThis.Where(x => x.IddeThi == dto.IDDeThi && x.IdcauHoi.HasValue && idCHList.Contains(x.IdcauHoi!.Value))
-                join ch in _db.CauHois on cd.IdcauHoi equals ch.Idch
-                select new { IdcauHoi = cd.IdcauHoi!.Value, ch.Iddađung, cd.Diem }
-            ).ToDictionaryAsync(x => x.IdcauHoi);
+            // Load correct answers — ưu tiên cache, fallback DB
+            Dictionary<int, (int? Iddađung, double? Diem)> cauHoiMap;
+            try
+            {
+                var qCached = await _cache.GetStringAsync($"exam:q:{dto.IDLH}");
+                if (qCached != null)
+                {
+                    var qs = JsonSerializer.Deserialize<List<TestValidation>>(qCached);
+                    if (qs != null && qs.Count > 0)
+                    {
+                        cauHoiMap = qs.ToDictionary(q => q.IDCH, q => ((int?)q.IDDADung, (double?)q.Diem));
+                        goto answersReady;
+                    }
+                }
+            }
+            catch { }
+
+            {
+                var idCHList = dto.Answers.Select(a => a.IDCH).ToList();
+                cauHoiMap = await (
+                    from cd in _db.CauHoiDeThis.Where(x => x.IddeThi == dto.IDDeThi && x.IdcauHoi.HasValue && idCHList.Contains(x.IdcauHoi!.Value))
+                    join ch in _db.CauHois on cd.IdcauHoi equals ch.Idch
+                    select new { IdcauHoi = cd.IdcauHoi!.Value, ch.Iddađung, cd.Diem }
+                ).ToDictionaryAsync(x => x.IdcauHoi, x => (x.Iddađung, x.Diem));
+            }
+
+            answersReady:
 
             // Read per-answer timestamps from Redis
             Dictionary<int, long?> chosenAtMap = new();
@@ -364,6 +407,7 @@ namespace HeThongThiDQ.Controllers
             }
             catch { }
 
+            double diemSo = 0;
             foreach (var ans in dto.Answers)
             {
                 if (!cauHoiMap.TryGetValue(ans.IDCH, out var info)) continue;
@@ -372,21 +416,19 @@ namespace HeThongThiDQ.Controllers
                 if (chosenAtMap.TryGetValue(ans.IDCH, out var ts) && ts.HasValue)
                     chosenAt = DateTimeOffset.FromUnixTimeMilliseconds(ts.Value).LocalDateTime;
 
+                var diem = info.Iddađung == ans.Answer ? (info.Diem ?? 0) : 0;
+                diemSo += diem;
+
                 _db.CtbaiThis.Add(new CtbaiThi
                 {
                     IdbaiThi     = baiThi.IdbaiThi,
                     IdcauHoi     = ans.IDCH,
                     IddapAnDung  = info.Iddađung,
                     IddapAnNv    = ans.Answer,
-                    Diem         = info.Iddađung == ans.Answer ? (info.Diem ?? 0) : 0,
+                    Diem         = (double)diem,
                     ThoiGianChon = chosenAt,
                 });
             }
-            await _db.SaveChangesAsync();
-
-            double diemSo = await _db.CtbaiThis
-                .Where(x => x.IdbaiThi == baiThi.IdbaiThi)
-                .SumAsync(x => x.Diem) ?? 0;
 
             baiThi.DiemSo    = diemSo;
             baiThi.TinhTrang = true;

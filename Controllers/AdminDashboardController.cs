@@ -120,6 +120,17 @@ namespace HeThongThiDQ.Controllers
                 var hourValues = await Task.WhenAll(hourTasks);
                 data.HourlyLogins = hourValues.Select(v => (int)(long)v).ToArray();
 
+                // Trend — push snapshot, giữ 120 điểm (~60 phút với 30s/lần)
+                const string trendKey = "HPDQ:trend:snapshots";
+                var snap = System.Text.Json.JsonSerializer.Serialize(
+                    new TrendPoint { T = nowMs, O = data.OnlineCount, E = data.ExamCount });
+                await rdb.ListRightPushAsync(trendKey, snap);
+                await rdb.ListTrimAsync(trendKey, -120, -1);
+                var trendRaw = await rdb.ListRangeAsync(trendKey, -60, -1);
+                data.TrendPoints = trendRaw
+                    .Select(e => { try { return System.Text.Json.JsonSerializer.Deserialize<TrendPoint>(e.ToString()); } catch { return null; } })
+                    .Where(p => p != null).Select(p => p!).ToList();
+
                 // Danh sách người đang online kèm thông tin
                 var onlineEntries = await rdb.SortedSetRangeByScoreWithScoresAsync(
                     "HPDQ:online:users", staleMs, double.PositiveInfinity);
@@ -176,6 +187,14 @@ namespace HeThongThiDQ.Controllers
             public long TotalLogins  { get; set; }
             public int[] HourlyLogins { get; set; } = new int[24];
             public List<OnlineUserInfo> OnlineUsers { get; set; } = new();
+            public List<TrendPoint> TrendPoints { get; set; } = new();
+        }
+
+        public class TrendPoint
+        {
+            public long T { get; set; }  // unix ms
+            public long O { get; set; }  // online users
+            public long E { get; set; }  // đang thi
         }
 
         public class OnlineUserInfo
