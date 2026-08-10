@@ -14,18 +14,18 @@ namespace HeThongThiDQ.Services;
 
 public class ExamSubmitConsumer : BackgroundService
 {
-    private readonly IServiceScopeFactory              _scopeFactory;
-    private readonly IConfiguration                    _config;
-    private readonly ILogger<ExamSubmitConsumer>       _logger;
+    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly IConfiguration _config;
+    private readonly ILogger<ExamSubmitConsumer> _logger;
 
     public ExamSubmitConsumer(
-        IServiceScopeFactory        scopeFactory,
-        IConfiguration              config,
+        IServiceScopeFactory scopeFactory,
+        IConfiguration config,
         ILogger<ExamSubmitConsumer> logger)
     {
         _scopeFactory = scopeFactory;
-        _config       = config;
-        _logger       = logger;
+        _config = config;
+        _logger = logger;
     }
 
     protected override async Task ExecuteAsync(CancellationToken ct)
@@ -49,7 +49,7 @@ public class ExamSubmitConsumer : BackgroundService
     }
 
     // Giới hạn số SQL operations đồng thời từ consumer, tránh cạnh tranh connection pool với web requests
-    private readonly SemaphoreSlim _sqlSem = new(5, 5);
+    private readonly SemaphoreSlim _sqlSem = new(8, 8);
 
     private async Task ConsumeAsync(CancellationToken ct)
     {
@@ -57,11 +57,11 @@ public class ExamSubmitConsumer : BackgroundService
         {
             Uri = new Uri(_config.GetConnectionString("RabbitMQ")!),
             AutomaticRecoveryEnabled = true,
-            NetworkRecoveryInterval  = TimeSpan.FromSeconds(5),
-            DispatchConsumersAsync   = true,
+            NetworkRecoveryInterval = TimeSpan.FromSeconds(5),
+            DispatchConsumersAsync = true,
         };
 
-        using var conn    = factory.CreateConnection("consumer");
+        using var conn = factory.CreateConnection("consumer");
         using var channel = conn.CreateModel();
 
         channel.QueueDeclare(RabbitMqPublisher.QueueName,
@@ -104,48 +104,48 @@ public class ExamSubmitConsumer : BackgroundService
     private async Task ProcessAsync(ExamSubmitMessage msg)
     {
         using var scope = _scopeFactory.CreateScope();
-        var db  = scope.ServiceProvider.GetRequiredService<ELEARNINGEntities>();
+        var db = scope.ServiceProvider.GetRequiredService<ELEARNINGEntities>();
         var mux = scope.ServiceProvider.GetRequiredService<IConnectionMultiplexer>();
 
         // 1. Insert BaiThi qua EF, lấy IdbaiThi
         var baiThi = new BaiThi
         {
-            Idlh        = msg.IDLH,
-            IddeThi     = msg.IDDeThi,
-            Idnd        = msg.IDND,
-            Idnv        = msg.IDNV,
-            IdphongBan  = msg.IDPhongBan,
-            IdviTri     = msg.IDViTri,
-            DiemSo      = msg.DiemSo,
-            NgayThi     = DateOnly.FromDateTime(DateTime.Now),
-            TinhTrang   = true,
-            LanThi      = msg.LanThi,
+            Idlh = msg.IDLH,
+            IddeThi = msg.IDDeThi,
+            Idnd = msg.IDND,
+            Idnv = msg.IDNV,
+            IdphongBan = msg.IDPhongBan,
+            IdviTri = msg.IDViTri,
+            DiemSo = msg.DiemSo,
+            NgayThi = DateOnly.FromDateTime(DateTime.Now),
+            TinhTrang = true,
+            LanThi = msg.LanThi,
             ThoiGianThi = msg.ThoiGianSec > 0 ? msg.ThoiGianSec : null,
-            GioBatDau   = msg.TGBDLamBaiThi > 0
+            GioBatDau = msg.TGBDLamBaiThi > 0
                 ? DateTimeOffset.FromUnixTimeMilliseconds(msg.TGBDLamBaiThi).LocalDateTime
                 : null,
-            GioKetThuc  = DateTime.Now,
+            GioKetThuc = DateTime.Now,
         };
         db.BaiThis.Add(baiThi);
         await db.SaveChangesAsync();
 
         // 2. Bulk insert CTBaiThi bằng SqlBulkCopy
         var dt = new DataTable();
-        dt.Columns.Add("IDBaiThi",     typeof(int));
-        dt.Columns.Add("IDCauHoi",     typeof(int));
-        dt.Columns.Add("IDDapAnDung",  typeof(int));
-        dt.Columns.Add("IDDApAnNV",    typeof(int));
-        dt.Columns.Add("Diem",         typeof(double));
+        dt.Columns.Add("IDBaiThi", typeof(int));
+        dt.Columns.Add("IDCauHoi", typeof(int));
+        dt.Columns.Add("IDDapAnDung", typeof(int));
+        dt.Columns.Add("IDDApAnNV", typeof(int));
+        dt.Columns.Add("Diem", typeof(double));
         dt.Columns.Add("ThoiGianChon", typeof(DateTime));
 
         foreach (var a in msg.Answers)
         {
             var row = dt.NewRow();
-            row["IDBaiThi"]     = baiThi.IdbaiThi;
-            row["IDCauHoi"]     = (object?)a.IDCH      ?? DBNull.Value;
-            row["IDDapAnDung"]  = (object?)a.DapAnDung ?? DBNull.Value;
-            row["IDDApAnNV"]    = (object?)a.DapAnNv   ?? DBNull.Value;
-            row["Diem"]         = a.Diem;
+            row["IDBaiThi"] = baiThi.IdbaiThi;
+            row["IDCauHoi"] = (object?)a.IDCH ?? DBNull.Value;
+            row["IDDapAnDung"] = (object?)a.DapAnDung ?? DBNull.Value;
+            row["IDDApAnNV"] = (object?)a.DapAnNv ?? DBNull.Value;
+            row["Diem"] = a.Diem;
             row["ThoiGianChon"] = (object?)a.ThoiGianChon ?? DBNull.Value;
             dt.Rows.Add(row);
         }
@@ -153,11 +153,11 @@ public class ExamSubmitConsumer : BackgroundService
         var connStr = _config.GetConnectionString("DbConnectionString")!;
         using var bulk = new SqlBulkCopy(connStr);
         bulk.DestinationTableName = "CTBaiThi";
-        bulk.ColumnMappings.Add("IDBaiThi",     "IDBaiThi");
-        bulk.ColumnMappings.Add("IDCauHoi",     "IDCauHoi");
-        bulk.ColumnMappings.Add("IDDapAnDung",  "IDDapAnDung");
-        bulk.ColumnMappings.Add("IDDApAnNV",    "IDDApAnNV");
-        bulk.ColumnMappings.Add("Diem",         "Diem");
+        bulk.ColumnMappings.Add("IDBaiThi", "IDBaiThi");
+        bulk.ColumnMappings.Add("IDCauHoi", "IDCauHoi");
+        bulk.ColumnMappings.Add("IDDapAnDung", "IDDapAnDung");
+        bulk.ColumnMappings.Add("IDDApAnNV", "IDDApAnNV");
+        bulk.ColumnMappings.Add("Diem", "Diem");
         bulk.ColumnMappings.Add("ThoiGianChon", "ThoiGianChon");
         await bulk.WriteToServerAsync(dt);
 

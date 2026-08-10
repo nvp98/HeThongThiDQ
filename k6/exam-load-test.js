@@ -31,7 +31,7 @@ const cSubmit = new Counter("exam_submit_total");
 const cSuccess = new Counter("exam_submit_success");
 
 // ── Cấu hình test ────────────────────────────────────────────────────────────
-const VUS = 600; // ← số VU đồng thời
+const VUS = 1800; // ← số VU đồng thời
 const MAX_SUBMITS = 17000; // ← MODE 2: tổng số lần thi tối đa rồi dừng
 const DURATION = "30m"; // ← MODE 2: timeout cứng nếu 10000 submit chưa xong
 
@@ -39,7 +39,7 @@ const DURATION = "30m"; // ← MODE 2: timeout cứng nếu 10000 submit chưa x
 // MODE 1: Mỗi VU thi 1 lần → đo max concurrent user chịu được
 // MODE 2: Tổng MAX_SUBMITS lần thi, 2000 VU chạy song song → đo throughput
 
-const MODE = 2; // 1 = single-shot | 2 = shared-iterations
+const MODE = 1; // 1 = single-shot | 2 = shared-iterations
 
 export const options =
   MODE === 1
@@ -49,7 +49,7 @@ export const options =
             executor: "per-vu-iterations",
             vus: VUS,
             iterations: 1,
-            maxDuration: "15m",
+            maxDuration: "5m",
           },
         },
         thresholds: {
@@ -124,7 +124,7 @@ function parseQuestionIds(html) {
 // ── Flow chính ────────────────────────────────────────────────────────────────
 export default function () {
   // Rải VU để tránh thundering herd: MODE 1 rải 60s, MODE 2 rải 5s
-  sleep(MODE === 1 ? Math.random() * 60 : Math.random() * 5);
+  sleep(MODE === 1 ? Math.random() * 120 : Math.random() * 5);
 
   // Mỗi iteration dùng user khác nhau → tránh bị chặn duplicate submit (SET NX)
   // VU1 iter0 → users[0], VU1 iter1 → users[VUS], VU2 iter0 → users[1], ...

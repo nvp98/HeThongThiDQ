@@ -25,6 +25,9 @@ namespace HeThongThiDQ.Controllers
         private static readonly DistributedCacheEntryOptions _sessionOpts =
             new() { SlidingExpiration = TimeSpan.FromMinutes(360) };
 
+        private static readonly DistributedCacheEntryOptions _nvCacheOpts =
+            new() { AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10) };
+
 
         public LoginController(ELEARNINGEntities db, MyAuthentication auth,
                                IDistributedCache cache, IConnectionMultiplexer mux,
@@ -49,15 +52,42 @@ namespace HeThongThiDQ.Controllers
         {
             if (!string.IsNullOrEmpty(u.SoDienThoai) && !string.IsNullOrEmpty(u.MatKhau))
             {
-                // 1. Thử local DB trước
                 string mk = Encryptor.MD5Hash(u.MatKhau);
-                NhanVien? user = await _db.NhanViens
-                    .Where(x => (x.MaNv == u.SoDienThoai || x.DienThoai == u.SoDienThoai)
-                                && (x.MatKhau == mk
-                                    || (x.CCCD != null && x.CCCD.Length >= 5 && x.CCCD.Substring(x.CCCD.Length - 5) == u.MatKhau)))
-                    .FirstOrDefaultAsync();
+                var nvKey = $"nv:lookup:{u.SoDienThoai}";
+                NhanVien? user = null;
 
-                // 2. Nếu local fail → thử HR API rồi Elearning API
+                // 1. Thử Redis cache trước — tránh hit DB khi nhiều user login đồng thời
+                try
+                {
+                    var nvCached = await _cache.GetStringAsync(nvKey);
+                    if (nvCached != null)
+                    {
+                        var cached = JsonSerializer.Deserialize<NhanVien>(nvCached);
+                        if (cached != null)
+                        {
+                            bool pwOk = cached.MatKhau == mk
+                                     || (cached.CCCD != null && cached.CCCD.Length >= 5
+                                         && cached.CCCD.Substring(cached.CCCD.Length - 5) == u.MatKhau);
+                            if (pwOk) user = cached;
+                        }
+                    }
+                }
+                catch { }
+
+                // 2. Cache miss hoặc verify thất bại → thử local DB
+                if (user == null)
+                {
+                    user = await _db.NhanViens
+                        .Where(x => (x.MaNv == u.SoDienThoai || x.DienThoai == u.SoDienThoai)
+                                    && (x.MatKhau == mk
+                                        || (x.CCCD != null && x.CCCD.Length >= 5 && x.CCCD.Substring(x.CCCD.Length - 5) == u.MatKhau)))
+                        .FirstOrDefaultAsync();
+
+                    if (user != null)
+                        try { await _cache.SetStringAsync(nvKey, JsonSerializer.Serialize(user), _nvCacheOpts); } catch { }
+                }
+
+                // 3. Nếu local fail → thử HR API rồi Elearning API
                 if (user == null)
                 {
                     bool apiOk = await TryLoginHRApi(u.SoDienThoai, u.MatKhau);
@@ -65,10 +95,12 @@ namespace HeThongThiDQ.Controllers
 
                     if (apiOk)
                     {
-                        // Tìm NhanVien theo MaNV (API đã xác thực, không cần check password)
                         user = await _db.NhanViens
                             .Where(x => x.MaNv == u.SoDienThoai)
                             .FirstOrDefaultAsync();
+
+                        if (user != null)
+                            try { await _cache.SetStringAsync(nvKey, JsonSerializer.Serialize(user), _nvCacheOpts); } catch { }
                     }
                 }
 
@@ -185,6 +217,7 @@ namespace HeThongThiDQ.Controllers
             {
                 user.MatKhau = Encryptor.MD5Hash(model.MatKhau ?? "");
                 await _db.SaveChangesAsync();
+                try { await _cache.RemoveAsync($"nv:lookup:{_auth.Username}"); } catch { }
                 HttpContext.Session.Clear();
                 ViewBag.Message = "<script>alert('Thay đổi mật khẩu thành công');window.location.href = '/Login'</script>";
             }

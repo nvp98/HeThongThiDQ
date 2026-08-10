@@ -83,11 +83,9 @@ namespace HeThongThiDQ.Controllers
         {
             var random = new Random();
 
-            var lh = await _db.LopHocs.AsNoTracking().FirstOrDefaultAsync(x => x.Idlh == LHID);
+            var lh = await GetLopHocCachedAsync(LHID);
             if (lh == null || lh.IddeThi == null) return RedirectToAction("Index", "EClassroom");
-
-            var dethi = await _db.DeThis.AsNoTracking().FirstOrDefaultAsync(x => x.IddeThi == lh.IddeThi);
-            int totalTimeSec = (int)((dethi?.ThoiGianLamBai ?? 0) * 60);
+            int totalTimeSec = (int)((lh.ThoiGianLamBai ?? 0) * 60);
 
             // Try restore existing session from Redis
             ExamSession? session = null;
@@ -202,8 +200,8 @@ namespace HeThongThiDQ.Controllers
                 catch { }
             }
 
-            ViewBag.ThoiGianLamBai = DateTime.Now.AddMinutes(dethi?.ThoiGianLamBai ?? 0);
-            ViewBag.ThoiGianThi    = dethi?.ThoiGianLamBai ?? 0;
+            ViewBag.ThoiGianLamBai = DateTime.Now.AddMinutes(lh.ThoiGianLamBai ?? 0);
+            ViewBag.ThoiGianThi    = lh.ThoiGianLamBai ?? 0;
             ViewBag.IDNV           = _auth.ID;
             ViewBag.IDLH           = LHID;
             ViewBag.ExamSession    = JsonSerializer.Serialize(session);
@@ -385,8 +383,15 @@ namespace HeThongThiDQ.Controllers
                     return Json(new { success = false, message = "Bạn đã hoàn thành bài thi", redirectUrl = Url.Action("Index", "EClassroom") });
             }
 
-            var lanthi = await _db.BaiThis
-                .CountAsync(x => x.Idnv == _auth.ID && x.IddeThi == dto.IDDeThi && x.Idlh == dto.IDLH);
+            var rdbLT     = _mux.GetDatabase();
+            var lanThiKey = $"exam:lanthi:{_auth.ID}:{dto.IDLH}";
+            if (!await rdbLT.KeyExistsAsync(lanThiKey))
+            {
+                var dbCount = await _db.BaiThis.CountAsync(x => x.Idnv == _auth.ID && x.Idlh == dto.IDLH);
+                await rdbLT.StringSetAsync(lanThiKey, dbCount, TimeSpan.FromDays(30), When.NotExists);
+            }
+            var lanthi = (int)await rdbLT.StringIncrementAsync(lanThiKey);
+            await rdbLT.KeyExpireAsync(lanThiKey, TimeSpan.FromDays(30));
 
             // Load correct answers — ưu tiên cache, fallback DB
             Dictionary<int, (int? Iddađung, double? Diem)> cauHoiMap;
