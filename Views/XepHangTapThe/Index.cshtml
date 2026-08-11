@@ -12,7 +12,7 @@
         <div class="rk-banner-icon"><i class="fa fa-flag"></i></div>
         <div>
             <div class="rk-banner-title">XẾP HẠNG TẬP THỂ</div>
-            <div class="rk-banner-sub">Hội thi tìm hiểu về văn hóa lịch sử Q-Day 2026</div>
+            <div class="rk-banner-sub">Tỉ lệ CBCNV hoàn thành ôn luyện</div>
         </div>
     </div>
     <a asp-controller="XepHangCaNhan" asp-action="Index" class="rk-switch-btn">
@@ -28,15 +28,11 @@
     </div>
     <div class="rk-sc rk-sc-blue">
         <div class="rk-sc-ico"><i class="fa fa-users"></i></div>
-        <div><div class="rk-sc-num" id="sNguoi">--</div><div class="rk-sc-lbl">Thí sinh tham gia</div></div>
-    </div>
-    <div class="rk-sc rk-sc-amber">
-        <div class="rk-sc-ico"><i class="fa fa-pencil-square-o"></i></div>
-        <div><div class="rk-sc-num" id="sLuot">--</div><div class="rk-sc-lbl">Lượt tham gia thi</div></div>
+        <div><div class="rk-sc-num" id="sDangKy">--</div><div class="rk-sc-lbl">CBCNV đăng ký</div></div>
     </div>
     <div class="rk-sc rk-sc-green">
         <div class="rk-sc-ico"><i class="fa fa-check-circle"></i></div>
-        <div><div class="rk-sc-num" id="sHT">--</div><div class="rk-sc-lbl">Lượt hoàn thành</div></div>
+        <div><div class="rk-sc-num" id="sHT">--</div><div class="rk-sc-lbl">CBCNV hoàn thành</div></div>
     </div>
 </div>
 
@@ -46,19 +42,11 @@
 <!-- ══ BIỂU ĐỒ ════════════════════════════════════════════════════════════ -->
 <div class="rk-card mb-4" id="chartCard" style="display:none">
     <div class="rk-card-hd">
-        <span><i class="fa fa-bar-chart"></i>&nbsp; Biểu đồ tỉ lệ hoàn thành &amp; thứ hạng bộ phận</span>
-        <div style="display:flex;align-items:center;gap:16px">
-            <!-- Legend -->
-            <div style="display:flex;align-items:center;gap:12px;font-size:.75rem;color:#6b7280">
-                <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#22c55e;margin-right:4px"></span>≥ 80%</span>
-                <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#f59e0b;margin-right:4px"></span>≥ 50%</span>
-                <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#ef4444;margin-right:4px"></span>&lt; 50%</span>
-            </div>
-            <!-- Tab switch -->
-            <div class="chart-tab-group">
-                <button class="chart-tab active" data-metric="rate">Tỉ lệ hoàn thành</button>
-                <button class="chart-tab" data-metric="score">Điểm trung bình</button>
-            </div>
+        <span><i class="fa fa-bar-chart"></i>&nbsp; Biểu đồ tỉ lệ hoàn thành theo đơn vị</span>
+        <div style="display:flex;align-items:center;gap:12px;font-size:.75rem;color:#6b7280">
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#22c55e;margin-right:4px"></span>≥ 80%</span>
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#f59e0b;margin-right:4px"></span>≥ 50%</span>
+            <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#ef4444;margin-right:4px"></span>&lt; 50%</span>
         </div>
     </div>
     <div style="padding:20px 24px 24px">
@@ -72,13 +60,6 @@
 <div class="rk-filter-card mb-4">
     <div class="rk-filter-hd"><i class="fa fa-filter"></i> Bộ lọc dữ liệu</div>
     <div class="rk-filter-row">
-        <select id="filterLopHoc" class="rk-select">
-            <option value="">📋 Tất cả khóa thi</option>
-            @foreach (var lh in (ViewBag.LopHocList as IEnumerable<dynamic> ?? []))
-            {
-                <option value="@lh.Idlh">@lh.TenLh</option>
-            }
-        </select>
         <div class="rk-search-box">
             <i class="fa fa-search"></i>
             <input id="txtSearch" placeholder="Tìm tên phòng ban, đơn vị..." autocomplete="off" />
@@ -103,15 +84,13 @@
                 <tr>
                     <th style="width:56px" class="text-center">Hạng</th>
                     <th style="min-width:220px">Đơn vị / Phòng ban</th>
-                    <th style="width:110px" class="text-center">Số NV thi</th>
-                    <th style="width:115px" class="text-center">Số NV đạt</th>
-                    <th style="width:130px" class="text-center">Điểm TB tập thể</th>
-                    <th style="width:115px" class="text-center">Điểm cao nhất</th>
-                    <th style="min-width:165px" class="text-center">Tỉ lệ đạt</th>
+                    <th style="width:140px" class="text-center">Tổng CBCNV</th>
+                    <th style="width:150px" class="text-center">Đã hoàn thành</th>
+                    <th style="min-width:180px" class="text-center">Tỉ lệ hoàn thành</th>
                 </tr>
             </thead>
             <tbody id="tblBody">
-                <tr><td colspan="7" class="rk-loading"><i class="fa fa-spinner fa-spin"></i> Đang tải dữ liệu...</td></tr>
+                <tr><td colspan="5" class="rk-loading"><i class="fa fa-spinner fa-spin"></i> Đang tải dữ liệu...</td></tr>
             </tbody>
         </table>
     </div>
@@ -123,7 +102,6 @@
 
 @Html.Partial("~/Views/XepHang/_XepHangStyle.cshtml")
 <style>
-/* ── Table ── */
 .rk-table { width:100%; border-collapse:collapse; font-size:.875rem; }
 .rk-table thead th {
     padding:11px 14px; background:#0e7490; color:#fff;
@@ -136,7 +114,6 @@
 .rk-table tr.rk-gold   td { background:#fffbeb; }
 .rk-table tr.rk-silver td { background:#f8fafc; }
 .rk-table tr.rk-bronze td { background:#fff7f0; }
-
 .rk-unit-cell { display:flex; align-items:center; gap:12px; }
 .rk-unit-icon {
     width:40px; height:40px; border-radius:10px; flex-shrink:0;
@@ -144,69 +121,37 @@
 }
 .rk-unit-name { font-weight:700; font-size:.9rem; color:#111; }
 .rk-unit-sub  { font-size:.73rem; color:#6b7280; margin-top:1px; }
-.rk-score-big { font-size:1.2rem; font-weight:800; color:#0e7490; }
+.rk-nv-passed { color:#16a34a; font-weight:700; font-size:.95rem; }
+.rk-nv-total  { color:#6b7280; font-size:.78rem; }
 .rk-rate-col  { display:flex; flex-direction:column; gap:3px; }
 .rk-rate-bar  { height:8px; border-radius:4px; background:#e5e7eb; overflow:hidden; }
 .rk-rate-fill { height:100%; border-radius:4px; transition:width .6s; }
-.rk-nv-passed { color:#16a34a; font-weight:700; font-size:.95rem; }
-.rk-nv-total  { color:#6b7280; font-size:.78rem; }
-
-/* ── Chart tab ── */
-.chart-tab-group { display:flex; border:1px solid #e5e7eb; border-radius:8px; overflow:hidden; }
-.chart-tab {
-    padding:5px 12px; font-size:.78rem; font-weight:600; border:none;
-    background:#fff; color:#6b7280; cursor:pointer; transition:all .15s;
-}
-.chart-tab.active { background:#0e7490; color:#fff; }
-.chart-tab:not(:last-child) { border-right:1px solid #e5e7eb; }
 </style>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script>
 var _tC=['#0e7490','#1565C0','#6d28d9','#0d9488','#059669','#d97706','#dc2626','#7c3aed'];
 function teamColor(n){ var s=0; for(var i=0;i<(n||'').length;i++) s+=n.charCodeAt(i); return _tC[s%_tC.length]; }
+function rateClr(r){ return r>=80?'#22c55e':r>=50?'#f59e0b':'#ef4444'; }
 
-var _chart=null, _chartData=[], _chartMetric='rate';
+var _chart=null;
 
-function barColor(d, metric) {
-    if (metric==='score') {
-        if (d.rank===1) return 'rgba(245,158,11,.85)';
-        if (d.rank===2) return 'rgba(156,163,175,.85)';
-        if (d.rank===3) return 'rgba(180,83,9,.85)';
-        return 'rgba(14,116,144,.75)';
-    }
-    var r=d.tiLeDat||0;
-    return r>=80?'rgba(34,197,94,.82)':r>=50?'rgba(245,158,11,.82)':'rgba(239,68,68,.82)';
-}
-function barBorder(d, metric) {
-    if (metric==='score') {
-        if (d.rank===1) return '#d97706';
-        if (d.rank===2) return '#9ca3af';
-        if (d.rank===3) return '#b45309';
-        return '#0e7490';
-    }
-    var r=d.tiLeDat||0;
-    return r>=80?'#16a34a':r>=50?'#d97706':'#dc2626';
-}
-
-function renderChart(data, metric) {
+function renderChart(data) {
     if (!data||!data.length) { $('#chartCard').hide(); return; }
-    metric = metric||'rate';
-
-    // Sort by rank ascending (rank 1 at top of horizontal chart)
-    var sorted = data.slice().sort(function(a,b){ return a.rank-b.rank; });
-
-    var labels = sorted.map(function(d){
-        var badge = d.rank<=3?['🥇','🥈','🥉'][d.rank-1]:'#'+d.rank;
-        return badge+' '+d.phongBan;
+    var sorted = data.slice().sort(function(a,b){ return a.Rank-b.Rank; });
+    var labels  = sorted.map(function(d){
+        var badge = d.Rank<=3?['🥇','🥈','🥉'][d.Rank-1]:'#'+d.Rank;
+        return badge+' '+d.PhongBan;
     });
-    var values = sorted.map(function(d){ return metric==='rate'?d.tiLeDat:d.diemTrungBinh; });
-    var bgColors  = sorted.map(function(d){ return barColor(d,metric); });
-    var brdColors = sorted.map(function(d){ return barBorder(d,metric); });
+    var values    = sorted.map(function(d){ return d.TiLeHoanThanh; });
+    var bgColors  = sorted.map(function(d){
+        var r=d.TiLeHoanThanh||0;
+        return r>=80?'rgba(34,197,94,.82)':r>=50?'rgba(245,158,11,.82)':'rgba(239,68,68,.82)';
+    });
+    var brdColors = sorted.map(function(d){ return rateClr(d.TiLeHoanThanh||0); });
 
     var canvasH = Math.max(260, sorted.length*38);
     $('#chartWrap').css('height', canvasH+'px');
-
     if (_chart) { _chart.destroy(); _chart=null; }
 
     var ctx = document.getElementById('chartTapThe').getContext('2d');
@@ -215,7 +160,7 @@ function renderChart(data, metric) {
         data: {
             labels: labels,
             datasets: [{
-                label: metric==='rate'?'Tỉ lệ hoàn thành (%)':'Điểm trung bình',
+                label: 'Tỉ lệ hoàn thành (%)',
                 data: values,
                 backgroundColor: bgColors,
                 borderColor: brdColors,
@@ -240,15 +185,13 @@ function renderChart(data, metric) {
                     callbacks: {
                         title: function(items) {
                             var d=sorted[items[0].dataIndex];
-                            return 'Hạng '+d.rank+' — '+d.phongBan;
+                            return 'Hạng '+d.Rank+' — '+d.PhongBan;
                         },
                         label: function(item) {
                             var d=sorted[item.dataIndex];
                             return [
-                                '  Tỉ lệ hoàn thành : '+d.tiLeDat+'%',
-                                '  Điểm trung bình  : '+d.diemTrungBinh,
-                                '  Điểm cao nhất    : '+d.diemCaoNhat,
-                                '  NV đạt           : '+d.soNguoiDat+'/'+d.soNhanVien+' người'
+                                '  Tỉ lệ hoàn thành : '+d.TiLeHoanThanh+'%',
+                                '  Đã hoàn thành    : '+d.SoHoanThanh+'/'+d.TongDangKy+' người'
                             ];
                         }
                     }
@@ -256,15 +199,10 @@ function renderChart(data, metric) {
             },
             scales: {
                 x: {
-                    beginAtZero: true,
-                    max: metric==='rate'?100:null,
+                    beginAtZero: true, max: 100,
                     grid: { color: '#f1f5f9' },
                     border: { display: false },
-                    ticks: {
-                        color: '#6b7280',
-                        font: { size: 12 },
-                        callback: function(v){ return metric==='rate'?v+'%':v+'đ'; }
-                    }
+                    ticks: { color: '#6b7280', font: { size: 12 }, callback: function(v){ return v+'%'; } }
                 },
                 y: {
                     grid: { display: false },
@@ -274,26 +212,24 @@ function renderChart(data, metric) {
             }
         }
     });
-
     $('#chartCard').show();
 }
 
 function loadStats(){
-    $.get('/XepHangTapThe/GetStats',{idLH:$('#filterLopHoc').val()},function(d){
-        animCount('sDonVi',d.tongDonVi);
-        animCount('sNguoi',d.tongNguoi);
-        animCount('sLuot', d.tongLuotThi);
-        animCount('sHT',   d.tongHoanThanh);
+    $.get('/XepHangTapThe/GetStats', function(d){
+        animCount('sDonVi',  d.TongDonVi);
+        animCount('sDangKy', d.TongDangKy);
+        animCount('sHT',     d.TongHoanThanh);
     });
 }
 
 function load(){
-    var p={idLH:$('#filterLopHoc').val(), search:$('#txtSearch').val()};
-    $('#tblBody').html('<tr><td colspan="7" class="rk-loading"><i class="fa fa-spinner fa-spin"></i> Đang tải...</td></tr>');
+    var p={ search: $('#txtSearch').val() };
+    $('#tblBody').html('<tr><td colspan="5" class="rk-loading"><i class="fa fa-spinner fa-spin"></i> Đang tải...</td></tr>');
     $('#podiumWrap').empty();
-    $.get('/XepHangTapThe/GetData',p,function(data){
+    $.get('/XepHangTapThe/GetData', p, function(data){
         if(!Array.isArray(data)||!data.length){
-            $('#tblBody').html('<tr><td colspan="7" class="rk-loading"><i class="fa fa-inbox fa-lg"></i><br>Không có dữ liệu phù hợp</td></tr>');
+            $('#tblBody').html('<tr><td colspan="5" class="rk-loading"><i class="fa fa-inbox fa-lg"></i><br>Không có dữ liệu phù hợp</td></tr>');
             $('#badgeTotal,#badgeTotal2').hide();
             $('#chartCard').hide();
             if(_chart){_chart.destroy();_chart=null;}
@@ -303,31 +239,28 @@ function load(){
         $('#badgeTotal').text(label).show();
         $('#badgeTotal2').text(label).show();
 
-        _chartData = data;
         renderPodium(data);
-        renderChart(data, _chartMetric);
+        renderChart(data);
 
         var rows='';
         data.forEach(function(d){
-            var cls=d.rank===1?'rk-gold':d.rank===2?'rk-silver':d.rank===3?'rk-bronze':'';
-            var bc=rateColor(d.tiLeDat||0);
-            var tc=teamColor(d.phongBan);
+            var cls=d.Rank===1?'rk-gold':d.Rank===2?'rk-silver':d.Rank===3?'rk-bronze':'';
+            var rc=rateClr(d.TiLeHoanThanh||0);
+            var tc=teamColor(d.PhongBan);
             rows+='<tr class="'+cls+'">'+
-                '<td class="text-center">'+rankBadge(d.rank)+'</td>'+
+                '<td class="text-center">'+rankBadge(d.Rank)+'</td>'+
                 '<td><div class="rk-unit-cell">'+
                     '<div class="rk-unit-icon" style="background:'+tc+'"><i class="fa fa-building"></i></div>'+
-                    '<div><div class="rk-unit-name">'+(d.phongBan||'')+'</div>'+
-                    '<div class="rk-unit-sub">'+d.soNhanVien+' người tham gia &bull; '+d.soNguoiDat+' người đạt</div></div></div></td>'+
-                '<td class="text-center"><strong style="font-size:.95rem">'+d.soNhanVien+'</strong></td>'+
-                '<td class="text-center"><span class="rk-nv-passed">'+d.soNguoiDat+'</span><div class="rk-nv-total">/'+d.soNhanVien+' người</div></td>'+
-                '<td class="text-center"><span class="rk-score-big">'+d.diemTrungBinh+'</span></td>'+
-                '<td class="text-center"><span style="font-weight:600;color:#6b7280">'+d.diemCaoNhat+'</span></td>'+
+                    '<div><div class="rk-unit-name">'+(d.PhongBan||'')+'</div>'+
+                    '<div class="rk-unit-sub">'+d.TongDangKy+' người đăng ký &bull; '+d.SoHoanThanh+' người hoàn thành</div></div></div></td>'+
+                '<td class="text-center"><strong style="font-size:.95rem">'+d.TongDangKy+'</strong></td>'+
+                '<td class="text-center"><span class="rk-nv-passed">'+d.SoHoanThanh+'</span><div class="rk-nv-total">/'+d.TongDangKy+' người</div></td>'+
                 '<td>'+
                     '<div class="rk-rate-col">'+
-                    '<div class="rk-rate-bar"><div class="rk-rate-fill" style="width:'+(d.tiLeDat||0)+'%;background:'+bc+'"></div></div>'+
+                    '<div class="rk-rate-bar"><div class="rk-rate-fill" style="width:'+(d.TiLeHoanThanh||0)+'%;background:'+rc+'"></div></div>'+
                     '<div style="display:flex;justify-content:space-between;font-size:.72rem">'+
-                        '<span style="font-weight:700;color:'+bc+'">'+(d.tiLeDat||0)+'%</span>'+
-                        '<span style="color:#9ca3af">'+d.soNguoiDat+'/'+d.soNhanVien+'</span>'+
+                        '<span style="font-weight:700;color:'+rc+'">'+(d.TiLeHoanThanh||0)+'%</span>'+
+                        '<span style="color:#9ca3af">'+d.SoHoanThanh+'/'+d.TongDangKy+'</span>'+
                     '</div></div>'+
                 '</td>'+
                 '</tr>';
@@ -340,16 +273,16 @@ function renderPodium(data){
     var icons={1:'🥇',2:'🥈',3:'🥉'};
     var html='<div class="rk-podium">';
     [2,1,3].forEach(function(r){
-        var d=data.find(function(x){return x.rank===r;}); if(!d) return;
-        var tc=teamColor(d.phongBan);
+        var d=data.find(function(x){return x.Rank===r;}); if(!d) return;
+        var tc=teamColor(d.PhongBan);
         html+='<div class="rk-pod rk-pod-'+r+'">'+
             '<div class="rk-pod-avatar" style="background:'+tc+';border-radius:12px">'+
                 '<i class="fa fa-building" style="font-size:1.2rem"></i>'+
             '</div>'+
             '<div class="rk-pod-icon">'+icons[r]+'</div>'+
-            '<div class="rk-pod-name">'+(d.phongBan||'')+'</div>'+
-            '<div class="rk-pod-unit">'+d.soNhanVien+' NV &bull; '+d.tiLeDat+'% đạt</div>'+
-            '<div class="rk-pod-score">'+d.diemTrungBinh+'<span style="font-size:.7rem;color:#6b7280;font-weight:400"> đ TB</span></div>'+
+            '<div class="rk-pod-name">'+(d.PhongBan||'')+'</div>'+
+            '<div class="rk-pod-unit">'+d.TongDangKy+' NV &bull; '+d.SoHoanThanh+' hoàn thành</div>'+
+            '<div class="rk-pod-score">'+d.TiLeHoanThanh+'<span style="font-size:.7rem;color:#6b7280;font-weight:400">%</span></div>'+
             '<div class="rk-pod-base rk-base-'+r+'">Hạng '+r+'</div>'+
             '</div>';
     });
@@ -360,20 +293,11 @@ function renderPodium(data){
 $(document).ready(function(){
     loadStats(); load();
     $('#btnLoad').on('click',function(){ loadStats(); load(); });
-    $('#filterLopHoc').on('change',function(){ loadStats(); load(); });
     var st;
     $('#txtSearch').on('input',function(){
         $('#btnClear').toggle(!!$(this).val());
         clearTimeout(st); st=setTimeout(load,300);
     });
     $('#btnClear').on('click',function(){ $('#txtSearch').val('').trigger('input'); });
-
-    // Chart metric toggle
-    $(document).on('click','.chart-tab',function(){
-        $('.chart-tab').removeClass('active');
-        $(this).addClass('active');
-        _chartMetric=$(this).data('metric');
-        if(_chartData.length) renderChart(_chartData, _chartMetric);
-    });
 });
 </script>

@@ -187,7 +187,7 @@
         var search = $('#txtsearch').val();
         var IDPhongBan = $('#IDPhongBan').val();
         window.location.href = '@Url.Action("Index", "ConfirmEStudy", new { id = ViewBag.IDLH })'
-            + '&IDPhongBan=' + IDPhongBan + '&search=' + search;
+            + '?IDPhongBan=' + IDPhongBan + '&search=' + encodeURIComponent(search);
     });
 
     $('#txtsearch').keyup(function (event) {

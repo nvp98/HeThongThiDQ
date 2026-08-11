@@ -32,88 +32,99 @@ namespace HeThongThiDQ.Controllers
                 return RedirectToAction("", "Home");
             }
 
-            ViewBag.LopHocList = await _db.LopHocs
-                .Where(x => x.ToChucThi == true)
-                .OrderByDescending(x => x.Tgbdlh)
-                .Select(x => new { x.Idlh, x.TenLh })
-                .ToListAsync();
-
             return View();
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetStats(int? idLH)
+        public async Task<IActionResult> GetStats()
         {
-            var allQ  = _db.BaiThis.AsQueryable();
-            if (idLH.HasValue && idLH > 0) allQ = allQ.Where(x => x.Idlh == idLH);
-            var doneQ = allQ.Where(x => x.DiemSo != null);
+            var onLuyenLhIds = await _db.LopHocs
+                .Where(l => l.IsCoCtdt == 1)
+                .Select(l => l.Idlh)
+                .ToListAsync();
 
-            var tongLuotThi   = await allQ.CountAsync();
-            var tongHoanThanh = await doneQ.CountAsync();
-            var tongNguoi     = await doneQ.Select(x => x.Idnv).Distinct().CountAsync();
-            var tongDonVi     = await (from bt in doneQ
-                                       join nv in _db.NhanViens on bt.Idnv equals nv.Id
-                                       where nv.IdphongBan != null
-                                       select nv.IdphongBan).Distinct().CountAsync();
+            var TongDangKy = await _db.XnhocTaps
+                .Where(x => onLuyenLhIds.Contains(x.Lhid ?? 0))
+                .Select(x => x.Nvid)
+                .Distinct()
+                .CountAsync();
 
-            return Json(new { tongDonVi, tongNguoi, tongLuotThi, tongHoanThanh });
+            var TongHoanThanh = await _db.BaiThis
+                .Where(b => b.Idnv != null && onLuyenLhIds.Contains(b.Idlh ?? 0))
+                .Select(b => b.Idnv)
+                .Distinct()
+                .CountAsync();
+
+            var TongDonVi = await (from x in _db.XnhocTaps
+                                   join n in _db.NhanViens on x.Nvid equals n.Id
+                                   where onLuyenLhIds.Contains(x.Lhid ?? 0) && n.IdphongBan != null
+                                   select n.IdphongBan).Distinct().CountAsync();
+
+            return Json(new { TongDonVi, TongDangKy, TongHoanThanh });
         }
 
         [HttpGet]
-        public async Task<IActionResult> GetData(int? idLH, string? search)
+        public async Task<IActionResult> GetData(string? search)
         {
             var listQuyen = await _home.GetPermisionCN(_auth.IDQuyen, ControllerName);
             if (!listQuyen.Contains(CONSTKEY.V)) return Json("Unauthorized");
 
-            var query = _db.BaiThis.Where(x => x.DiemSo != null);
-            if (idLH.HasValue && idLH > 0) query = query.Where(x => x.Idlh == idLH);
+            var onLuyenLhIds = await _db.LopHocs
+                .Where(l => l.IsCoCtdt == 1)
+                .Select(l => l.Idlh)
+                .ToListAsync();
 
-            var raw = await (from bt in query
-                             join nv in _db.NhanViens on bt.Idnv equals nv.Id
-                             join pb in _db.PhongBans on nv.IdphongBan equals pb.IdphongBan into pbj
-                             from pb in pbj.DefaultIfEmpty()
-                             select new
-                             {
-                                 IDPhongBan = nv.IdphongBan,
-                                 TenPB      = pb != null ? pb.TenPhongBan : "Chưa phân công",
-                                 IDNV       = nv.Id,
-                                 bt.DiemSo,
-                                 bt.TinhTrang
-                             }).ToListAsync();
+            if (onLuyenLhIds.Count == 0) return Json(Array.Empty<object>());
 
-            var bestPerPerson = raw
-                .GroupBy(x => new { x.IDPhongBan, x.TenPB, x.IDNV })
-                .Select(g => new
-                {
-                    g.Key.IDPhongBan,
-                    g.Key.TenPB,
-                    DiemTot = g.Max(x => x.DiemSo ?? 0),
-                    Dat     = g.Any(x => x.TinhTrang == true)
-                });
+            // Mẫu số: CBCNV đăng ký ít nhất 1 lớp ôn luyện, nhóm theo phòng ban
+            var enrolled = await (from x in _db.XnhocTaps
+                                  join n in _db.NhanViens on x.Nvid equals n.Id
+                                  join pb in _db.PhongBans on n.IdphongBan equals pb.IdphongBan into pbj
+                                  from pb in pbj.DefaultIfEmpty()
+                                  where onLuyenLhIds.Contains(x.Lhid ?? 0)
+                                  select new
+                                  {
+                                      IDPhongBan = n.IdphongBan ?? 0,
+                                      TenPB      = pb != null ? pb.TenPhongBan : "Chưa phân công",
+                                      IDNV       = n.Id
+                                  }).ToListAsync();
 
-            var teamRanked = bestPerPerson
+            // Tử số: CBCNV đã nộp ít nhất 1 bài ôn luyện
+            var completedSet = (await _db.BaiThis
+                .Where(b => b.Idnv != null && onLuyenLhIds.Contains(b.Idlh ?? 0))
+                .Select(b => b.Idnv!.Value)
+                .Distinct()
+                .ToListAsync()).ToHashSet();
+
+            var ranked = enrolled
                 .GroupBy(x => new { x.IDPhongBan, x.TenPB })
-                .Select(g => new
+                .Select(g =>
                 {
-                    PhongBan      = g.Key.TenPB,
-                    SoNhanVien    = g.Count(),
-                    SoNguoiDat    = g.Count(x => x.Dat),
-                    DiemTrungBinh = Math.Round(g.Average(x => x.DiemTot), 1),
-                    DiemCaoNhat   = Math.Round(g.Max(x => x.DiemTot), 1),
-                    TiLeDat       = g.Count() > 0
-                                    ? Math.Round((double)g.Count(x => x.Dat) * 100 / g.Count(), 1)
-                                    : 0.0
+                    var nvIds = g.Select(x => x.IDNV).Distinct().ToList();
+                    var total = nvIds.Count;
+                    var done  = nvIds.Count(id => completedSet.Contains(id));
+                    return new
+                    {
+                        PhongBan      = g.Key.TenPB,
+                        TongDangKy    = total,
+                        SoHoanThanh   = done,
+                        TiLeHoanThanh = total > 0 ? Math.Round((double)done * 100 / total, 1) : 0.0
+                    };
                 })
-                .OrderByDescending(x => x.DiemTrungBinh)
-                .ThenByDescending(x => x.TiLeDat)
+                .OrderByDescending(x => x.TiLeHoanThanh)
+                .ThenByDescending(x => x.SoHoanThanh)
                 .ToList();
 
-            var result = teamRanked.Select((x, i) => new
-            {
-                Rank = i + 1,
-                x.PhongBan, x.SoNhanVien, x.SoNguoiDat,
-                x.DiemTrungBinh, x.DiemCaoNhat, x.TiLeDat
-            }).ToList();
+            var result = ranked
+                .Select((x, i) => new
+                {
+                    Rank = i + 1,
+                    x.PhongBan,
+                    x.TongDangKy,
+                    x.SoHoanThanh,
+                    x.TiLeHoanThanh
+                })
+                .ToList();
 
             if (!string.IsNullOrEmpty(search))
                 result = result.Where(x => x.PhongBan?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false).ToList();

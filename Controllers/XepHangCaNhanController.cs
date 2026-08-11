@@ -66,6 +66,72 @@ namespace HeThongThiDQ.Controllers
             return Json(new { tongNguoi, tongDonVi, tongLuotThi, tongHoanThanh });
         }
 
+        // ── BXH ôn luyện: tổng điểm + tổng thời gian tất cả chủ đề ôn luyện ──
+        [HttpGet]
+        public async Task<IActionResult> GetBxhOnLuyen()
+        {
+            int currentId = _auth.ID;
+
+            var onLuyenLhIds = await _db.LopHocs
+                .Where(l => l.IsCoCtdt == 1)
+                .Select(l => l.Idlh)
+                .ToListAsync();
+
+            if (onLuyenLhIds.Count == 0)
+                return Json(new { Ranked = Array.Empty<object>() });
+
+            var btRaw = await _db.BaiThis
+                .Where(b => b.Idnv != null && onLuyenLhIds.Contains(b.Idlh ?? 0))
+                .Select(b => new { b.Idnv, DiemSo = b.DiemSo ?? 0, ThoiGianThi = b.ThoiGianThi ?? 0 })
+                .ToListAsync();
+
+            if (btRaw.Count == 0)
+                return Json(new { Ranked = Array.Empty<object>() });
+
+            var nvIds = btRaw.Select(x => x.Idnv!.Value).Distinct().ToList();
+            var nvMap = await (from n in _db.NhanViens
+                               join pb in _db.PhongBans on n.IdphongBan equals pb.IdphongBan into pbj
+                               from pb in pbj.DefaultIfEmpty()
+                               where nvIds.Contains(n.Id)
+                               select new { n.Id, n.HoTen, n.MaNv, TenPB = pb != null ? pb.TenPhongBan : null })
+                               .ToDictionaryAsync(x => x.Id);
+
+            var sorted = btRaw
+                .GroupBy(x => x.Idnv!.Value)
+                .Select(g =>
+                {
+                    nvMap.TryGetValue(g.Key, out var nv);
+                    return new
+                    {
+                        Idnv         = g.Key,
+                        HoTen        = nv?.HoTen ?? "",
+                        MaNV         = nv?.MaNv ?? "",
+                        TenPB        = nv?.TenPB ?? "",
+                        TongDiem     = g.Sum(x => x.DiemSo),
+                        TongThoiGian = g.Sum(x => x.ThoiGianThi),
+                        SoLanThi     = g.Count()
+                    };
+                })
+                .OrderByDescending(x => x.TongDiem)
+                .ThenBy(x => x.TongThoiGian)
+                .ToList();
+
+            var ranked = sorted.Select((x, i) => new
+            {
+                Rank         = i + 1,
+                NVID         = x.Idnv,
+                x.HoTen,
+                x.MaNV,
+                x.TenPB,
+                x.TongDiem,
+                x.TongThoiGian,
+                x.SoLanThi,
+                IsCurrent    = x.Idnv == currentId
+            }).ToList();
+
+            return Json(new { Ranked = ranked });
+        }
+
         // ── Xếp hạng cá nhân ──────────────────────────────────────────────────
         [HttpGet]
         public async Task<IActionResult> GetData(int? idLH, int? idPB, string? search)
