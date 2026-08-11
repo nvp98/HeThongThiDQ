@@ -9,6 +9,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using System.Data;
 using System.Globalization;
+using Microsoft.EntityFrameworkCore;
+using X.PagedList;
 using X.PagedList.Extensions;
 
 namespace HeThongThiDQ.Controllers
@@ -28,70 +30,93 @@ namespace HeThongThiDQ.Controllers
             _env = env;
         }
 
-        public IActionResult Index(int id, int? page, int? IDPhongBan, string? search)
+        public async Task<IActionResult> Index(int id, int? page, int? IDPhongBan, string? search)
         {
             IDPhongBan ??= 0;
-            search ??= "";
-            ViewBag.search = search;
-            ViewBag.IDLH = id;
-            ViewBag.PBList = new SelectList(_db.PhongBans.ToList(), "IdphongBan", "TenPhongBan", IDPhongBan);
+            search     ??= "";
+            int pageNumber = page ?? 1;
+            const int pageSize = 50;
 
-            var lh = _db.LopHocs.FirstOrDefault(x => x.Idlh == id);
-            ViewBag.TenLH = lh?.TenLh;
+            var lh = await _db.LopHocs.FirstOrDefaultAsync(x => x.Idlh == id);
+            ViewBag.search  = search;
+            ViewBag.IDLH    = id;
+            ViewBag.TenLH   = lh?.TenLh;
             ViewBag.IsLopMo = lh != null && lh.Tgktlh.HasValue && lh.Tgktlh.Value > DateTime.Now;
+            ViewBag.PBList  = new SelectList(await _db.PhongBans.ToListAsync(),
+                                             "IdphongBan", "TenPhongBan", IDPhongBan);
 
-            var raw = (from h in _db.XnhocTaps.Where(x => x.Lhid == id)
-                       join n in _db.NhanViens on h.Nvid equals n.Id
-                       join p in _db.PhongBans on h.Pbid equals p.IdphongBan into pj
-                       from p in pj.DefaultIfEmpty()
-                       join v in _db.Vitris on h.Vtid equals v.IdviTri into vj
-                       from v in vj.DefaultIfEmpty()
-                       where (search == "" || n.MaNv!.Contains(search) || n.HoTen!.Contains(search))
-                          && (IDPhongBan == 0 || n.IdphongBan == IDPhongBan)
-                       select new
-                       {
-                           h.Idht,
-                           NVID = n.Id,
-                           n.MaNv,
-                           n.HoTen,
-                           PBID = h.Pbid ?? 0,
-                           TenPB = p != null ? p.TenPhongBan : null,
-                           VTID = h.Vtid ?? 0,
-                           TenVT = v != null ? v.TenViTri : null,
-                           LHID = h.Lhid ?? 0,
-                       }).ToList();
+            // Query có filter — phân trang trực tiếp trên DB
+            var query = from h in _db.XnhocTaps.Where(x => x.Lhid == id)
+                        join n in _db.NhanViens on h.Nvid equals n.Id
+                        join p in _db.PhongBans on h.Pbid equals p.IdphongBan into pj
+                        from p in pj.DefaultIfEmpty()
+                        join v in _db.Vitris on h.Vtid equals v.IdviTri into vj
+                        from v in vj.DefaultIfEmpty()
+                        where (search == "" || n.MaNv!.Contains(search) || n.HoTen!.Contains(search))
+                           && (IDPhongBan == 0 || n.IdphongBan == IDPhongBan)
+                        select new
+                        {
+                            h.Idht,
+                            NVID = n.Id,
+                            n.MaNv,
+                            n.HoTen,
+                            PBID = h.Pbid ?? 0,
+                            TenPB = p != null ? p.TenPhongBan : null,
+                            VTID = h.Vtid ?? 0,
+                            TenVT = v != null ? v.TenViTri : null,
+                            LHID = h.Lhid ?? 0,
+                        };
 
-            var baiThiAll = _db.BaiThis.Where(b => b.Idlh == id).ToList();
+            int totalCount = await query.CountAsync();
+
+            // Chỉ lấy 50 record của trang hiện tại
+            var raw = await query
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            // Load bài thi chỉ của 50 NV trên trang này (không phải toàn bộ 200k)
+            var nvIds = raw.Select(x => x.NVID).ToList();
+
+            var soLanList = await _db.BaiThis
+                .Where(b => b.Idlh == id && b.Idnv.HasValue && nvIds.Contains(b.Idnv!.Value))
+                .GroupBy(b => b.Idnv)
+                .Select(g => new { Idnv = g.Key, SoLan = g.Count(), MaxId = g.Max(b => b.IdbaiThi) })
+                .ToListAsync();
+
+            var maxIds = soLanList.Select(x => x.MaxId).ToList();
+            var diemMap = await _db.BaiThis
+                .Where(b => maxIds.Contains(b.IdbaiThi))
+                .Select(b => new { b.IdbaiThi, b.Idnv, b.DiemSo })
+                .ToDictionaryAsync(b => b.Idnv ?? 0);
+
+            var soLanDict = soLanList.ToDictionary(x => x.Idnv ?? 0);
 
             var res = raw.Select(x =>
             {
-                var ketqua = baiThiAll.Where(b => b.Idnv == x.NVID).OrderByDescending(b => b.IdbaiThi).ToList();
-                int soLan = ketqua.Count;
-                string kqText = soLan == 0 ? "Chưa tham gia" : "Đã tham gia";
-                string diemText = soLan > 0 ? ketqua[0].DiemSo?.ToString() ?? "" : "";
-                int idbaithi = soLan > 0 ? ketqua[0].IdbaiThi : 0;
-
+                soLanDict.TryGetValue(x.NVID, out var sl);
+                diemMap.TryGetValue(x.NVID, out var bt);
+                int soLan = sl?.SoLan ?? 0;
                 return new ConfirmEStudyValidation
                 {
-                    IDHT = x.Idht,
-                    NVID = x.NVID,
-                    MaNV = x.MaNv,
-                    HoTenHV = x.HoTen,
-                    PBID = x.PBID,
-                    TenPB = x.TenPB,
-                    VTID = x.VTID,
-                    TenVT = x.TenVT,
-                    LHID = x.LHID,
-                    TenLH = lh?.TenLh,
-                    KetQuaThi = kqText,
-                    SoLanThi = soLan,
-                    DiemText = diemText,
-                    IDBaiThi = idbaithi
+                    IDHT      = x.Idht,
+                    NVID      = x.NVID,
+                    MaNV      = x.MaNv,
+                    HoTenHV   = x.HoTen,
+                    PBID      = x.PBID,
+                    TenPB     = x.TenPB,
+                    VTID      = x.VTID,
+                    TenVT     = x.TenVT,
+                    LHID      = x.LHID,
+                    TenLH     = lh?.TenLh,
+                    KetQuaThi = soLan == 0 ? "Chưa tham gia" : "Đã tham gia",
+                    SoLanThi  = soLan,
+                    DiemText  = bt?.DiemSo?.ToString() ?? "",
+                    IDBaiThi  = bt?.IdbaiThi ?? 0
                 };
             }).ToList();
 
-            int pageNumber = page ?? 1;
-            return View(res.ToPagedList(pageNumber, 50));
+            return View(new StaticPagedList<ConfirmEStudyValidation>(res, pageNumber, pageSize, totalCount));
         }
 
         public IActionResult Create(int id)
@@ -198,16 +223,31 @@ namespace HeThongThiDQ.Controllers
                 DataTable dt = result.Tables[0];
                 reader.Close();
 
+                // Thu thập MaNV từ Excel trước
+                var maNVRows = new List<string>();
                 for (int i = 5; i < dt.Rows.Count; i++)
                 {
                     string maNV = dt.Rows[i][0].ToString()!.Trim();
-                    if (string.IsNullOrEmpty(maNV)) continue;
+                    if (!string.IsNullOrEmpty(maNV)) maNVRows.Add(maNV);
+                }
 
-                    var nv = _db.NhanViens.FirstOrDefault(x => x.MaNv!.ToLower() == maNV.ToLower());
-                    if (nv == null) continue;
+                // 1 query lấy tất cả NV cần thiết
+                var maNVLower = maNVRows.Select(x => x.ToLower()).ToList();
+                var nvMap = _db.NhanViens
+                    .Where(x => maNVLower.Contains(x.MaNv!.ToLower()))
+                    .ToDictionary(x => x.MaNv!.ToLower());
 
-                    bool exists = _db.XnhocTaps.Any(h => h.Lhid == id && h.Nvid == nv.Id);
-                    if (exists) { dtrung++; continue; }
+                // 1 query lấy danh sách NV đã tham gia lớp
+                var existingNvIds = _db.XnhocTaps
+                    .Where(h => h.Lhid == id)
+                    .Select(h => h.Nvid)
+                    .ToHashSet();
+
+                var today = DateOnly.FromDateTime(DateTime.Now);
+                foreach (string maNV in maNVRows)
+                {
+                    if (!nvMap.TryGetValue(maNV.ToLower(), out var nv)) continue;
+                    if (existingNvIds.Contains(nv.Id)) { dtrung++; continue; }
 
                     _db.XnhocTaps.Add(new XnhocTap
                     {
@@ -215,8 +255,8 @@ namespace HeThongThiDQ.Controllers
                         Lhid = id,
                         Pbid = nv.IdphongBan,
                         Vtid = nv.IdviTri,
-                        NgayTg = DateOnly.FromDateTime(DateTime.Now),
-                        NgayHt = DateOnly.FromDateTime(DateTime.Now),
+                        NgayTg = today,
+                        NgayHt = today,
                         Xntg = false,
                         Xnht = false
                     });
@@ -283,21 +323,32 @@ namespace HeThongThiDQ.Controllers
                     return RedirectToAction("Index", "ConfirmEStudy", new { id });
                 }
 
-                var baiThiAll = _db.BaiThis.Where(b => b.Idlh == id).ToList();
+                // GroupBy theo IDLH: đếm số lần thi + tìm IdbaiThi lớn nhất mỗi NV
+                var soLanExport = _db.BaiThis
+                    .Where(b => b.Idlh == id)
+                    .GroupBy(b => b.Idnv)
+                    .Select(g => new { Idnv = g.Key, SoLan = g.Count(), MaxId = g.Max(b => b.IdbaiThi) })
+                    .ToList();
+
+                var maxIdsExport = soLanExport.Select(x => x.MaxId).ToList();
+                var latestBtMap = _db.BaiThis
+                    .Where(b => maxIdsExport.Contains(b.IdbaiThi))
+                    .ToDictionary(b => b.Idnv ?? 0);
+
+                var soLanExportDict = soLanExport.ToDictionary(x => x.Idnv ?? 0);
 
                 int row = 1, stt = 0;
                 foreach (var item in raw)
                 {
                     row++; stt++;
-                    var ketqua = baiThiAll.Where(b => b.Idnv == item.NVID).OrderByDescending(b => b.IdbaiThi).ToList();
-                    int soLan = ketqua.Count;
+                    soLanExportDict.TryGetValue(item.NVID, out var sl);
+                    latestBtMap.TryGetValue(item.NVID, out var bt);
+                    int soLan = sl?.SoLan ?? 0;
                     string kqText = soLan == 0 ? "Chưa tham gia" : "Đã tham gia";
-                    string diem = soLan > 0 ? ketqua[0].DiemSo?.ToString() ?? "" : "";
-                    string tgianthi = soLan > 0 ? (ketqua[0].ThoiGianThi?.ToString() ?? "") + " Giây" : "";
-                    string tgbdt = soLan > 0 && ketqua[0].GioBatDau != null
-                        ? ketqua[0].GioBatDau?.ToString("dd/MM/yyyy HH:mm:ss") : "";
-                    string tgkt = soLan > 0 && ketqua[0].GioKetThuc != null
-                        ? ketqua[0].GioKetThuc?.ToString("dd/MM/yyyy HH:mm:ss") : "";
+                    string diem = bt?.DiemSo?.ToString() ?? "";
+                    string tgianthi = bt != null ? (bt.ThoiGianThi?.ToString() ?? "") + " Giây" : "";
+                    string tgbdt = bt?.GioBatDau?.ToString("dd/MM/yyyy HH:mm:ss") ?? "";
+                    string tgkt  = bt?.GioKetThuc?.ToString("dd/MM/yyyy HH:mm:ss") ?? "";
 
                     void SetCell(string col, object val) {
                         ws.Cell(col + row).Value = XLCellValue.FromObject(val);
