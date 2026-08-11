@@ -7,6 +7,7 @@ using HeThongThiDQ.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 using System.Data;
 using System.Globalization;
 using System.Threading.Tasks;
@@ -441,5 +442,124 @@ namespace HeThongThiDQ.Controllers
 
         private bool CheckMaNV(string maNV) =>
             _db.NhanViens.Any(x => x.MaNv!.ToLower() == maNV.ToLower());
+
+        // ── Pool đề thi (random đề chính thức) ──────────────────────────────────
+
+        [HttpGet]
+        public async Task<IActionResult> DeThiPool(int idlh)
+        {
+            var lh = await _db.LopHocs.AsNoTracking().FirstOrDefaultAsync(x => x.Idlh == idlh);
+            if (lh == null) return NotFound();
+
+            var pool = await (
+                from p in _db.LopHocDeThiPools.Where(x => x.Idlh == idlh)
+                join d in _db.DeThis on p.IddeThi equals d.IddeThi
+                select new { p.Id, p.IddeThi, d.TenDe, d.MaDe }
+            ).ToListAsync();
+
+            // Danh sách đề theo cùng NDID để chọn thêm
+            var available = await _db.DeThis.AsNoTracking()
+                .Where(x => x.Idnd == lh.Ndid)
+                .Select(x => new ManageTestExamValidation { IDDeThi = x.IddeThi, TenDe = x.TenDe, MaDe = x.MaDe })
+                .ToListAsync();
+
+            ViewBag.IDLH        = idlh;
+            ViewBag.TenLH       = lh.TenLh;
+            ViewBag.Pool        = pool;
+            ViewBag.Available   = available;
+            return PartialView();
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ThemDeVaoPool(int idlh, int iddeThi)
+        {
+            try
+            {
+                var exists = await _db.LopHocDeThiPools
+                    .AnyAsync(x => x.Idlh == idlh && x.IddeThi == iddeThi);
+                if (!exists)
+                {
+                    _db.LopHocDeThiPools.Add(new HeThongThiDQ.Data.Models.LopHocDeThiPool
+                    {
+                        Idlh = idlh, IddeThi = iddeThi
+                    });
+                    await _db.SaveChangesAsync();
+
+                    // Xóa cache lophoc để load lại pool mới
+                    await InvalidateLopHocCache(idlh);
+                }
+                return Json(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ThemNhieuDeVaoPool([FromBody] ThemNhieuDeRequest req)
+        {
+            if (req.IdlhList == null || req.IddeThi == null || req.IddeThi.Count == 0)
+                return Json(new { success = false, message = "Dữ liệu không hợp lệ" });
+            try
+            {
+                var existIds = (await _db.LopHocDeThiPools
+                    .Where(x => x.Idlh == req.Idlh)
+                    .Select(x => x.IddeThi)
+                    .ToListAsync()).ToHashSet();
+
+                foreach (var idde in req.IddeThi)
+                {
+                    if (!existIds.Contains(idde))
+                        _db.LopHocDeThiPools.Add(new HeThongThiDQ.Data.Models.LopHocDeThiPool
+                            { Idlh = req.Idlh, IddeThi = idde });
+                }
+                await _db.SaveChangesAsync();
+                await InvalidateLopHocCache(req.Idlh);
+                return Json(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        public class ThemNhieuDeRequest
+        {
+            public int Idlh { get; set; }
+            public List<int>? IdlhList { get; set; } // unused, kept for compat
+            public List<int>? IddeThi  { get; set; }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> XoaDeKhoiPool(int id, int idlh)
+        {
+            try
+            {
+                var item = await _db.LopHocDeThiPools.FindAsync(id);
+                if (item != null)
+                {
+                    _db.LopHocDeThiPools.Remove(item);
+                    await _db.SaveChangesAsync();
+                    await InvalidateLopHocCache(idlh);
+                }
+                return Json(new { success = true });
+            }
+            catch (Exception ex)
+            {
+                return Json(new { success = false, message = ex.Message });
+            }
+        }
+
+        private async Task InvalidateLopHocCache(int idlh)
+        {
+            try
+            {
+                var cache = HttpContext.RequestServices
+                    .GetRequiredService<Microsoft.Extensions.Caching.Distributed.IDistributedCache>();
+                await cache.RemoveAsync($"lophoc:{idlh}");
+            }
+            catch { }
+        }
     }
 }

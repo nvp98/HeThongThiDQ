@@ -1,0 +1,225 @@
+@{
+    int idlh = ViewBag.IDLH;
+    string tenLH = ViewBag.TenLH ?? "";
+    var pool = ViewBag.Pool as IEnumerable<dynamic> ?? Enumerable.Empty<dynamic>();
+    var available = ViewBag.Available as IEnumerable<HeThongThiDQ.Models.ManageTestExamValidation>
+                    ?? Enumerable.Empty<HeThongThiDQ.Models.ManageTestExamValidation>();
+    var poolIds = new HashSet<int>(pool.Select(p => (int)p.IddeThi));
+    var notInPool = available.Where(d => !poolIds.Contains(d.IDDeThi)).ToList();
+}
+
+<div class="modal-dialog modal-xl" id="formPool">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5><i class="fa fa-random" style="color:#6f42c1"></i> Pool đề thi — @tenLH</h5>
+            <a href="#" class="close" data-dismiss="modal">&times;</a>
+        </div>
+        <div class="modal-body">
+
+            <div class="row">
+                <!-- CỘT TRÁI: đề đang trong pool -->
+                <div class="col-md-5">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0">Đề trong pool
+                            <span class="badge badge-primary" id="badge-pool">@pool.Count()</span>
+                        </h6>
+                    </div>
+                    <p class="text-muted small">
+                        Mỗi thí sinh random 1 đề — cùng người luôn cùng đề.
+                    </p>
+                    <div style="max-height:340px;overflow-y:auto">
+                        <table class="table table-sm table-bordered mb-0" id="tblPool">
+                            <thead class="thead-light">
+                                <tr>
+                                    <th>Mã</th>
+                                    <th>Tên đề</th>
+                                    <th width="50px"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var item in pool)
+                                {
+                                    <tr id="row-pool-@item.Id">
+                                        <td><small>@item.MaDe</small></td>
+                                        <td><small>@item.TenDe</small></td>
+                                        <td class="text-center">
+                                            <button class="btn btn-xs btn-danger btn-xoa p-1"
+                                                    data-id="@item.Id" data-idlh="@idlh"
+                                                    title="Xóa khỏi pool">
+                                                <i class="fa fa-times"></i>
+                                            </button>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                        @if (!pool.Any())
+                        {
+                            <p class="text-center text-muted small mt-3">Pool đang trống</p>
+                        }
+                    </div>
+                </div>
+
+                <!-- ICON MŨI TÊN -->
+                <div class="col-md-1 d-flex flex-column align-items-center justify-content-center">
+                    <i class="fa fa-arrow-left text-muted" style="font-size:1.5rem"></i>
+                </div>
+
+                <!-- CỘT PHẢI: chọn đề chưa có trong pool -->
+                <div class="col-md-6">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <h6 class="mb-0">Đề chưa trong pool
+                            <span class="badge badge-secondary">@notInPool.Count</span>
+                        </h6>
+                        <div style="gap:4px;display:flex">
+                            <button class="btn btn-sm btn-outline-primary" id="btn-chon-het">
+                                <i class="fa fa-check-square-o"></i> Chọn tất cả
+                            </button>
+                            <button class="btn btn-sm btn-success" id="btn-them-chon">
+                                <i class="fa fa-arrow-left"></i> Thêm đã chọn
+                            </button>
+                        </div>
+                    </div>
+
+                    @if (notInPool.Any())
+                    {
+                        <div style="max-height:340px;overflow-y:auto;border:1px solid #dee2e6;border-radius:4px;padding:4px">
+                            <table class="table table-sm table-hover mb-0" id="tblAvailable">
+                                <thead class="thead-light" style="position:sticky;top:0">
+                                    <tr>
+                                        <th width="32px">
+                                            <input type="checkbox" id="chkAll" title="Chọn/bỏ tất cả">
+                                        </th>
+                                        <th>Mã</th>
+                                        <th>Tên đề</th>
+                                        <th class="text-center">Câu</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    @foreach (var d in notInPool)
+                                    {
+                                        <tr class="tr-available">
+                                            <td>
+                                                <input type="checkbox" class="chk-de" value="@d.IDDeThi">
+                                            </td>
+                                            <td><small>@d.MaDe</small></td>
+                                            <td><small>@d.TenDe</small></td>
+                                            <td class="text-center"><small>@d.TongSoCau</small></td>
+                                        </tr>
+                                    }
+                                </tbody>
+                            </table>
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-center text-muted small mt-4">
+                            Tất cả đề của nội dung này đã có trong pool
+                        </p>
+                    }
+                </div>
+            </div>
+
+            <div id="pool-msg" class="mt-2" style="display:none"></div>
+
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var _idlh = @idlh;
+
+    // Chọn tất cả
+    $("#chkAll, #btn-chon-het").click(function () {
+        var isCheck = $(this).is("input") ? $(this).prop("checked") : true;
+        if ($(this).is("#btn-chon-het")) {
+            var allChecked = $(".chk-de:checked").length === $(".chk-de").length;
+            isCheck = !allChecked;
+            $("#chkAll").prop("checked", isCheck);
+        }
+        $(".chk-de").prop("checked", isCheck);
+    });
+
+    // Đồng bộ checkbox header
+    $(document).on("change", ".chk-de", function () {
+        var total   = $(".chk-de").length;
+        var checked = $(".chk-de:checked").length;
+        $("#chkAll").prop("indeterminate", checked > 0 && checked < total);
+        $("#chkAll").prop("checked", checked === total);
+    });
+
+    // Thêm đã chọn vào pool
+    $("#btn-them-chon").click(function () {
+        var ids = $(".chk-de:checked").map(function () {
+            return parseInt($(this).val());
+        }).get();
+
+        if (ids.length === 0) {
+            showMsg("warning", "Chưa chọn đề nào");
+            return;
+        }
+
+        var btn = $(this).prop("disabled", true)
+                         .html('<i class="fa fa-spinner fa-spin"></i>');
+
+        $.ajax({
+            url: "/ManageClass/ThemNhieuDeVaoPool",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({ Idlh: _idlh, IdlhList: [_idlh], IddeThi: ids }),
+            success: function (r) {
+                if (r.success) {
+                    showMsg("success", "Đã thêm " + ids.length + " đề vào pool. Tải lại để xem cập nhật.");
+                    // Xóa các dòng đã chọn khỏi bảng available
+                    $(".chk-de:checked").closest("tr").fadeOut(300, function () {
+                        $(this).remove();
+                        updateBadge();
+                    });
+                } else {
+                    showMsg("danger", "Lỗi: " + r.message);
+                }
+            },
+            error: function () { showMsg("danger", "Lỗi kết nối server"); },
+            complete: function () {
+                btn.prop("disabled", false).html('<i class="fa fa-arrow-left"></i> Thêm đã chọn');
+            }
+        });
+    });
+
+    // Xóa đề khỏi pool
+    $(document).on("click", ".btn-xoa", function () {
+        if (!confirm("Xóa đề này khỏi pool?")) return;
+        var id   = $(this).data("id");
+        var idlh = $(this).data("idlh");
+        var row  = $(this).closest("tr");
+
+        $.post("/ManageClass/XoaDeKhoiPool", { id: id, idlh: idlh }, function (r) {
+            if (r.success) {
+                row.fadeOut(300, function () {
+                    $(this).remove();
+                    updateBadge();
+                });
+            } else {
+                alert("Lỗi: " + r.message);
+            }
+        });
+    });
+
+    function updateBadge() {
+        var n = $("#tblPool tbody tr:visible").length;
+        $("#badge-pool").text(n);
+    }
+
+    function showMsg(type, msg) {
+        $("#pool-msg")
+            .attr("class", "alert alert-" + type + " mt-2")
+            .text(msg)
+            .show();
+        setTimeout(function () { $("#pool-msg").fadeOut(); }, 4000);
+    }
+})();
+</script>

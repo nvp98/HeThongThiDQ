@@ -57,11 +57,25 @@
 
                         @if ((ViewBag.QUYENCN as List<string>).Contains(CONSTKEY.ADD))
                         {
-                            <span class="col-md-2">
+                            <span class="col-md-2 d-flex" style="gap:6px">
                                 <button type="button" id="btn-add" class="btn btn-primary m-l-auto"><i class="fa fa-plus">&nbsp;</i>&nbsp;Thêm mới</button>
+                                <button type="button" id="btn-sinh-de-pool" class="btn btn-success m-l-auto" title="Sinh đề tự động từ ngân hàng câu hỏi">
+                                    <i class="fa fa-magic"></i>&nbsp;Sinh đề
+                                </button>
                                 <span class="modal fade" id="myModal" role="dialog" data-url="@Url.Action("Create", "ManageTestExam")"></span>
+                                <span class="modal fade" id="myModalSinhDe" role="dialog" data-url="@Url.Action("SinhDePool", "ManageTestExam")"></span>
                             </span>
                         }
+                        <script>
+                            $("#btn-sinh-de-pool").click(function () {
+                                var url = $("#myModalSinhDe").data("url");
+                                $.get(url, function (data) {
+                                    $("#myModal").html(data);
+                                    $("#myModal").modal({ backdrop: "static" });
+                                    $("#myModal").modal("show");
+                                });
+                            });
+                        </script>
                     </div>
                     <div class="card-body">
                         <div class="table-responsive">

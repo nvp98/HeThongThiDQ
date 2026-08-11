@@ -1,0 +1,249 @@
+<div class="modal-dialog modal-lg" id="formSinhDe">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5><i class="fa fa-magic"></i> Sinh đề thi tự động từ ngân hàng câu hỏi</h5>
+            <a href="#" class="close" data-dismiss="modal">&times;</a>
+        </div>
+        <div class="modal-body">
+
+            <div class="row">
+                <!-- CỘT TRÁI: cấu hình cơ bản -->
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="small mb-1">Nội dung đào tạo <span class="text-danger">*</span></label>
+                        <select id="sd-idnd" class="form-control">
+                            <option value="">-- Chọn nội dung --</option>
+                            @foreach (var nd in ViewBag.NDList as IEnumerable<SelectListItem> ?? Enumerable.Empty<SelectListItem>())
+                            {
+                                <option value="@nd.Value">@nd.Text</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label class="small mb-1">Thêm vào pool lớp thi (tuỳ chọn)</label>
+                        <select id="sd-idlh" class="form-control">
+                            <option value="0">-- Không thêm pool --</option>
+                            @foreach (var lh in ViewBag.LHList as IEnumerable<SelectListItem> ?? Enumerable.Empty<SelectListItem>())
+                            {
+                                <option value="@lh.Value">@lh.Text</option>
+                            }
+                        </select>
+                        <small class="text-muted">Chỉ hiển thị lớp chính thức (1 lần thi)</small>
+                    </div>
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label class="small mb-1">Số đề cần tạo <span class="text-danger">*</span></label>
+                                <input type="number" id="sd-sode" class="form-control" value="3" min="1" max="50">
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label class="small mb-1">Tổng số câu/đề <span class="text-danger">*</span></label>
+                                <input type="number" id="sd-tongsocau" class="form-control" value="20" min="1">
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label class="small mb-1">Thời gian (phút)</label>
+                                <input type="number" id="sd-thoigian" class="form-control" value="30" min="1">
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label class="small mb-1">Điểm chuẩn</label>
+                                <input type="number" id="sd-diemchuan" class="form-control" value="5" min="0" max="10" step="0.5">
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label class="small mb-1">Tiền tố mã đề</label>
+                                <input type="text" id="sd-prefix" class="form-control" value="DE" maxlength="10" placeholder="DE, MA, ...">
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label class="small mb-1">Tên đề (gốc)</label>
+                                <input type="text" id="sd-tende" class="form-control" placeholder="Đề kiểm tra...">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- CỘT PHẢI: phân bổ loại câu hỏi -->
+                <div class="col-md-6">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="small mb-0">Phân bổ loại câu hỏi <span class="text-danger">*</span></label>
+                        <button class="btn btn-sm btn-outline-secondary" id="btn-tai-loai" type="button">
+                            <i class="fa fa-refresh"></i> Tải loại câu hỏi
+                        </button>
+                    </div>
+
+                    <div id="div-loai-ch" class="border rounded p-2" style="min-height:120px;background:#fafafa">
+                        <p class="text-muted small text-center mt-3">
+                            Chọn Nội dung đào tạo rồi nhấn "Tải loại câu hỏi"
+                        </p>
+                    </div>
+
+                    <div class="mt-2">
+                        <span class="small text-muted">Tổng câu đã phân bổ: </span>
+                        <strong id="sd-tongphanbo" class="text-primary">0</strong>
+                        <span class="small text-muted"> / </span>
+                        <strong id="sd-tongsocau-display" class="text-dark">0</strong>
+                        <span id="sd-check-ok" class="text-success ml-2" style="display:none">
+                            <i class="fa fa-check-circle"></i> Hợp lệ
+                        </span>
+                        <span id="sd-check-err" class="text-danger ml-2" style="display:none">
+                            <i class="fa fa-times-circle"></i> Chưa khớp tổng số câu
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Kết quả sau khi tạo -->
+            <div id="sd-result" class="mt-3" style="display:none">
+                <hr>
+                <h6 class="text-success"><i class="fa fa-check"></i> Đã tạo thành công</h6>
+                <div id="sd-result-list" class="small"></div>
+            </div>
+
+            <div id="sd-error" class="alert alert-danger mt-3" style="display:none"></div>
+
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+            <button class="btn btn-primary" id="btn-sinh-de" type="button">
+                <i class="fa fa-magic"></i> Sinh đề
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    // Tải loại câu hỏi từ ngân hàng
+    $("#btn-tai-loai").click(function () {
+        var idnd = $("#sd-idnd").val();
+        if (!idnd) { alert("Vui lòng chọn Nội dung đào tạo"); return; }
+
+        $(this).prop("disabled", true).html('<i class="fa fa-spinner fa-spin"></i> Đang tải...');
+        var self = this;
+
+        $.get("/ManageTestExam/GetLoaiCauHoi", { idnd: idnd }, function (data) {
+            var html = '';
+            if (!data || data.length === 0) {
+                html = '<p class="text-warning small text-center mt-3">Không có câu hỏi nào trong ngân hàng</p>';
+            } else {
+                html = '<table class="table table-sm table-borderless mb-0">';
+                html += '<thead><tr><th>Loại</th><th>SL có sẵn</th><th>SL cần lấy</th><th></th></tr></thead><tbody>';
+                $.each(data, function (i, row) {
+                    html += '<tr>'
+                        + '<td><strong>' + row.LoaiCH + '</strong></td>'
+                        + '<td class="text-muted">' + row.SoLuong + ' câu</td>'
+                        + '<td style="width:100px"><input type="number" class="form-control form-control-sm soLuongInput"'
+                        + ' data-loai="' + row.LoaiCH + '" data-max="' + row.SoLuong + '"'
+                        + ' value="0" min="0" max="' + row.SoLuong + '"></td>'
+                        + '<td><small class="text-muted">(tối đa ' + row.SoLuong + ')</small></td>'
+                        + '</tr>';
+                });
+                html += '</tbody></table>';
+            }
+            $("#div-loai-ch").html(html);
+            updateTongPhanBo();
+        }).fail(function () {
+            $("#div-loai-ch").html('<p class="text-danger small">Lỗi tải dữ liệu</p>');
+        }).always(function () {
+            $(self).prop("disabled", false).html('<i class="fa fa-refresh"></i> Tải loại câu hỏi');
+        });
+    });
+
+    // Cập nhật tổng phân bổ khi nhập
+    $(document).on("input", ".soLuongInput", updateTongPhanBo);
+    $("#sd-tongsocau").on("input", function () {
+        $("#sd-tongsocau-display").text($(this).val() || "0");
+        updateTongPhanBo();
+    });
+
+    function updateTongPhanBo() {
+        var tong = 0;
+        $(".soLuongInput").each(function () { tong += parseInt($(this).val()) || 0; });
+        var canLay = parseInt($("#sd-tongsocau").val()) || 0;
+        $("#sd-tongphanbo").text(tong);
+        $("#sd-tongsocau-display").text(canLay);
+        if (tong > 0 && tong === canLay) {
+            $("#sd-check-ok").show(); $("#sd-check-err").hide();
+        } else {
+            $("#sd-check-ok").hide();
+            if (tong > 0) $("#sd-check-err").show(); else $("#sd-check-err").hide();
+        }
+    }
+
+    // Sinh đề
+    $("#btn-sinh-de").click(function () {
+        $("#sd-error").hide();
+        $("#sd-result").hide();
+
+        var idnd    = parseInt($("#sd-idnd").val()) || 0;
+        var idlh    = parseInt($("#sd-idlh").val()) || 0;
+        var sode    = parseInt($("#sd-sode").val()) || 0;
+        var tongSoCau = parseInt($("#sd-tongsocau").val()) || 0;
+        var thoiGian  = parseInt($("#sd-thoigian").val()) || 30;
+        var diemChuan = parseFloat($("#sd-diemchuan").val()) || 5;
+        var prefix  = $("#sd-prefix").val().trim();
+        var tenDe   = $("#sd-tende").val().trim();
+
+        if (!idnd) { showErr("Chưa chọn Nội dung đào tạo"); return; }
+        if (sode < 1 || sode > 50) { showErr("Số đề hợp lệ: 1–50"); return; }
+        if (tongSoCau < 1) { showErr("Tổng số câu phải > 0"); return; }
+
+        var phanBo = [];
+        $(".soLuongInput").each(function () {
+            var sl = parseInt($(this).val()) || 0;
+            if (sl > 0) phanBo.push({ loaiCH: $(this).data("loai"), soLuong: sl });
+        });
+
+        if (phanBo.length === 0) { showErr("Chưa phân bổ câu hỏi theo loại"); return; }
+
+        var tongPB = phanBo.reduce(function (s, x) { return s + x.soLuong; }, 0);
+        if (tongPB !== tongSoCau) {
+            showErr("Tổng câu phân bổ (" + tongPB + ") ≠ Tổng số câu (" + tongSoCau + ")");
+            return;
+        }
+
+        var btn = $(this);
+        btn.prop("disabled", true).html('<i class="fa fa-spinner fa-spin"></i> Đang tạo...');
+
+        $.ajax({
+            url: "/ManageTestExam/SinhDePool",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({
+                IDND: idnd, IDLH: idlh, SoDe: sode,
+                TongSoCau: tongSoCau, ThoiGianLamBai: thoiGian,
+                DiemChuan: diemChuan, MaDePrefix: prefix, TenDe: tenDe,
+                PhanBo: phanBo.map(function(p){ return { LoaiCH: p.loaiCH, SoLuong: p.soLuong }; })
+            }),
+            success: function (r) {
+                if (r.success) {
+                    var html = '<ul class="mb-0">';
+                    $.each(r.created, function (i, d) {
+                        html += '<li><strong>' + d.MaDe + '</strong> — ' + d.TenDe + ' (ID=' + d.IDDeThi + ')</li>';
+                    });
+                    html += '</ul>';
+                    if (idlh > 0) html += '<p class="mt-2 mb-0 text-success">Đã thêm tất cả vào pool lớp thi.</p>';
+                    $("#sd-result-list").html(html);
+                    $("#sd-result").show();
+                } else {
+                    showErr(r.message);
+                }
+            },
+            error: function () { showErr("Lỗi kết nối server"); },
+            complete: function () {
+                btn.prop("disabled", false).html('<i class="fa fa-magic"></i> Sinh đề');
+            }
+        });
+    });
+
+    function showErr(msg) { $("#sd-error").text(msg).show(); }
+})();
+</script>

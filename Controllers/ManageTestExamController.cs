@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using System.Text.RegularExpressions;
 using X.PagedList.Extensions;
 
@@ -17,13 +18,16 @@ namespace HeThongThiDQ.Controllers
         private readonly ELEARNINGEntities _db;
         private readonly MyAuthentication _auth;
         private readonly HomeController _home;
+        private readonly IDistributedCache _cache;
         private const string ControllerName = "ManageTestExam";
 
-        public ManageTestExamController(ELEARNINGEntities db, MyAuthentication auth, HomeController home)
+        public ManageTestExamController(ELEARNINGEntities db, MyAuthentication auth,
+            HomeController home, IDistributedCache cache)
         {
             _db = db;
             _auth = auth;
             _home = home;
+            _cache = cache;
         }
 
         public async Task<IActionResult> Index(int? page, string? search, int? IDND)
@@ -392,6 +396,163 @@ namespace HeThongThiDQ.Controllers
             if (string.IsNullOrWhiteSpace(html)) return "";
             return System.Net.WebUtility.HtmlDecode(
                 Regex.Replace(html, "<[^>]+>|\\s{2}", ""));
+        }
+
+        // ── Sinh đề tự động theo pool ──────────────────────────────────────────
+
+        // Xác định loại câu hỏi từ mã: "A001" → "A", "CH01" → "CH"
+        private static string GetLoaiCH(string maCh)
+        {
+            var m = Regex.Match(maCh, @"^([A-Za-z]+)");
+            return m.Success ? m.Groups[1].Value.ToUpper() : "?";
+        }
+
+        // Trả danh sách loại câu hỏi + số lượng có trong ngân hàng theo IDND
+        [HttpGet]
+        public async Task<IActionResult> GetLoaiCauHoi(int idnd)
+        {
+            var list = await _db.CauHois.AsNoTracking()
+                .Where(x => x.Idnd == idnd && x.MaCh != null)
+                .Select(x => new { x.Idch, x.MaCh })
+                .ToListAsync();
+
+            var grouped = list
+                .GroupBy(q => GetLoaiCH(q.MaCh!))
+                .Select(g => new { LoaiCH = g.Key, SoLuong = g.Count() })
+                .OrderBy(x => x.LoaiCH)
+                .ToList();
+
+            return Json(grouped);
+        }
+
+        // GET: form cấu hình sinh đề
+        [HttpGet]
+        public async Task<IActionResult> SinhDePool()
+        {
+            ViewBag.NDList = new SelectList(
+                await _db.NoiDungDts.AsNoTracking().ToListAsync(), "Idnd", "NoiDung");
+            ViewBag.LHList = new SelectList(
+                await _db.LopHocs.AsNoTracking()
+                    .Where(x => x.IsCoCtdt == 0)   // chỉ lớp thi chính thức
+                    .Select(x => new { x.Idlh, x.TenLh })
+                    .ToListAsync(), "Idlh", "TenLh");
+            return PartialView();
+        }
+
+        // POST: tạo N đề thi + thêm vào pool
+        [HttpPost]
+        public async Task<IActionResult> SinhDePool([FromBody] SinhDeRequest req)
+        {
+            if (req.SoDe < 1 || req.SoDe > 50)
+                return Json(new { success = false, message = "Số đề hợp lệ: 1–50" });
+            if (req.PhanBo == null || req.PhanBo.Count == 0)
+                return Json(new { success = false, message = "Chưa cấu hình phân bổ loại câu hỏi" });
+            if (req.PhanBo.Sum(x => x.SoLuong) != req.TongSoCau)
+                return Json(new { success = false, message = $"Tổng câu phân bổ ({req.PhanBo.Sum(x => x.SoLuong)}) ≠ Tổng số câu ({req.TongSoCau})" });
+
+            // Load ngân hàng câu hỏi
+            var allQ = await _db.CauHois.AsNoTracking()
+                .Where(x => x.Idnd == req.IDND && x.MaCh != null)
+                .Select(x => new { x.Idch, x.MaCh })
+                .ToListAsync();
+
+            var byType = allQ
+                .GroupBy(q => GetLoaiCH(q.MaCh!))
+                .ToDictionary(g => g.Key, g => g.Select(x => x.Idch).ToList());
+
+            // Kiểm tra đủ câu không
+            foreach (var pb in req.PhanBo)
+            {
+                var avail = byType.TryGetValue(pb.LoaiCH, out var lst) ? lst.Count : 0;
+                if (avail < pb.SoLuong)
+                    return Json(new { success = false, message = $"Loại {pb.LoaiCH}: cần {pb.SoLuong} câu nhưng chỉ có {avail} câu" });
+            }
+
+            double diemMoiCau = req.TongSoCau > 0
+                ? Math.Round(10.0 / req.TongSoCau, 4)
+                : 0;
+
+            var rng = new Random();
+            var created = new List<object>();
+
+            for (int i = 1; i <= req.SoDe; i++)
+            {
+                // Tạo đề thi
+                var prefix = string.IsNullOrWhiteSpace(req.MaDePrefix) ? "DE" : req.MaDePrefix.Trim();
+                var tenGoc = string.IsNullOrWhiteSpace(req.TenDe) ? "Đề thi" : req.TenDe.Trim();
+
+                var deThi = new DeThi
+                {
+                    MaDe           = $"{prefix}{i:D2}",
+                    TenDe          = $"{tenGoc} — Đề {i:D2}",
+                    TongSoCau      = req.TongSoCau,
+                    ThoiGianLamBai = req.ThoiGianLamBai,
+                    DiemChuan      = req.DiemChuan,
+                    Idnd           = req.IDND,
+                    Gvid           = _auth.ID,
+                };
+                _db.DeThis.Add(deThi);
+                await _db.SaveChangesAsync(); // cần IddeThi trước
+
+                // Chọn câu hỏi theo phân bổ, shuffle riêng từng loại
+                foreach (var pb in req.PhanBo)
+                {
+                    var picked = byType[pb.LoaiCH]
+                        .OrderBy(_ => rng.Next())
+                        .Take(pb.SoLuong);
+
+                    foreach (var idch in picked)
+                    {
+                        _db.CauHoiDeThis.Add(new CauHoiDeThi
+                        {
+                            IdcauHoi = idch,
+                            IddeThi  = deThi.IddeThi,
+                            Diem     = diemMoiCau,
+                        });
+                    }
+                }
+                await _db.SaveChangesAsync();
+
+                // Thêm vào pool nếu có IDLH
+                if (req.IDLH > 0)
+                {
+                    var exists = await _db.LopHocDeThiPools
+                        .AnyAsync(x => x.Idlh == req.IDLH && x.IddeThi == deThi.IddeThi);
+                    if (!exists)
+                        _db.LopHocDeThiPools.Add(new LopHocDeThiPool
+                            { Idlh = req.IDLH, IddeThi = deThi.IddeThi });
+                }
+
+                created.Add(new { IDDeThi = deThi.IddeThi, MaDe = deThi.MaDe, TenDe = deThi.TenDe });
+            }
+
+            if (req.IDLH > 0)
+            {
+                await _db.SaveChangesAsync();
+                try { await _cache.RemoveAsync($"lophoc:{req.IDLH}"); } catch { }
+            }
+
+            return Json(new { success = true, total = req.SoDe, created });
+        }
+
+        // Input model
+        public class SinhDeRequest
+        {
+            public int    IDND           { get; set; }
+            public int    IDLH           { get; set; }
+            public int    SoDe           { get; set; }
+            public int    TongSoCau      { get; set; }
+            public int    ThoiGianLamBai { get; set; }
+            public double DiemChuan      { get; set; }
+            public string MaDePrefix     { get; set; } = "";
+            public string TenDe          { get; set; } = "";
+            public List<PhanBoLoai> PhanBo { get; set; } = new();
+        }
+
+        public class PhanBoLoai
+        {
+            public string LoaiCH  { get; set; } = "";
+            public int    SoLuong { get; set; }
         }
     }
 }

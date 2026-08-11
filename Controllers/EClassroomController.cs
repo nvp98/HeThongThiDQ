@@ -178,12 +178,11 @@ namespace HeThongThiDQ.Controllers
             ViewBag.IDBaiThi = IDBaiThi;
             ViewBag.IDNV    = _auth.ID;
 
-            var dethi   = await _db.LopHocs.AsNoTracking().FirstOrDefaultAsync(x => x.Idlh == IDLH);
-            var tongdiem = await _db.CauHoiDeThis.AsNoTracking()
-                .Where(x => x.IddeThi == dethi!.IddeThi)
-                .SumAsync(x => x.Diem);
-
+            // Dùng BaiThi.IddeThi để tính TongDiem — đúng với cả trường hợp pool đề (mỗi user 1 đề khác nhau)
             var baithi = await _db.BaiThis.AsNoTracking().FirstOrDefaultAsync(x => x.IdbaiThi == IDBaiThi);
+            var tongdiem = await _db.CauHoiDeThis.AsNoTracking()
+                .Where(x => x.IddeThi == (baithi != null ? baithi.IddeThi : 0))
+                .SumAsync(x => x.Diem);
             ViewBag.DiemThi         = (baithi?.DiemSo ?? 0) + "/" + tongdiem;
             ViewBag.ThoiGianThiGiay = baithi?.ThoiGianThi ?? 0;
             ViewBag.GioBatDau       = baithi?.GioBatDau;

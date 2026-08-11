@@ -47,7 +47,8 @@ namespace HeThongThiDQ.Controllers
 
         private record LopHocDto(
             int Idlh, int? IddeThi, int? Ndid, int? IsCoCtdt,
-            DateTime? Tgbdlh, DateTime? Tgktlh, double? ThoiGianLamBai);
+            DateTime? Tgbdlh, DateTime? Tgktlh, double? ThoiGianLamBai,
+            List<int> DeThiPool);
 
         private async Task<LopHocDto?> GetLopHocCachedAsync(int lhid)
         {
@@ -62,16 +63,25 @@ namespace HeThongThiDQ.Controllers
             var lh = await _db.LopHocs.AsNoTracking().FirstOrDefaultAsync(x => x.Idlh == lhid);
             if (lh == null) return null;
 
-            var dethi = lh.IddeThi.HasValue
+            // Load pool đề thi (nếu có) — dùng cho random đề chính thức
+            var pool = await _db.LopHocDeThiPools
+                .Where(p => p.Idlh == lhid)
+                .Select(p => p.IddeThi)
+                .ToListAsync();
+
+            // Lấy ThoiGianLamBai từ đề đầu tiên trong pool, hoặc từ IddeThi cũ
+            int? primaryId = pool.Count > 0 ? pool[0] : lh.IddeThi;
+            var dethi = primaryId.HasValue
                 ? await _db.DeThis.AsNoTracking()
-                    .Where(x => x.IddeThi == lh.IddeThi)
+                    .Where(x => x.IddeThi == primaryId)
                     .Select(x => new { x.ThoiGianLamBai })
                     .FirstOrDefaultAsync()
                 : null;
 
             var dto = new LopHocDto(
                 lh.Idlh, lh.IddeThi, lh.Ndid, lh.IsCoCtdt,
-                lh.Tgbdlh, lh.Tgktlh, dethi?.ThoiGianLamBai);
+                lh.Tgbdlh, lh.Tgktlh, dethi?.ThoiGianLamBai,
+                pool);
 
             try { await _cache.SetStringAsync(key, JsonSerializer.Serialize(dto), _lhOpts); }
             catch { }
@@ -79,12 +89,30 @@ namespace HeThongThiDQ.Controllers
             return dto;
         }
 
+        // Trả HashSet các IDDeThi hợp lệ cho lớp học
+        private static HashSet<int> GetValidDeThiIds(LopHocDto lh) =>
+            lh.DeThiPool.Count > 0
+                ? lh.DeThiPool.ToHashSet()
+                : new HashSet<int> { lh.IddeThi ?? 0 };
+
+        // Chọn đề thi deterministic theo IDNV (cùng người → luôn cùng đề)
+        private static int SelectDeThiForUser(LopHocDto lh, int idnv)
+        {
+            if (lh.DeThiPool.Count > 0)
+            {
+                var idx = (int)((uint)(idnv * 2654435761u) % (uint)lh.DeThiPool.Count);
+                return lh.DeThiPool[idx];
+            }
+            return lh.IddeThi ?? 0;
+        }
+
         public async Task<IActionResult> Index(int LHID)
         {
             var random = new Random();
 
             var lh = await GetLopHocCachedAsync(LHID);
-            if (lh == null || lh.IddeThi == null) return RedirectToAction("Index", "EClassroom");
+            if (lh == null || (lh.IddeThi == null && lh.DeThiPool.Count == 0))
+                return RedirectToAction("Index", "EClassroom");
             int totalTimeSec = (int)((lh.ThoiGianLamBai ?? 0) * 60);
 
             // Try restore existing session from Redis
@@ -97,17 +125,21 @@ namespace HeThongThiDQ.Controllers
             }
             catch { }
 
-            // Invalidate if belongs to different exam or time ran out
+            // Invalidate nếu đề không hợp lệ hoặc hết giờ
+            var validDeThiIds = GetValidDeThiIds(lh);
             if (session != null &&
-                (session.IDDeThi != (lh.IddeThi ?? 0) ||
+                (!validDeThiIds.Contains(session.IDDeThi) ||
                  DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() >= session.EndTimestamp))
             {
                 try { await _cache.RemoveAsync(SessionKey(LHID)); } catch { }
                 session = null;
             }
 
-            // Cache câu hỏi theo LHID — tránh query DB mỗi lần load đề
-            var qKey = $"exam:q:{LHID}";
+            // Xác định đề thi cho user: session HIT → giữ nguyên; session MISS → chọn mới
+            int selectedDeThiId = session?.IDDeThi ?? SelectDeThiForUser(lh, _auth.ID);
+
+            // Cache câu hỏi theo LHID + IDDeThi (mỗi đề 1 cache riêng)
+            var qKey = $"exam:q:{LHID}:{selectedDeThiId}";
             List<TestValidation>? allQuestions = null;
             try
             {
@@ -120,7 +152,7 @@ namespace HeThongThiDQ.Controllers
             if (allQuestions == null)
             {
                 allQuestions = await (
-                    from cd in _db.CauHoiDeThis.Where(x => x.IddeThi == lh.IddeThi)
+                    from cd in _db.CauHoiDeThis.Where(x => x.IddeThi == selectedDeThiId)
                     join ch in _db.CauHois on cd.IdcauHoi equals ch.Idch
                     join da in _db.DanhSachDa on ch.Iddađung equals da.Iddsđa
                     select new TestValidation
@@ -135,7 +167,7 @@ namespace HeThongThiDQ.Controllers
                         DapAnDung = da.TenĐa,
                         Diem      = cd.Diem ?? 0,
                         IDLH      = LHID,
-                        IDDeThi   = lh.IddeThi ?? 0,
+                        IDDeThi   = selectedDeThiId,
                         IDND      = lh.Ndid ?? 0,
                         IsDao     = ch.IsDao ?? false,
                         GioBatDau = DateTime.Now,
@@ -180,7 +212,7 @@ namespace HeThongThiDQ.Controllers
                 var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                 session = new ExamSession
                 {
-                    IDDeThi        = lh.IddeThi ?? 0,
+                    IDDeThi        = selectedDeThiId,
                     IDND           = lh.Ndid ?? 0,
                     IDLH           = LHID,
                     IDNV           = _auth.ID,
@@ -397,7 +429,7 @@ namespace HeThongThiDQ.Controllers
             Dictionary<int, (int? Iddađung, double? Diem)> cauHoiMap;
             try
             {
-                var qCached = await _cache.GetStringAsync($"exam:q:{dto.IDLH}");
+                var qCached = await _cache.GetStringAsync($"exam:q:{dto.IDLH}:{dto.IDDeThi}");
                 if (qCached != null)
                 {
                     var qs = JsonSerializer.Deserialize<List<TestValidation>>(qCached);

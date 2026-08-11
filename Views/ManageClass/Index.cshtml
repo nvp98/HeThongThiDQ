@@ -149,6 +149,17 @@
                                                             });
                                                         });
                                                     </script>
+                                                    <a id="btn-pool_@item.IDLH" title="Pool đề thi (random)" class="fa fa-random icon_action" style="color:#6f42c1"></a>
+                                                    <div class="modal fade" id="myModalPool_@item.IDLH" role="dialog" data-url="@Url.Action("DeThiPool","ManageClass", new { idlh = item.IDLH })"></div>
+                                                    <script type="text/javascript">
+                                                        $("#btn-pool_@item.IDLH").click(function () {
+                                                            var url = $('#myModalPool_@item.IDLH').data('url');
+                                                            $.get(url, function (data) {
+                                                                $("#myModal").html(data);
+                                                                $("#myModal").modal('show');
+                                                            });
+                                                        });
+                                                    </script>
                                                 }
                                                 @if ((ViewBag.QUYENCN as List<string>).Contains(CONSTKEY.DEL))
                                                 {

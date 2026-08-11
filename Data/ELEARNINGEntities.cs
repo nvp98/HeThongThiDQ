@@ -82,6 +82,8 @@ public partial class ELEARNINGEntities : DbContext
 
     public virtual DbSet<LopHoc> LopHocs { get; set; }
 
+    public virtual DbSet<LopHocDeThiPool> LopHocDeThiPools { get; set; }
+
     public virtual DbSet<NhanVien> NhanViens { get; set; }
 
     public virtual DbSet<NhomNlkccd> NhomNlkccds { get; set; }
@@ -703,6 +705,16 @@ public partial class ELEARNINGEntities : DbContext
             entity.HasOne(d => d.Nd).WithMany(p => p.LopHocs)
                 .HasForeignKey(d => d.Ndid)
                 .HasConstraintName("FK_LopHoc_NoiDungDT");
+        });
+
+        modelBuilder.Entity<LopHocDeThiPool>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.ToTable("LopHocDeThiPool");
+            entity.Property(e => e.Id).HasColumnName("ID");
+            entity.Property(e => e.Idlh).HasColumnName("IDLH");
+            entity.Property(e => e.IddeThi).HasColumnName("IDDeThi");
+            entity.HasIndex(e => new { e.Idlh, e.IddeThi }).IsUnique();
         });
 
         modelBuilder.Entity<NhanVien>(entity =>
