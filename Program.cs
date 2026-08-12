@@ -59,10 +59,19 @@ builder.Services.AddSession(options =>
     options.Cookie.IsEssential = true;
 });
 
-// RabbitMQ — publisher singleton, consumer background service
-builder.Services.AddSingleton<HeThongThiDQ.Services.IExamQueuePublisher,
-                               HeThongThiDQ.Services.RabbitMqPublisher>();
-builder.Services.AddHostedService<HeThongThiDQ.Services.ExamSubmitConsumer>();
+// RabbitMQ — bỏ qua khi connection string rỗng (dev local không kết nối được server nội bộ)
+var rabbitMqUri = builder.Configuration.GetConnectionString("RabbitMQ");
+if (!string.IsNullOrWhiteSpace(rabbitMqUri))
+{
+    builder.Services.AddSingleton<HeThongThiDQ.Services.IExamQueuePublisher,
+                                   HeThongThiDQ.Services.RabbitMqPublisher>();
+    builder.Services.AddHostedService<HeThongThiDQ.Services.ExamSubmitConsumer>();
+}
+else
+{
+    builder.Services.AddSingleton<HeThongThiDQ.Services.IExamQueuePublisher,
+                                   HeThongThiDQ.Services.NullExamQueuePublisher>();
+}
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<MyAuthentication>();

@@ -188,6 +188,21 @@ namespace HeThongThiDQ.Controllers
             ViewBag.GioBatDau       = baithi?.GioBatDau;
             ViewBag.GioKetThuc      = baithi?.GioKetThuc;
 
+            var nv = await _db.NhanViens.AsNoTracking()
+                .Where(x => x.Id == _auth.ID)
+                .Select(x => new { x.MaNv, x.HoTen })
+                .FirstOrDefaultAsync();
+            ViewBag.TaiKhoan = nv?.MaNv;
+            ViewBag.HoTen    = nv?.HoTen;
+
+            var ctBaiThis = await _db.CtbaiThis.AsNoTracking()
+                .Where(x => x.IdbaiThi == IDBaiThi)
+                .ToListAsync();
+            ViewBag.TongSoCauHoi     = ctBaiThis.Count;
+            ViewBag.SoCauDung        = ctBaiThis.Count(x => (x.Diem ?? 0) != 0);
+            ViewBag.SoCauChuaTraLoi  = ctBaiThis.Count(x => x.IddapAnNv == null);
+            ViewBag.SoCauSai         = ctBaiThis.Count - (int)ViewBag.SoCauDung - (int)ViewBag.SoCauChuaTraLoi;
+
             return View();
         }
     }
