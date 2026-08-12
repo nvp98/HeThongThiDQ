@@ -61,23 +61,28 @@
     <script type="text/javascript" src="~/Content/assets/DataTables/datatables.min.js"></script>
     <script src="~/Content/assets/TinyMCE/js/tinymce/tinymce.min.js"></script>
     <style>
-        /* ---- Ẩn sidebar trên desktop, không ảnh hưởng mobile ---- */
-        .closed-sidebar:not(.sidebar-mobile-open) .app-sidebar {
+        /* ---- sidebar-hidden: class riêng, không bị main.js can thiệp ---- */
+        .sidebar-hidden .app-sidebar {
         display: none !important;
         }
 
-        .closed-sidebar:not(.sidebar-mobile-open) .app-main {
+        .sidebar-hidden .app-main {
         margin-left: 0 !important;
         padding-left: 0 !important;
         width: 100% !important;
         }
 
-        .closed-sidebar:not(.sidebar-mobile-open) .app-main .app-main__outer,
-        .closed-sidebar:not(.sidebar-mobile-open) .app-main .app-main__inner {
+        .sidebar-hidden .app-main .app-main__outer,
+        .sidebar-hidden .app-main .app-main__inner {
         margin-left: 0 !important;
         padding-left: 0 !important;
         width: 100% !important;
         max-width: 100% !important;
+        }
+
+        /* Override padding-left: 80px mà closed-sidebar.fixed-sidebar set trên app-main__outer */
+        .sidebar-hidden .app-main__outer {
+        padding-left: 0 !important;
         }
 
         /* Mobile: khi sidebar-mobile-open thì sidebar hiện bình thường */
@@ -85,12 +90,12 @@
         display: flex !important;
         }
 
-        /* Template ẩn .logo-src trong top header khi closed-sidebar — override lại */
-        .closed-sidebar .app-header .app-header__logo .logo-src {
+        /* Giữ logo-src và header width bình thường khi sidebar ẩn */
+        .sidebar-hidden .app-header .app-header__logo .logo-src {
         display: block !important;
         }
 
-        .closed-sidebar .app-header .app-header__logo {
+        .sidebar-hidden .app-header .app-header__logo {
         width: 280px !important;
         }
 
@@ -180,18 +185,24 @@
         margin-left: auto !important;
         font-size: 13px !important;
         }
+
+        .app-header > .app-header__logo .logo-src {
+        background: url(/Content/assets/images/logo.png) no-repeat center / contain !important;
+        height: 42px !important;
+        width: 160px !important;
+        }
     </style>
 </head>
 
 <body style="padding-right:0px !important">
 
-    <div class="app-container app-theme-white body-tabs-shadow fixed-sidebar fixed-header ">
+    <div class="app-container app-theme-white body-tabs-shadow fixed-sidebar fixed-header sidebar-hidden">
         <div class="app-header header-shadow">
             <div class="app-header__logo">
                 <div class="logo-src"></div>
                 <div class="header__pane ml-auto">
                     <div>
-                        <button type="button" class="close-sidebar-btn btn btn-link px-2" data-class="closed-sidebar"
+                        <button type="button" class="close-sidebar-btn btn btn-link px-2" data-class="sidebar-hidden"
                                 style="color:#05418A;font-size:1.25rem;line-height:1">
                             <i class="fa fa-bars"></i>
                         </button>
@@ -269,7 +280,7 @@
                         <div class="header__pane ml-auto">
                             <div>
                                 <button type="button" class="close-sidebar-btn btn btn-link px-2"
-                                        data-class="closed-sidebar" style="color:#05418A;font-size:1.25rem;line-height:1">
+                                        data-class="sidebar-hidden" style="color:#05418A;font-size:1.25rem;line-height:1">
                                     <i class="fa fa-bars"></i>
                                 </button>
                             </div>
@@ -477,6 +488,7 @@
             $(this).closest('ul.collapse, ul:not(.vertical-nav-menu)').parent('li').addClass('mm-active');
             }
             });
+
             });
         </script>
 
