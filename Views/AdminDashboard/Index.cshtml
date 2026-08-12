@@ -9,6 +9,10 @@
         padding: 24px;
         background: #f0f2f5;
         min-height: calc(100vh - 60px);
+        width: 100%;
+        max-width: 100%;
+        box-sizing: border-box;
+        overflow-x: hidden;
     }
 
     /* ---- Stat cards ---- */
@@ -86,6 +90,10 @@
         gap: 16px;
     }
 
+    .dash-row>.panel {
+        min-width: 0;
+    }
+
     @@media (max-width: 900px) {
         .dash-row {
             grid-template-columns: 1fr;
@@ -98,6 +106,7 @@
         border-radius: 14px;
         box-shadow: 0 1px 6px rgba(0, 0, 0, .07);
         overflow: hidden;
+        min-width: 0;
     }
 
     .panel-head {
@@ -109,6 +118,8 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
+        gap: 8px;
+        flex-wrap: wrap;
     }
 
     .panel-body {
@@ -118,6 +129,7 @@
     /* ---- Table ---- */
     .dash-table {
         width: 100%;
+        table-layout: fixed;
         border-collapse: collapse;
         font-size: 13px;
     }
@@ -138,6 +150,7 @@
         padding: 10px 12px;
         border-bottom: 1px solid #f5f5f5;
         color: #444;
+        overflow-wrap: anywhere;
     }
 
     .dash-table tr:last-child td {
@@ -219,9 +232,32 @@
         margin-bottom: 16px;
     }
 
+    .trend-header-info {
+        flex-wrap: wrap;
+        min-width: 0;
+    }
+
+    .trend-stat-chips {
+        flex-wrap: wrap;
+    }
+
+    .sys-chips {
+        flex-wrap: wrap;
+    }
+
     @@media (max-width: 640px) {
         .sys-grid {
             grid-template-columns: 1fr;
+        }
+    }
+
+    @@media (max-width: 900px) {
+        .panel-head {
+            align-items: flex-start;
+        }
+
+        .trend-stat-chips {
+            justify-content: flex-start;
         }
     }
 
@@ -280,7 +316,7 @@
         border-radius: 11px;
         padding: 11px 16px;
         flex: 1;
-        min-width: 110px;
+        min-width: 0;
         display: flex;
         flex-direction: column;
         gap: 3px;
@@ -357,8 +393,8 @@
     }
 </style>
 
-<div class="app-main__outer">
-    <div class="app-main__inner">
+<div class="app-main__outer" style="overflow-x:hidden;min-width:0;">
+    <div class="app-main__inner" style="min-width:0;">
         <div class="dash-wrap">
 
             <!-- Header -->
@@ -608,10 +644,7 @@
                         function tick() {
                         countdown--;
                         refreshText.textContent = 'Làm mới sau ' + countdown + 's';
-                        if (countdown <= 0) {
-                        countdown = 30;
-                        refreshData();
-                        }
+                        if (countdown <= 0) { countdown = 30; refreshData(); }
                         }
 
                         async function refreshData() {
@@ -627,7 +660,6 @@
                         document.getElementById('s-total').textContent = data.TotalLogins;
                         document.getElementById('online-count-label').textContent = data.OnlineCount + ' người';
 
-                        // Cập nhật chart
                         chart.data.datasets[0].data = data.HourlyLogins;
                         currentHour = new Date().getHours();
                         chart.data.datasets[0].backgroundColor = data.HourlyLogins.map(function (_, i) {
@@ -635,7 +667,6 @@
                         });
                         chart.update('none');
 
-                        // Cập nhật bảng online
                         var wrap = document.getElementById('online-table-wrap');
                         if (!data.OnlineUsers || data.OnlineUsers.length === 0) {
                         wrap.innerHTML = '<div class="empty-state">Chưa có người dùng online</div>';
@@ -653,11 +684,9 @@
                         + '</tr></thead><tbody>' + rows + '</tbody></table>';
                         }
 
-                        // Cập nhật trend chart
                         if (data.TrendPoints && data.TrendPoints.length > 0) {
                         applyTrendData(data.TrendPoints);
                         }
-
                         } catch (e) { }
                         setTimeout(function () { refreshDot.classList.remove('active'); }, 500);
                         refreshText.textContent = 'Làm mới sau 30s';
@@ -671,9 +700,9 @@
 
                         function fmtTime(ms) {
                         var d = new Date(ms);
-                        return d.getHours().toString().padStart(2,'0') + ':'
-                             + d.getMinutes().toString().padStart(2,'0') + ':'
-                             + d.getSeconds().toString().padStart(2,'0');
+                        return d.getHours().toString().padStart(2, '0') + ':'
+                        + d.getMinutes().toString().padStart(2, '0') + ':'
+                        + d.getSeconds().toString().padStart(2, '0');
                         }
 
                         var trendCtx = document.getElementById('trendChart').getContext('2d');
@@ -687,78 +716,78 @@
                         var trendChart = new Chart(trendCtx, {
                         type: 'line',
                         data: {
-                          labels: [],
-                          datasets: [
-                            {
-                              label: 'Online',
-                              data: [],
-                              borderColor: '#1a73e8',
-                              backgroundColor: gradBlue,
-                              borderWidth: 2,
-                              pointRadius: 3,
-                              pointHoverRadius: 5,
-                              tension: 0.4,
-                              fill: true,
-                            },
-                            {
-                              label: 'Đang thi',
-                              data: [],
-                              borderColor: '#34a853',
-                              backgroundColor: gradGreen,
-                              borderWidth: 2,
-                              pointRadius: 3,
-                              pointHoverRadius: 5,
-                              tension: 0.4,
-                              fill: true,
-                              borderDash: [5, 3],
-                            }
-                          ]
+                        labels: [],
+                        datasets: [
+                        {
+                        label: 'Online',
+                        data: [],
+                        borderColor: '#1a73e8',
+                        backgroundColor: gradBlue,
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                        tension: 0.4,
+                        fill: true,
+                        },
+                        {
+                        label: 'Đang thi',
+                        data: [],
+                        borderColor: '#34a853',
+                        backgroundColor: gradGreen,
+                        borderWidth: 2,
+                        pointRadius: 3,
+                        pointHoverRadius: 5,
+                        tension: 0.4,
+                        fill: true,
+                        borderDash: [5, 3],
+                        }
+                        ]
                         },
                         options: {
-                          responsive: true,
-                          maintainAspectRatio: false,
-                          interaction: { mode: 'index', intersect: false },
-                          plugins: {
-                            legend: { display: false },
-                            tooltip: {
-                              callbacks: {
-                                title: function(items) { return items[0].label; },
-                              }
-                            }
-                          },
-                          scales: {
-                            x: {
-                              ticks: { font: { size: 10 }, maxTicksLimit: 10 },
-                              grid: { display: false }
-                            },
-                            y: {
-                              beginAtZero: true,
-                              ticks: { stepSize: 1, font: { size: 11 } },
-                              grid: { color: '#f5f5f5' }
-                            }
-                          },
-                          animation: { duration: 300 }
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                        callbacks: {
+                        title: function (items) { return items[0].label; },
+                        }
+                        }
+                        },
+                        scales: {
+                        x: {
+                        ticks: { font: { size: 10 }, maxTicksLimit: 10 },
+                        grid: { display: false }
+                        },
+                        y: {
+                        beginAtZero: true,
+                        ticks: { stepSize: 1, font: { size: 11 } },
+                        grid: { color: '#f5f5f5' }
+                        }
+                        },
+                        animation: { duration: 300 }
                         }
                         });
 
                         function applyTrendData(points) {
                         if (!points || points.length === 0) {
-                          document.getElementById('trendEmpty').style.display = 'block';
-                          document.getElementById('trendChart').style.display = 'none';
-                          return;
+                        document.getElementById('trendEmpty').style.display = 'block';
+                        document.getElementById('trendChart').style.display = 'none';
+                        return;
                         }
                         document.getElementById('trendEmpty').style.display = 'none';
                         document.getElementById('trendChart').style.display = '';
 
-                        trendChart.data.labels = points.map(function(p) { return fmtTime(p.T); });
-                        trendChart.data.datasets[0].data = points.map(function(p) { return p.O; });
-                        trendChart.data.datasets[1].data = points.map(function(p) { return p.E; });
+                        trendChart.data.labels = points.map(function (p) { return fmtTime(p.T); });
+                        trendChart.data.datasets[0].data = points.map(function (p) { return p.O; });
+                        trendChart.data.datasets[1].data = points.map(function (p) { return p.E; });
                         trendChart.update('none');
 
-                        var peakO = Math.max.apply(null, points.map(function(p){return p.O;}));
-                        var peakE = Math.max.apply(null, points.map(function(p){return p.E;}));
+                        var peakO = Math.max.apply(null, points.map(function (p) { return p.O; }));
+                        var peakE = Math.max.apply(null, points.map(function (p) { return p.E; }));
                         document.getElementById('trend-peak-online').textContent = 'Đỉnh: ' + peakO + ' người';
-                        document.getElementById('trend-peak-exam').textContent   = 'Đỉnh thi: ' + peakE;
+                        document.getElementById('trend-peak-exam').textContent = 'Đỉnh thi: ' + peakE;
                         }
 
                         applyTrendData(trendInitData);

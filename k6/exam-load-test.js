@@ -31,15 +31,16 @@ const cSubmit = new Counter("exam_submit_total");
 const cSuccess = new Counter("exam_submit_success");
 
 // ── Cấu hình test ────────────────────────────────────────────────────────────
-const VUS = 1800; // ← số VU đồng thời
-const MAX_SUBMITS = 17000; // ← MODE 2: tổng số lần thi tối đa rồi dừng
-const DURATION = "30m"; // ← MODE 2: timeout cứng nếu 10000 submit chưa xong
+const VUS = 500; // ← số VU đồng thời cho chế độ per-vu-iterations
+const TARGET_SUBMITS = 17000; // ← mục tiêu tổng số lần thi trong MODE 2
+const TARGET_DURATION = "5m"; // ← mục tiêu thời gian chạy cho 17.000 lượt thi
+const ARRIVAL_RATE = Math.ceil(TARGET_SUBMITS / 300); // ~56.7 req/s để đạt 17.000 trong 5 phút
 
 // Chế độ chạy:
 // MODE 1: Mỗi VU thi 1 lần → đo max concurrent user chịu được
-// MODE 2: Tổng MAX_SUBMITS lần thi, 2000 VU chạy song song → đo throughput
+// MODE 2: Đổ đều ~17.000 lượt trong 5 phút → đo throughput theo thời gian cố định
 
-const MODE = 1; // 1 = single-shot | 2 = shared-iterations
+const MODE = 2; // 1 = single-shot | 2 = shared-iterations
 
 export const options =
   MODE === 1
@@ -63,10 +64,12 @@ export const options =
     : {
         scenarios: {
           load: {
-            executor: "shared-iterations",
-            vus: VUS,
-            iterations: MAX_SUBMITS,
-            maxDuration: DURATION,
+            executor: "constant-arrival-rate",
+            rate: ARRIVAL_RATE,
+            timeUnit: "1s",
+            duration: TARGET_DURATION,
+            preAllocatedVUs: VUS,
+            maxVUs: 2000,
           },
         },
         thresholds: {
@@ -123,7 +126,7 @@ function parseQuestionIds(html) {
 
 // ── Flow chính ────────────────────────────────────────────────────────────────
 export default function () {
-  // Rải VU để tránh thundering herd: MODE 1 rải 60s, MODE 2 rải 5s
+  // Rải VU để tránh thundering herd: MODE 1 rải 60s, MODE 2 rải rất nhẹ
   sleep(MODE === 1 ? Math.random() * 120 : Math.random() * 5);
 
   // Mỗi iteration dùng user khác nhau → tránh bị chặn duplicate submit (SET NX)
@@ -371,7 +374,7 @@ export function handleSummary(data) {
   const modeLabel =
     MODE === 1
       ? `1 lần/VU | ${VUS} VUs          `
-      : `${MAX_SUBMITS} lần tổng | ${VUS} VUs    `;
+      : `${TARGET_SUBMITS} lần / ${TARGET_DURATION} | ${ARRIVAL_RATE}/s`;
 
   const lines = [
     "",

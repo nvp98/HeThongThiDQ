@@ -66,21 +66,12 @@
         display: none !important;
         }
 
-        .sidebar-hidden .app-main {
-        margin-left: 0 !important;
-        padding-left: 0 !important;
-        width: 100% !important;
+        /* Nội dung co dãn mượt khi toggle sidebar */
+        .app-main__outer,
+        .app-main__inner {
+        transition: padding-left 0.3s ease, width 0.3s ease !important;
         }
 
-        .sidebar-hidden .app-main .app-main__outer,
-        .sidebar-hidden .app-main .app-main__inner {
-        margin-left: 0 !important;
-        padding-left: 0 !important;
-        width: 100% !important;
-        max-width: 100% !important;
-        }
-
-        /* Override padding-left: 80px mà closed-sidebar.fixed-sidebar set trên app-main__outer */
         .sidebar-hidden .app-main__outer {
         padding-left: 0 !important;
         }
@@ -489,6 +480,39 @@
             }
             });
 
+            });
+        </script>
+
+        <script>
+            $(function () {
+                var sidebarStateKey = 'heThongThiDQ.sidebar-hidden';
+                var $container = $('.app-container');
+                var $toggleButtons = $('.close-sidebar-btn');
+
+                function syncToggleButtonState(isHidden) {
+                    $toggleButtons.each(function () {
+                        $(this).toggleClass('is-active', !isHidden);
+                    });
+                }
+
+                function applySidebarState(isHidden) {
+                    $container.toggleClass('sidebar-hidden', isHidden);
+                    syncToggleButtonState(isHidden);
+                }
+
+                var storedState = localStorage.getItem(sidebarStateKey);
+                if (storedState !== null) {
+                    applySidebarState(storedState === 'true');
+                } else {
+                    syncToggleButtonState($container.hasClass('sidebar-hidden'));
+                }
+
+                $toggleButtons.off('click.sidebarState').on('click.sidebarState', function () {
+                    window.setTimeout(function () {
+                        localStorage.setItem(sidebarStateKey, $container.hasClass('sidebar-hidden'));
+                        syncToggleButtonState($container.hasClass('sidebar-hidden'));
+                    }, 0);
+                });
             });
         </script>
 

@@ -37,6 +37,10 @@
     background-position: center;
     background-attachment: fixed;
     position: relative;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    overflow-x: hidden;
     }
 
     .ec-wrap::before {
@@ -103,6 +107,7 @@
     box-shadow: 0 4px 20px rgba(0, 0, 0, .1);
     display: flex;
     align-items: stretch;
+    min-width: 0;
     }
 
     .ec-featured-left {
@@ -118,6 +123,7 @@
     align-items: center;
     gap: 20px;
     flex-wrap: wrap;
+    min-width: 0;
     }
 
     .ec-featured-label {
@@ -145,6 +151,8 @@
     display: flex;
     gap: 20px;
     margin-left: auto;
+    min-width: 0;
+    flex-wrap: wrap;
     }
 
     .ec-stat {
@@ -165,11 +173,13 @@
 
     .ec-featured-action {
     flex-shrink: 0;
+    min-width: 0;
     }
 
     /* ---- Practice section ---- */
     .ec-practice-wrap {
     padding: 16px 24px 0;
+    min-width: 0;
     }
 
     .ec-practice-header {
@@ -242,6 +252,7 @@
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
     gap: 12px;
+    min-width: 0;
     }
 
     .ec-card-item {
@@ -262,6 +273,7 @@
     display: flex;
     flex-direction: column;
     transition: transform .16s, box-shadow .16s;
+    min-width: 0;
     }
 
     .ec-card:hover {
@@ -450,8 +462,8 @@
     }
 </style>
 
-<div class="app-main__outer">
-    <div class="app-main__inner" style="padding:0;">
+<div class="app-main__outer" style="overflow-x:hidden;min-width:0;">
+    <div class="app-main__inner" style="padding:0;min-width:0;overflow-x:hidden;">
         <div class="ec-wrap">
 
             <!-- Banner -->
@@ -475,7 +487,7 @@
                         <div class="ec-featured" style="margin-bottom:12px;">
                             <div class="ec-featured-left"></div>
                             <div class="ec-featured-body">
-                                <div style="flex:1;min-width:200px;">
+                                <div style="flex:1;min-width:0;">
                                     <div class="ec-featured-label"><i class="fa fa-flag-checkered"
                                                                           style="margin-right:4px;"></i>Đề thi chính thức</div>
                                         <div class="ec-featured-name">@item.TenLH</div>
@@ -506,15 +518,15 @@
                                         }
                                         else if (hasResult)
                                         {
-                                            <a class="ec-btn ec-btn-blue" style="min-width:160px;"
+                                                          <a class="ec-btn ec-btn-blue" style="min-width:0;max-width:160px;"
                                                href="@Url.Action("TestView","ConfirmEStudy",new{LHID=item.LHID,IDNV=item.NVID,IDBaiThi=item.LastIDBaiThi})">
                                                 <i class="fa fa-bar-chart"></i> Xem kết quả
                                             </a>
                                         }
                                         else if (isOpen)
                                         {
-                                            <a id="@item.LHID" data-lhid="@item.LHID" class="ec-btn ec-btn-red exam-link"
-                                               style="min-width:160px;" href="/STest/Index?LHID=@item.LHID">
+                                                          <a id="@item.LHID" data-lhid="@item.LHID" class="ec-btn ec-btn-red exam-link"
+                                                              style="min-width:0;max-width:160px;" href="/STest/Index?LHID=@item.LHID">
                                                 <i class="fa fa-edit"></i> Vào làm bài thi
                                             </a>
                                         }
