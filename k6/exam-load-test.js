@@ -31,16 +31,22 @@ const cSubmit = new Counter("exam_submit_total");
 const cSuccess = new Counter("exam_submit_success");
 
 // ── Cấu hình test ────────────────────────────────────────────────────────────
-const VUS = 500; // ← số VU đồng thời cho chế độ per-vu-iterations
-const TARGET_SUBMITS = 17000; // ← mục tiêu tổng số lần thi trong MODE 2
-const TARGET_DURATION = "5m"; // ← mục tiêu thời gian chạy cho 17.000 lượt thi
-const ARRIVAL_RATE = Math.ceil(TARGET_SUBMITS / 300); // ~56.7 req/s để đạt 17.000 trong 5 phút
+const VUS = 500; // số VU đồng thời tối đa
+const TOTAL_USERS = 17000; // tổng số người thi (mỗi người dùng account riêng, không lặp)
+const MAX_DURATION = "30m"; // giới hạn an toàn — thực tế khoảng 5-10 phút
 
 // Chế độ chạy:
-// MODE 1: Mỗi VU thi 1 lần → đo max concurrent user chịu được
-// MODE 2: Đổ đều ~17.000 lượt trong 5 phút → đo throughput theo thời gian cố định
+// MODE 1: 500 VU mỗi VU thi 1 lần → smoke test 500 người đồng thời
+// MODE 2: 17.000 lượt, 500 VU đồng thời — VU xong người này lấy người tiếp theo, KHÔNG lặp lại
+const MODE = 2;
 
-const MODE = 2; // 1 = single-shot | 2 = shared-iterations
+const THRESHOLDS = {
+  http_req_duration: ["p(95)<5000"],
+  http_req_failed: ["rate<0.10"],
+  exam_success_rate: ["rate>0.85"],
+  dur_login_ms: ["p(95)<3000"],
+  dur_submit_ms: ["p(95)<6000"],
+};
 
 export const options =
   MODE === 1
@@ -53,32 +59,20 @@ export const options =
             maxDuration: "5m",
           },
         },
-        thresholds: {
-          http_req_duration: ["p(95)<5000"],
-          http_req_failed: ["rate<0.10"],
-          exam_success_rate: ["rate>0.85"],
-          dur_login_ms: ["p(95)<3000"],
-          dur_submit_ms: ["p(95)<6000"],
-        },
+        thresholds: THRESHOLDS,
       }
     : {
         scenarios: {
-          load: {
-            executor: "constant-arrival-rate",
-            rate: ARRIVAL_RATE,
-            timeUnit: "1s",
-            duration: TARGET_DURATION,
-            preAllocatedVUs: VUS,
-            maxVUs: 2000,
+          batch: {
+            // shared-iterations: k6 tạo pool 17.000 iteration, 500 VU đồng thời cùng lấy từ pool
+            // VU xong 1 người → lấy ngay người tiếp theo → không lặp account, không delay giữa batch
+            executor: "shared-iterations",
+            vus: VUS,
+            iterations: TOTAL_USERS,
+            maxDuration: MAX_DURATION,
           },
         },
-        thresholds: {
-          http_req_duration: ["p(95)<5000"],
-          http_req_failed: ["rate<0.10"],
-          exam_success_rate: ["rate>0.85"],
-          dur_login_ms: ["p(95)<3000"],
-          dur_submit_ms: ["p(95)<6000"],
-        },
+        thresholds: THRESHOLDS,
       };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -127,10 +121,12 @@ function parseQuestionIds(html) {
 // ── Flow chính ────────────────────────────────────────────────────────────────
 export default function () {
   // Rải VU để tránh thundering herd: MODE 1 rải 60s, MODE 2 rải rất nhẹ
-  sleep(MODE === 1 ? Math.random() * 120 : Math.random() * 5);
+  // MODE 1: rải đều để tránh thundering herd. MODE 2 (shared-iterations): không sleep — VU đã tự nhiên dàn đều
+  if (MODE === 1) sleep(Math.random() * 30);
 
-  // Mỗi iteration dùng user khác nhau → tránh bị chặn duplicate submit (SET NX)
-  // VU1 iter0 → users[0], VU1 iter1 → users[VUS], VU2 iter0 → users[1], ...
+  // Công thức đảm bảo mỗi iteration dùng account duy nhất, không lặp:
+  //   VU1 iter0→user[0], VU2 iter0→user[1], ... VU500 iter0→user[499]
+  //   VU1 iter1→user[500], VU2 iter1→user[501], ... (batch tiếp theo)
   const userIndex = (__VU - 1 + __ITER * VUS) % users.length;
   const user = users[userIndex];
   const lhid = user.lhid || 1;
@@ -373,8 +369,8 @@ export function handleSummary(data) {
 
   const modeLabel =
     MODE === 1
-      ? `1 lần/VU | ${VUS} VUs          `
-      : `${TARGET_SUBMITS} lần / ${TARGET_DURATION} | ${ARRIVAL_RATE}/s`;
+      ? `500 VU × 1 lần (smoke)        `
+      : `${TOTAL_USERS} user | ${VUS} đồng thời  `;
 
   const lines = [
     "",

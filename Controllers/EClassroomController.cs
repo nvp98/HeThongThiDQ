@@ -4,6 +4,9 @@ using HeThongThiDQ.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
+using StackExchange.Redis;
+using System.Text.Json;
 using X.PagedList.Extensions;
 
 namespace HeThongThiDQ.Controllers
@@ -13,11 +16,16 @@ namespace HeThongThiDQ.Controllers
     {
         private readonly ELEARNINGEntities _db;
         private readonly MyAuthentication _auth;
+        private readonly IDistributedCache _cache;
+        private readonly IConnectionMultiplexer _mux;
 
-        public EClassroomController(ELEARNINGEntities db, MyAuthentication auth)
+        public EClassroomController(ELEARNINGEntities db, MyAuthentication auth,
+                                    IDistributedCache cache, IConnectionMultiplexer mux)
         {
-            _db   = db;
-            _auth = auth;
+            _db    = db;
+            _auth  = auth;
+            _cache = cache;
+            _mux   = mux;
         }
 
         public async Task<IActionResult> Index(int? page)
@@ -174,15 +182,65 @@ namespace HeThongThiDQ.Controllers
 
         public async Task<IActionResult> ViewResult(int? IDLH, int? IDBaiThi)
         {
-            ViewBag.IDLH    = IDLH;
-            ViewBag.IDBaiThi = IDBaiThi;
-            ViewBag.IDNV    = _auth.ID;
+            // 1. Thử đọc quickresult từ Redis (RAM — có ngay sau submit)
+            QuickResultDto? qr = null;
+            try
+            {
+                var json = await _cache.GetStringAsync($"exam:quickresult:{_auth.ID}:{IDLH}");
+                if (json != null)
+                    qr = JsonSerializer.Deserialize<QuickResultDto>(json);
+            }
+            catch { }
 
-            // Dùng BaiThi.IddeThi để tính TongDiem — đúng với cả trường hợp pool đề (mỗi user 1 đề khác nhau)
-            var baithi = await _db.BaiThis.AsNoTracking().FirstOrDefaultAsync(x => x.IdbaiThi == IDBaiThi);
+            // 2. Resolve IDBaiThi: URL param → Redis (consumer ghi xong) → null
+            if (!IDBaiThi.HasValue)
+            {
+                try
+                {
+                    var val = await _mux.GetDatabase().StringGetAsync($"exam:result:{_auth.ID}:{IDLH}");
+                    if (val.HasValue && int.TryParse(val.ToString(), out int idbt))
+                        IDBaiThi = idbt;
+                }
+                catch { }
+            }
+
+            // 3. Redis có quickresult → hiển thị ngay từ RAM
+            if (qr != null)
+            {
+                var gioBatDau = qr.TGBDLamBaiThi > 0
+                    ? DateTimeOffset.FromUnixTimeMilliseconds(qr.TGBDLamBaiThi).LocalDateTime
+                    : (DateTime?)null;
+                var gioKetThuc = qr.GioKetThucMs > 0
+                    ? DateTimeOffset.FromUnixTimeMilliseconds(qr.GioKetThucMs).LocalDateTime
+                    : (DateTime?)null;
+
+                ViewBag.IDLH            = IDLH;
+                ViewBag.IDBaiThi        = IDBaiThi;   // null nếu DB chưa xong → view sẽ poll
+                ViewBag.IDNV            = _auth.ID;
+                ViewBag.DiemThi         = $"{qr.DiemSo:0.##}/100";
+                ViewBag.ThoiGianThiGiay = qr.ThoiGianSec;
+                ViewBag.GioBatDau       = gioBatDau;
+                ViewBag.GioKetThuc      = gioKetThuc;
+                ViewBag.TaiKhoan        = qr.TaiKhoan;
+                ViewBag.HoTen           = qr.HoTen;
+                ViewBag.TongSoCauHoi    = qr.TongSoCau;
+                ViewBag.SoCauDung       = qr.SoCauDung;
+                ViewBag.SoCauSai        = qr.SoCauSai;
+                ViewBag.SoCauChuaTraLoi = qr.SoCauChuaTraLoi;
+                return View();
+            }
+
+            // 4. Fallback: Redis hết hạn hoặc vào từ lịch sử thi → load từ DB
+            ViewBag.IDLH     = IDLH;
+            ViewBag.IDBaiThi = IDBaiThi;
+            ViewBag.IDNV     = _auth.ID;
+
+            var baithi = await _db.BaiThis.AsNoTracking()
+                .FirstOrDefaultAsync(x => x.IdbaiThi == IDBaiThi);
             var tongdiem = await _db.CauHoiDeThis.AsNoTracking()
                 .Where(x => x.IddeThi == (baithi != null ? baithi.IddeThi : 0))
                 .SumAsync(x => x.Diem);
+
             ViewBag.DiemThi         = (baithi?.DiemSo ?? 0) + "/" + tongdiem;
             ViewBag.ThoiGianThiGiay = baithi?.ThoiGianThi ?? 0;
             ViewBag.GioBatDau       = baithi?.GioBatDau;
@@ -198,10 +256,10 @@ namespace HeThongThiDQ.Controllers
             var ctBaiThis = await _db.CtbaiThis.AsNoTracking()
                 .Where(x => x.IdbaiThi == IDBaiThi)
                 .ToListAsync();
-            ViewBag.TongSoCauHoi     = ctBaiThis.Count;
-            ViewBag.SoCauDung        = ctBaiThis.Count(x => (x.Diem ?? 0) != 0);
-            ViewBag.SoCauChuaTraLoi  = ctBaiThis.Count(x => x.IddapAnNv == null);
-            ViewBag.SoCauSai         = ctBaiThis.Count - (int)ViewBag.SoCauDung - (int)ViewBag.SoCauChuaTraLoi;
+            ViewBag.TongSoCauHoi    = ctBaiThis.Count;
+            ViewBag.SoCauDung       = ctBaiThis.Count(x => (x.Diem ?? 0) != 0);
+            ViewBag.SoCauChuaTraLoi = ctBaiThis.Count(x => x.IddapAnNv == null);
+            ViewBag.SoCauSai        = ctBaiThis.Count - (int)ViewBag.SoCauDung - (int)ViewBag.SoCauChuaTraLoi;
 
             return View();
         }

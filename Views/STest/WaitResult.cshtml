@@ -1,97 +1,517 @@
 @{
-    ViewBag.Title = "Kết quả bài thi";
+    ViewBag.Title = "Kết quả thi";
     Layout = "~/Views/Shared/_Layout.cshtml";
-    var idlh  = (int)ViewBag.IDLH;
-    var score = (double)ViewBag.Score;
+
+    var idlh = (int)ViewBag.IDLH;
+    var idnv = (int)ViewBag.IDNV;
+    dynamic? qr = ViewBag.QuickResult;
+
+    bool hasData = qr != null;
+
+    string taiKhoan = hasData ? (string)qr!.TaiKhoan : "--";
+    string hoTen = hasData ? (string)qr!.HoTen : "--";
+    string batDauStr = hasData ? (string)qr!.GioBatDau : "--:--:--";
+    string ketThucStr = hasData ? (string)qr!.GioKetThuc : "--:--:--";
+    int tongSoCauHoi = hasData ? (int)qr!.TongSoCau : 0;
+    int soCauDung = hasData ? (int)qr!.SoCauDung : 0;
+    int soCauSai = hasData ? (int)qr!.SoCauSai : 0;
+    int soCauChuaTraLoi = hasData ? (int)qr!.SoCauChuaTraLoi : 0;
+    double diemSo = hasData ? (double)qr!.DiemSo : (double)ViewBag.Score;
+    int tgGiay = hasData ? (int)qr!.ThoiGianSec : 0;
+
+    var tgSpan = TimeSpan.FromSeconds(tgGiay);
+    string tgDisplay = tgGiay <= 0 ? "--"
+        : (int)tgSpan.TotalHours > 0
+            ? $"{(int)tgSpan.TotalHours} giờ {tgSpan.Minutes} phút {tgSpan.Seconds} giây"
+            : $"{tgSpan.Minutes} phút {tgSpan.Seconds} giây";
 }
 
 <style>
-    .wr-wrap {
+    .kq-outer {
+        min-height: calc(100vh - 60px);
+        background-color: #4f9ee8;
+        background-image: url('/Content/assets/images/bg_ketqua.jpg');
+        background-size: cover;
+        background-position: center bottom;
+        background-repeat: no-repeat;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        min-height: calc(100vh - 120px);
-        gap: 24px;
-        font-family: inherit;
+        padding: 40px 16px;
     }
-    .wr-card {
-        background: #fff;
-        border-radius: 20px;
-        box-shadow: 0 4px 24px rgba(0,0,0,.09);
-        padding: 48px 56px;
+
+    .kq-header {
         text-align: center;
-        max-width: 480px;
-        width: 100%;
+        margin-bottom: 22px;
     }
-    .wr-score {
-        font-size: 64px;
+
+    .kq-logo {
+        font-size: 44px;
         font-weight: 900;
-        color: #1a73e8;
+        color: #123e91;
+        letter-spacing: 2px;
         line-height: 1;
-        margin-bottom: 6px;
+        text-shadow: 0 2px 10px rgba(255, 255, 255, .55);
     }
-    .wr-score-label {
+
+    .kq-sub1 {
+        margin-top: 8px;
         font-size: 15px;
-        color: #888;
-        margin-bottom: 32px;
+        font-weight: 700;
+        color: #123e91;
+        letter-spacing: .5px;
     }
-    .wr-status {
+
+    .kq-slogan {
+        margin-top: 6px;
+        font-size: 24px;
+        font-weight: 900;
+        letter-spacing: .3px;
+    }
+
+    .kq-slogan .blue {
+        color: #123e91;
+    }
+
+    .kq-slogan .red {
+        color: #e53935;
+    }
+
+    .kq-title-row {
+        margin-top: 18px;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 10px;
-        font-size: 14px;
-        color: #555;
-        margin-bottom: 8px;
+        gap: 18px;
     }
-    .wr-spinner {
-        width: 18px;
-        height: 18px;
-        border: 2.5px solid #e0e0e0;
-        border-top-color: #1a73e8;
+
+    .kq-title-line {
+        flex: 1 1 0;
+        max-width: 130px;
+        height: 3px;
+        border-radius: 3px;
+        position: relative;
+    }
+
+    .kq-title-line.blue {
+        background: linear-gradient(90deg, transparent, #1a56b0);
+    }
+
+    .kq-title-line.blue::after {
+        content: '';
+        position: absolute;
+        right: -4px;
+        top: -3px;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #1a56b0;
+    }
+
+    .kq-title-line.red {
+        background: linear-gradient(90deg, #e53935, transparent);
+    }
+
+    .kq-title-line.red::after {
+        content: '';
+        position: absolute;
+        left: -4px;
+        top: -3px;
+        width: 9px;
+        height: 9px;
+        border-radius: 50%;
+        background: #e53935;
+    }
+
+    .kq-title {
+        font-size: 40px;
+        font-weight: 900;
+        color: #123e91;
+    }
+
+    .kq-panels {
+        width: 100%;
+        max-width: 760px;
+        display: flex;
+        flex-direction: column;
+        gap: 18px;
+    }
+
+    .kq-panel {
+        background: rgba(255, 255, 255, .94);
+        backdrop-filter: blur(6px);
+        border-radius: 22px;
+        box-shadow: 0 10px 40px rgba(10, 40, 90, .18);
+        padding: 8px 32px;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .kq-col {
+        display: flex;
+        flex-direction: column;
+    }
+
+    .kq-col+.kq-col {
+        border-left: 1px solid rgba(10, 40, 90, .10);
+        padding-left: 32px;
+        margin-left: 32px;
+    }
+
+    .kq-row {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+        padding: 16px 0;
+    }
+
+    .kq-row+.kq-row {
+        border-top: 1px solid rgba(10, 40, 90, .08);
+    }
+
+    .kq-icon {
+        flex-shrink: 0;
+        width: 38px;
+        height: 38px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .kq-icon.c-blue {
+        background: #1a56b0;
+    }
+
+    .kq-icon.c-red {
+        background: #e53935;
+    }
+
+    .kq-icon.c-gray {
+        background: #9aa0a6;
+    }
+
+    .kq-label {
+        font-size: 13px;
+        color: #5c6b85;
+        font-weight: 500;
+    }
+
+    .kq-value {
+        margin-top: 2px;
+        font-size: 19px;
+        font-weight: 800;
+        color: #123e91;
+        word-break: break-word;
+    }
+
+    .kq-value.c-red {
+        color: #e53935;
+    }
+
+    .kq-value.c-gray {
+        color: #757b85;
+    }
+
+    .kq-actions {
+        margin-top: 6px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        width: 100%;
+        max-width: 380px;
+        align-self: center;
+    }
+
+    .kq-save-status {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        font-size: 13px;
+        color: #5c6b85;
+        padding: 10px;
+        background: rgba(255, 255, 255, .7);
+        border-radius: 10px;
+    }
+
+    .kq-spinner {
+        width: 16px;
+        height: 16px;
+        border: 2px solid #e0e7f0;
+        border-top-color: #1a56b0;
         border-radius: 50%;
         animation: spin .8s linear infinite;
         flex-shrink: 0;
     }
-    @@keyframes spin { to { transform: rotate(360deg); } }
-    .wr-done-icon {
-        font-size: 20px;
-        color: #34a853;
+
+    @@keyframes spin {
+        to {
+            transform: rotate(360deg);
+        }
     }
-    .wr-sub {
-        font-size: 12px;
-        color: #bbb;
-    }
-    .wr-btn {
-        display: inline-block;
-        margin-top: 24px;
-        padding: 10px 28px;
-        background: #1a73e8;
+
+    .btn-kq-primary {
+        background: linear-gradient(135deg, #1a56b0, #123e91);
         color: #fff;
-        border-radius: 8px;
-        font-size: 14px;
-        font-weight: 600;
+        border: none;
+        border-radius: 12px;
+        padding: 13px 20px;
+        font-size: 15px;
+        font-weight: 700;
+        text-align: center;
         text-decoration: none;
-        display: none;
+        display: block;
+        box-shadow: 0 4px 16px rgba(18, 62, 145, .35);
+        transition: opacity .2s, transform .15s;
     }
-    .wr-btn:hover { background: #1557b0; color:#fff; }
+
+    .btn-kq-primary:hover {
+        opacity: .92;
+        transform: translateY(-1px);
+        color: #fff;
+    }
+
+    .btn-kq-primary.disabled {
+        background: #c5cfe0;
+        box-shadow: none;
+        pointer-events: none;
+        cursor: default;
+    }
+
+    .btn-kq-secondary {
+        background: rgba(255, 255, 255, .9);
+        color: #123e91;
+        border: none;
+        border-radius: 12px;
+        padding: 12px 20px;
+        font-size: 14px;
+        font-weight: 700;
+        text-align: center;
+        text-decoration: none;
+        display: block;
+        transition: background .15s;
+    }
+
+    .btn-kq-secondary:hover {
+        background: #fff;
+        color: #0d2c6b;
+    }
+
+    @@media (max-width:640px) {
+        .kq-logo {
+            font-size: 32px;
+        }
+
+        .kq-slogan {
+            font-size: 17px;
+        }
+
+        .kq-title {
+            font-size: 28px;
+        }
+
+        .kq-title-line {
+            max-width: 50px;
+        }
+
+        .kq-panel {
+            grid-template-columns: 1fr;
+            padding: 4px 20px;
+        }
+
+        .kq-col+.kq-col {
+            border-left: none;
+            border-top: 1px solid rgba(10, 40, 90, .10);
+            padding-left: 0;
+            margin-left: 0;
+            padding-top: 8px;
+            margin-top: 8px;
+        }
+
+        .kq-value {
+            font-size: 17px;
+        }
+    }
 </style>
 
 <div class="app-main__outer">
-    <div class="app-main__inner">
-        <div class="wr-wrap">
-            <div class="wr-card">
-                <div class="wr-score">@score.ToString("0.##")</div>
-                <div class="wr-score-label">điểm / 100</div>
+    <div class="app-main__inner" style="padding:0;">
+        <div class="kq-outer">
 
-                <div class="wr-status" id="wr-status">
-                    <div class="wr-spinner" id="wr-spinner"></div>
-                    <span id="wr-msg">Đang lưu kết quả...</span>
+            <div class="kq-header">
+                <div class="kq-logo">Q.DAY</div>
+                <div class="kq-sub1">HỌC TẬP - TÌM HIỂU VĂN HÓA THÉP HÒA PHÁT DUNG QUẤT</div>
+                <div class="kq-slogan"><span class="blue">HIỂU CHẤT THÉP -</span> <span class="red">THẤM CHẤT NHÀ</span>
                 </div>
-                <div class="wr-sub" id="wr-sub">Vui lòng chờ trong giây lát</div>
+                <div class="kq-title-row">
+                    <span class="kq-title-line blue"></span>
+                    <span class="kq-title">KẾT QUẢ</span>
+                    <span class="kq-title-line red"></span>
+                </div>
+            </div>
 
-                <a href="#" class="wr-btn" id="wr-btn">Xem chi tiết kết quả</a>
+            <div class="kq-panels">
+
+                <div class="kq-panel">
+                    <div class="kq-col">
+                        <div class="kq-row">
+                            <div class="kq-icon c-blue">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff"
+                                     stroke-width="2.2">
+                                    <circle cx="12" cy="8" r="4" />
+                                    <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="kq-label">Tài khoản:</div>
+                                <div class="kq-value">@taiKhoan</div>
+                            </div>
+                        </div>
+                        <div class="kq-row">
+                            <div class="kq-icon c-blue">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff"
+                                     stroke-width="2.2">
+                                    <circle cx="12" cy="8" r="4" />
+                                    <path d="M4 21c0-4.4 3.6-8 8-8s8 3.6 8 8" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="kq-label">Họ tên:</div>
+                                <div class="kq-value">@hoTen</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="kq-col">
+                        <div class="kq-row">
+                            <div class="kq-icon c-blue">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff"
+                                     stroke-width="2.2">
+                                    <circle cx="12" cy="12" r="9" />
+                                    <path d="M12 7v5l3 3" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="kq-label">Thời gian bắt đầu:</div>
+                                <div class="kq-value">@batDauStr</div>
+                            </div>
+                        </div>
+                        <div class="kq-row">
+                            <div class="kq-icon c-blue">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff"
+                                     stroke-width="2.2">
+                                    <path d="M5 3v18" />
+                                    <path d="M5 4h11l-2 3.5L16 11H5" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="kq-label">Thời gian kết thúc:</div>
+                                <div class="kq-value">@ketThucStr</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kq-panel">
+                    <div class="kq-col">
+                        <div class="kq-row">
+                            <div class="kq-icon c-blue">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff"
+                                     stroke-width="2.4">
+                                    <path d="M5 13l4 4 10-10" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="kq-label">Số câu trả lời đúng:</div>
+                                <div class="kq-value">@soCauDung</div>
+                            </div>
+                        </div>
+                        <div class="kq-row">
+                            <div class="kq-icon c-red">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff"
+                                     stroke-width="2.4">
+                                    <path d="M6 6l12 12M18 6L6 18" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="kq-label">Số câu trả lời sai:</div>
+                                <div class="kq-value c-red">@soCauSai</div>
+                            </div>
+                        </div>
+                        <div class="kq-row">
+                            <div class="kq-icon c-gray">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff"
+                                     stroke-width="2.4">
+                                    <path d="M6 12h12" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="kq-label">Số câu chưa trả lời:</div>
+                                <div class="kq-value c-gray">@soCauChuaTraLoi</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="kq-col">
+                        <div class="kq-row">
+                            <div class="kq-icon c-blue">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff"
+                                     stroke-width="2.2">
+                                    <rect x="5" y="3" width="14" height="18" rx="2" />
+                                    <line x1="8" y1="8" x2="16" y2="8" />
+                                    <line x1="8" y1="12" x2="16" y2="12" />
+                                    <line x1="8" y1="16" x2="13" y2="16" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="kq-label">Tổng số câu hỏi:</div>
+                                <div class="kq-value">@tongSoCauHoi</div>
+                            </div>
+                        </div>
+                        <div class="kq-row">
+                            <div class="kq-icon c-blue">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff"
+                                     stroke-width="2.2">
+                                    <circle cx="12" cy="13" r="8" />
+                                    <path d="M12 9v4l3 2" />
+                                    <path d="M10 2h4" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="kq-label">Thời gian làm bài:</div>
+                                <div class="kq-value">@tgDisplay</div>
+                            </div>
+                        </div>
+                        <div class="kq-row">
+                            <div class="kq-icon c-blue">
+                                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff"
+                                     stroke-width="2.2">
+                                    <circle cx="12" cy="12" r="9" />
+                                    <path d="M9 12l2 2 4-4" />
+                                </svg>
+                            </div>
+                            <div>
+                                <div class="kq-label">Điểm số:</div>
+                                <div class="kq-value">@diemSo.ToString("0.##") / 100</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="kq-actions">
+                    <div class="kq-save-status" id="save-status">
+                        <div class="kq-spinner" id="save-spinner"></div>
+                        <span id="save-msg">Đang lưu kết quả vào hệ thống...</span>
+                    </div>
+
+                    <a href="#" class="btn-kq-primary disabled" id="btn-detail">
+                        Xem chi tiết kết quả
+                    </a>
+                    <a class="btn-kq-secondary" href="@Url.Action("Index", "EClassroom")">
+                        Quay về trang chính
+                    </a>
+                </div>
+
             </div>
         </div>
     </div>
@@ -99,32 +519,30 @@
 
 <script>
     (function () {
-        var maxTries = 30; // 30 × 1s = 30 giây timeout
-        var tries    = 0;
-        var idlh     = @idlh;
+        var idlh = @idlh;
+        var maxTries = 60;
+        var tries = 0;
 
         function poll() {
             fetch('/STest/ResultReady?IDLH=' + idlh)
                 .then(function (r) { return r.json(); })
                 .then(function (d) {
                     if (d.ready) {
-                        document.getElementById('wr-spinner').style.display = 'none';
-                        document.getElementById('wr-msg').innerHTML =
-                            '<i class="fa fa-check-circle" style="color:#34a853;margin-right:6px;"></i>Đã lưu xong!';
-                        document.getElementById('wr-sub').style.display = 'none';
-                        var btn = document.getElementById('wr-btn');
-                        btn.href  = d.redirectUrl;
-                        btn.style.display = 'inline-block';
-                        // Tự chuyển sau 1.5s
-                        setTimeout(function () { window.location.href = d.redirectUrl; }, 1500);
+                        // Ẩn spinner, đổi text
+                        document.getElementById('save-spinner').style.display = 'none';
+                        document.getElementById('save-msg').innerHTML =
+                            '<i class="fa fa-check-circle" style="color:#34a853;margin-right:6px;font-size:16px;"></i>Đã lưu xong!';
+
+                        // Bật nút Xem chi tiết
+                        var btn = document.getElementById('btn-detail');
+                        btn.href = d.redirectUrl;
+                        btn.classList.remove('disabled');
                     } else {
                         tries++;
-                        if (tries < maxTries) {
-                            setTimeout(poll, 1000);
-                        } else {
-                            document.getElementById('wr-msg').textContent = 'Mất kết nối — hãy vào Lịch sử thi để xem kết quả';
-                            document.getElementById('wr-spinner').style.display = 'none';
-                            document.getElementById('wr-sub').style.display = 'none';
+                        if (tries < maxTries) setTimeout(poll, 1000);
+                        else {
+                            document.getElementById('save-spinner').style.display = 'none';
+                            document.getElementById('save-msg').textContent = 'Kết quả đang xử lý — vào Lịch sử thi để xem sau';
                         }
                     }
                 })

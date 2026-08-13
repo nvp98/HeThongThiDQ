@@ -491,6 +491,32 @@ namespace HeThongThiDQ.Controllers
                 });
             }
 
+            // Tính thống kê câu hỏi để hiển thị ngay lập tức
+            int soCauDung       = answerRecords.Count(a => a.DapAnNv.HasValue && a.DapAnDung == a.DapAnNv);
+            int soCauSai        = answerRecords.Count(a => a.DapAnNv.HasValue && a.DapAnDung != a.DapAnNv);
+            int soCauChuaTraLoi = answerRecords.Count(a => !a.DapAnNv.HasValue);
+
+            var qr = new QuickResultDto(
+                DiemSo:          diemSo,
+                TongSoCau:       answerRecords.Count,
+                SoCauDung:       soCauDung,
+                SoCauSai:        soCauSai,
+                SoCauChuaTraLoi: soCauChuaTraLoi,
+                ThoiGianSec:     dto.ThoiGianSec,
+                TGBDLamBaiThi:   dto.TGBDLamBaiThi,
+                GioKetThucMs:    DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                TaiKhoan:        _auth.Username ?? "",
+                HoTen:           _auth.TenNV ?? ""
+            );
+            try
+            {
+                await _cache.SetStringAsync(
+                    $"exam:quickresult:{_auth.ID}:{dto.IDLH}",
+                    JsonSerializer.Serialize(qr),
+                    new DistributedCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(2) });
+            }
+            catch { }
+
             // Publish vào queue — HTTP request trả về ngay, không đợi DB
             await _queue.PublishAsync(new ExamSubmitMessage
             {
@@ -511,22 +537,19 @@ namespace HeThongThiDQ.Controllers
             try { await _cache.RemoveAsync(SessionKey(dto.IDLH)); } catch { }
             try { await _mux.GetDatabase().SortedSetRemoveAsync("HPDQ:online:exams", $"{_auth.ID}:{dto.IDLH}"); } catch { }
 
-            // Trả về điểm ngay, client chuyển sang trang chờ DB ghi xong
             return Json(new
             {
                 success     = true,
                 score       = diemSo,
-                redirectUrl = Url.Action("WaitResult", "STest",
-                    new { IDLH = dto.IDLH, score = diemSo }),
+                redirectUrl = Url.Action("ViewResult", "EClassroom", new { IDLH = dto.IDLH }),
             });
         }
 
         [HttpGet]
-        public IActionResult WaitResult(int IDLH, double score)
+        public IActionResult WaitResult(int IDLH, double score = 0)
         {
-            ViewBag.IDLH  = IDLH;
-            ViewBag.Score = score;
-            return View();
+            // Giữ route cũ, chuyển thẳng sang ViewResult
+            return RedirectToAction("ViewResult", "EClassroom", new { IDLH });
         }
 
         [HttpGet]
@@ -535,7 +558,13 @@ namespace HeThongThiDQ.Controllers
             var rdb = _mux.GetDatabase();
             var val = await rdb.StringGetAsync($"exam:result:{_auth.ID}:{IDLH}");
             if (val.HasValue && int.TryParse(val.ToString(), out int idbaithi))
-                return Json(new { ready = true, idbaithi, redirectUrl = Url.Action("ViewResult", "EClassroom", new { IDLH, IDBaiThi = idbaithi }) });
+                return Json(new
+                {
+                    ready       = true,
+                    idbaithi,
+                    redirectUrl = Url.Action("TestView", "ConfirmEStudy",
+                        new { LHID = IDLH, IDNV = _auth.ID, IDBaiThi = idbaithi }),
+                });
 
             return Json(new { ready = false });
         }
