@@ -17,15 +17,18 @@ public class ExamSubmitConsumer : BackgroundService
     private readonly IServiceScopeFactory _scopeFactory;
     private readonly IConfiguration _config;
     private readonly ILogger<ExamSubmitConsumer> _logger;
+    private readonly IConnectionMultiplexer _mux;
 
     public ExamSubmitConsumer(
         IServiceScopeFactory scopeFactory,
         IConfiguration config,
-        ILogger<ExamSubmitConsumer> logger)
+        ILogger<ExamSubmitConsumer> logger,
+        IConnectionMultiplexer mux)
     {
         _scopeFactory = scopeFactory;
         _config = config;
         _logger = logger;
+        _mux = mux;
     }
 
     protected override async Task ExecuteAsync(CancellationToken ct)
@@ -82,12 +85,14 @@ public class ExamSubmitConsumer : BackgroundService
                     await ProcessAsync(msg);
 
                 channel.BasicAck(ea.DeliveryTag, false);
+                try { await _mux.GetDatabase().StringIncrementAsync(RabbitMqPublisher.KeyProcessed); } catch { }
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "[ExamConsumer] lỗi xử lý message {Id}", ea.BasicProperties.MessageId);
                 // requeue: false → vào dead-letter nếu đã cấu hình, không loop vô hạn
                 channel.BasicNack(ea.DeliveryTag, false, requeue: false);
+                try { await _mux.GetDatabase().StringIncrementAsync(RabbitMqPublisher.KeyFailed); } catch { }
             }
             finally
             {

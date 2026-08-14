@@ -73,6 +73,7 @@ else
                                    HeThongThiDQ.Services.NullExamQueuePublisher>();
 }
 
+builder.Services.AddHttpClient();
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<MyAuthentication>();
 builder.Services.AddScoped<HeThongThiDQ.Controllers.HomeController>();

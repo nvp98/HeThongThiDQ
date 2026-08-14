@@ -1,5 +1,6 @@
 using HeThongThiDQ.Models;
 using RabbitMQ.Client;
+using StackExchange.Redis;
 using System.Text;
 using System.Text.Json;
 
@@ -9,16 +10,24 @@ public class RabbitMqPublisher : IExamQueuePublisher, IDisposable
 {
     public const string QueueName = "exam.submit";
 
+    // Redis keys cho monitoring — không có prefix HPDQ: vì dùng IConnectionMultiplexer trực tiếp
+    public const string KeyPublished = "HPDQ:mqstats:published";
+    public const string KeyProcessed = "HPDQ:mqstats:processed";
+    public const string KeyFailed    = "HPDQ:mqstats:failed";
+
     private readonly ConnectionFactory _factory;
     private readonly ILogger<RabbitMqPublisher> _logger;
+    private readonly IConnectionMultiplexer _redis;
     private readonly object _lock = new();
 
     private IConnection? _conn;
     private IModel?      _channel;
 
-    public RabbitMqPublisher(IConfiguration config, ILogger<RabbitMqPublisher> logger)
+    public RabbitMqPublisher(IConfiguration config, ILogger<RabbitMqPublisher> logger,
+                             IConnectionMultiplexer redis)
     {
         _logger  = logger;
+        _redis   = redis;
         _factory = new ConnectionFactory
         {
             Uri = new Uri(config.GetConnectionString("RabbitMQ")!),
@@ -55,6 +64,10 @@ public class RabbitMqPublisher : IExamQueuePublisher, IDisposable
         {
             GetChannel().BasicPublish("", QueueName, props, body);
         }
+
+        // Fire-and-forget counter — không block publish, không ảnh hưởng nếu Redis tạm mất
+        _ = _redis.GetDatabase().StringIncrementAsync(KeyPublished);
+
         return Task.CompletedTask;
     }
 

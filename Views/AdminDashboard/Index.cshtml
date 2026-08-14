@@ -532,6 +532,70 @@
                             </div>
                         </div>
 
+                        <!-- RabbitMQ Monitor -->
+                        <div class="panel" style="margin-top:16px;">
+                            <div class="panel-head">
+                                <span><i class="fa fa-exchange" style="margin-right:7px;color:#e65100;"></i>RabbitMQ — Toàn vẹn dữ liệu bài thi</span>
+                                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                                    <span id="mq-status-badge" style="font-size:11px;padding:3px 10px;border-radius:20px;font-weight:700;background:#eee;color:#888;">Đang tải...</span>
+                                    <button onclick="resetMqStats()" style="font-size:11px;padding:3px 10px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer;color:#666;" title="Xóa counter về 0 sau mỗi kỳ thi">Reset counters</button>
+                                    <span class="refresh-badge">
+                                        <div id="mq-dot" style="width:7px;height:7px;border-radius:50%;background:#bbb;transition:background .3s;flex-shrink:0;"></div>
+                                        <span id="mq-updated">Đang tải...</span>
+                                    </span>
+                                </div>
+                            </div>
+                            <div class="panel-body">
+                                <!-- 4 mini stat cards -->
+                                <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px;">
+                                    <div style="background:#e8f0fe;border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px;">
+                                        <div style="font-size:20px;color:#1a73e8;">&#8679;</div>
+                                        <div>
+                                            <div id="mq-published" style="font-size:22px;font-weight:800;color:#222;line-height:1;">--</div>
+                                            <div style="font-size:11px;color:#666;margin-top:2px;">Đã gửi vào queue</div>
+                                        </div>
+                                    </div>
+                                    <div style="background:#e6f4ea;border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px;">
+                                        <div style="font-size:20px;color:#1e7e34;">&#10003;</div>
+                                        <div>
+                                            <div id="mq-processed" style="font-size:22px;font-weight:800;color:#222;line-height:1;">--</div>
+                                            <div style="font-size:11px;color:#666;margin-top:2px;">Đã lưu DB thành công</div>
+                                        </div>
+                                    </div>
+                                    <div style="background:#fef3e2;border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px;">
+                                        <div style="font-size:20px;color:#e65100;">&#8987;</div>
+                                        <div>
+                                            <div id="mq-pending" style="font-size:22px;font-weight:800;color:#222;line-height:1;">--</div>
+                                            <div style="font-size:11px;color:#666;margin-top:2px;">Chờ xử lý (counter)</div>
+                                        </div>
+                                    </div>
+                                    <div style="background:#fce8e6;border-radius:10px;padding:12px 14px;display:flex;align-items:center;gap:10px;">
+                                        <div style="font-size:20px;color:#d32f2f;">&#10007;</div>
+                                        <div>
+                                            <div id="mq-failed" style="font-size:22px;font-weight:800;color:#222;line-height:1;">--</div>
+                                            <div style="font-size:11px;color:#666;margin-top:2px;">Lỗi (dead-letter)</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <!-- Queue depth + rate info -->
+                                <div id="mq-queue-row" style="display:flex;gap:10px;flex-wrap:wrap;font-size:12px;color:#666;align-items:center;">
+                                    <span>Queue depth: <b id="mq-qdepth" style="color:#333;">--</b></span>
+                                    <span style="color:#ddd;">|</span>
+                                    <span>Sẵn sàng: <b id="mq-qready" style="color:#333;">--</b></span>
+                                    <span style="color:#ddd;">|</span>
+                                    <span>Đang xử lý: <b id="mq-qunacked" style="color:#333;">--</b></span>
+                                    <span style="color:#ddd;">|</span>
+                                    <span>Publish rate: <b id="mq-prate" style="color:#1a73e8;">--</b> msg/s</span>
+                                    <span style="color:#ddd;">|</span>
+                                    <span>Consume rate: <b id="mq-drate" style="color:#1e7e34;">--</b> msg/s</span>
+                                </div>
+                                <div id="mq-integrity-warn" style="display:none;margin-top:10px;padding:8px 12px;background:#fff3e0;border-left:3px solid #f57c00;border-radius:4px;font-size:12px;color:#e65100;">
+                                    &#9888; Counter Redis không khớp với queue depth RabbitMQ — có thể có message chưa được đếm (IIS restart, crash).
+                                </div>
+                                <div id="mq-mgmt-err" style="display:none;margin-top:8px;font-size:11px;color:#aaa;"></div>
+                            </div>
+                        </div>
+
                         <!-- System Performance -->
                         <div class="panel" style="margin-top:16px;">
                             <div class="panel-head">
@@ -839,4 +903,82 @@
 
                         refreshSys();
                         setInterval(refreshSys, 5000);
+
+                        // ----- RabbitMQ Monitor (refresh mỗi 5s) -----
+                        var mqDot     = document.getElementById('mq-dot');
+                        var mqUpdated = document.getElementById('mq-updated');
+
+                        var MQ_STATUS_STYLE = {
+                            ok:      { bg: '#e6f4ea', color: '#1e7e34', text: '✓ Toàn vẹn' },
+                            warning: { bg: '#fff3e0', color: '#e65100', text: '⏳ Đang xử lý' },
+                            error:   { bg: '#fce8e6', color: '#d32f2f', text: '✗ Có lỗi' },
+                            idle:    { bg: '#f0f0f0', color: '#888',    text: '— Chờ dữ liệu' },
+                        };
+
+                        async function refreshMqStats() {
+                            mqDot.style.background = '#1a73e8';
+                            try {
+                                var r = await fetch('/AdminDashboard/RabbitStats');
+                                var d = await r.json();
+
+                                document.getElementById('mq-published').textContent  = d.Published.toLocaleString();
+                                document.getElementById('mq-processed').textContent  = d.Processed.toLocaleString();
+                                document.getElementById('mq-pending').textContent    = d.Pending.toLocaleString();
+                                document.getElementById('mq-failed').textContent     = d.Failed.toLocaleString();
+
+                                // Queue depth từ Management API
+                                if (d.MgmtAvailable) {
+                                    document.getElementById('mq-qdepth').textContent    = d.QueueMessages.toLocaleString();
+                                    document.getElementById('mq-qready').textContent    = d.QueueReady.toLocaleString();
+                                    document.getElementById('mq-qunacked').textContent  = d.QueueUnacked.toLocaleString();
+                                    document.getElementById('mq-prate').textContent     = d.PublishRate !== null ? d.PublishRate : '0';
+                                    document.getElementById('mq-drate').textContent     = d.DeliverRate !== null ? d.DeliverRate : '0';
+                                    document.getElementById('mq-mgmt-err').style.display = 'none';
+                                } else {
+                                    document.getElementById('mq-qdepth').textContent   = 'N/A';
+                                    document.getElementById('mq-qready').textContent   = 'N/A';
+                                    document.getElementById('mq-qunacked').textContent = 'N/A';
+                                    document.getElementById('mq-prate').textContent    = 'N/A';
+                                    document.getElementById('mq-drate').textContent    = 'N/A';
+                                    var errEl = document.getElementById('mq-mgmt-err');
+                                    errEl.style.display = '';
+                                    errEl.textContent = 'Management API không khả dụng: ' + d.MgmtError;
+                                }
+
+                                // Integrity warning
+                                document.getElementById('mq-integrity-warn').style.display =
+                                    d.MgmtAvailable && !d.IntegrityOk ? '' : 'none';
+
+                                // Status badge
+                                var st = MQ_STATUS_STYLE[d.Status] || MQ_STATUS_STYLE.idle;
+                                var badge = document.getElementById('mq-status-badge');
+                                badge.style.background = st.bg;
+                                badge.style.color      = st.color;
+                                badge.textContent       = st.text + ' — ' + d.StatusMsg;
+
+                                // Failed highlight
+                                document.getElementById('mq-failed').style.color = d.Failed > 0 ? '#d32f2f' : '#222';
+
+                                var t = new Date();
+                                mqUpdated.textContent = 'Cập nhật '
+                                    + t.getHours().toString().padStart(2,'0') + ':'
+                                    + t.getMinutes().toString().padStart(2,'0') + ':'
+                                    + t.getSeconds().toString().padStart(2,'0');
+                                mqDot.style.background = '#34a853';
+                            } catch (e) {
+                                mqDot.style.background = '#d32f2f';
+                                mqUpdated.textContent = 'Lỗi kết nối';
+                            }
+                        }
+
+                        async function resetMqStats() {
+                            if (!confirm('Reset toàn bộ counter RabbitMQ về 0?\n\nChỉ làm sau khi kỳ thi kết thúc để bắt đầu theo dõi phiên mới.')) return;
+                            try {
+                                await fetch('/AdminDashboard/ResetMqStats', { method: 'POST' });
+                                await refreshMqStats();
+                            } catch (e) { alert('Lỗi reset counter'); }
+                        }
+
+                        refreshMqStats();
+                        setInterval(refreshMqStats, 5000);
                     </script>
