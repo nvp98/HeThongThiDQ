@@ -249,7 +249,7 @@ namespace HeThongThiDQ.Controllers
             {
                 var url = _config["AppSettings:LinkToken"] ?? "";
                 if (string.IsNullOrEmpty(url)) return false;
-                using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(8) };
+                using var client = new HttpClient { Timeout = TimeSpan.FromSeconds(3) };
                 var body = JsonSerializer.Serialize(new { username, password });
                 var resp = await client.PostAsync(url,
                     new StringContent(body, Encoding.UTF8, "application/json"));
