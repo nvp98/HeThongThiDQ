@@ -1,0 +1,217 @@
+<div class="modal-dialog modal-lg" id="formTaoDeOL">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5><i class="fa fa-book"></i> Tạo đề ôn luyện</h5>
+            <a href="#" class="close" data-dismiss="modal">&times;</a>
+        </div>
+        <div class="modal-body">
+
+            <div class="alert alert-info small py-2 mb-3">
+                <i class="fa fa-info-circle"></i>
+                Hệ thống sẽ phân chia toàn bộ câu hỏi vào các đề (<strong>không trùng lặp</strong>).
+                Thí sinh phải hoàn thành tất cả câu hỏi trong đề được phân công.
+                <br>Công thức: <strong>Số đề × Số câu/đề = Tổng câu cần dùng</strong>
+            </div>
+
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="small mb-1">Nội dung đào tạo <span class="text-danger">*</span></label>
+                        <select id="ol-idnd" class="form-control">
+                            <option value="">-- Chọn nội dung --</option>
+                            @foreach (var nd in ViewBag.NDList as IEnumerable<SelectListItem> ?? Enumerable.Empty<SelectListItem>())
+                            {
+                                <option value="@nd.Value">@nd.Text</option>
+                            }
+                        </select>
+                        <small id="ol-soluong-nb" class="text-muted"></small>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label class="small mb-1">Số đề ôn luyện <span class="text-danger">*</span></label>
+                                <input type="number" id="ol-sode" class="form-control" value="5" min="1" max="100">
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label class="small mb-1">Số câu/đề <span class="text-danger">*</span></label>
+                                <input type="number" id="ol-socau" class="form-control" value="20" min="1">
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label class="small mb-1">Thời gian (phút)</label>
+                                <input type="number" id="ol-thoigian" class="form-control" value="30" min="1">
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label class="small mb-1">Điểm chuẩn</label>
+                                <input type="number" id="ol-diemchuan" class="form-control" value="5" min="0" max="10" step="0.5">
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label class="small mb-1">Tiền tố mã đề</label>
+                                <input type="text" id="ol-prefix" class="form-control" value="OL" maxlength="10" placeholder="OL, ON, ...">
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="form-group">
+                                <label class="small mb-1">Tên đề (gốc)</label>
+                                <input type="text" id="ol-tende" class="form-control" placeholder="Đề ôn luyện...">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6 d-flex flex-column justify-content-center">
+                    <div class="border rounded p-3 bg-light text-center">
+                        <div class="mb-2 small text-muted">Tổng câu hỏi cần dùng</div>
+                        <div id="ol-tong-can" class="display-4 font-weight-bold text-primary">0</div>
+                        <div class="small text-muted mt-1">
+                            = <span id="ol-sode-display">5</span> đề
+                            × <span id="ol-socau-display">20</span> câu/đề
+                        </div>
+                        <hr class="my-2">
+                        <div id="ol-check-wrap">
+                            <div id="ol-check-ok" class="text-success small" style="display:none">
+                                <i class="fa fa-check-circle fa-lg"></i>
+                                Ngân hàng đủ câu
+                                (<span id="ol-nb-count">0</span> câu có sẵn)
+                            </div>
+                            <div id="ol-check-err" class="text-danger small" style="display:none">
+                                <i class="fa fa-times-circle fa-lg"></i>
+                                Không đủ câu hỏi
+                                (<span id="ol-nb-count2">0</span> câu có sẵn)
+                            </div>
+                            <div id="ol-check-none" class="text-muted small">
+                                Chọn nội dung đào tạo để kiểm tra
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="ol-result" class="mt-3" style="display:none">
+                <hr>
+                <h6 class="text-success"><i class="fa fa-check"></i> Đã tạo thành công</h6>
+                <div id="ol-result-list" class="small"></div>
+            </div>
+
+            <div id="ol-error" class="alert alert-danger mt-3" style="display:none"></div>
+
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+            <button class="btn btn-warning" id="btn-tao-de-ol" type="button">
+                <i class="fa fa-book"></i> Tạo đề ôn luyện
+            </button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var nbCount = 0;
+
+    function calcTong() {
+        var sode  = parseInt($("#ol-sode").val()) || 0;
+        var socau = parseInt($("#ol-socau").val()) || 0;
+        var tong  = sode * socau;
+        $("#ol-tong-can").text(tong);
+        $("#ol-sode-display").text(sode);
+        $("#ol-socau-display").text(socau);
+        updateCheck(tong);
+    }
+
+    function updateCheck(tong) {
+        if (nbCount === 0) {
+            $("#ol-check-ok").hide(); $("#ol-check-err").hide();
+            $("#ol-check-none").show();
+            return;
+        }
+        $("#ol-check-none").hide();
+        if (tong > 0 && nbCount >= tong) {
+            $("#ol-nb-count").text(nbCount);
+            $("#ol-check-ok").show(); $("#ol-check-err").hide();
+        } else {
+            $("#ol-nb-count2").text(nbCount);
+            $("#ol-check-ok").hide(); $("#ol-check-err").show();
+        }
+    }
+
+    $("#ol-idnd").change(function () {
+        var idnd = $(this).val();
+        nbCount = 0;
+        $("#ol-soluong-nb").text("");
+        $("#ol-check-ok").hide(); $("#ol-check-err").hide(); $("#ol-check-none").show();
+        if (!idnd) return;
+
+        $.get("/ManageTestExam/GetSoCauNganHang", { idnd: idnd }, function (data) {
+            nbCount = data.count || 0;
+            $("#ol-soluong-nb").text("Ngân hàng: " + nbCount + " câu hỏi");
+            calcTong();
+        });
+    });
+
+    $("#ol-sode, #ol-socau").on("input", calcTong);
+    calcTong();
+
+    $("#btn-tao-de-ol").click(function () {
+        $("#ol-error").hide();
+        $("#ol-result").hide();
+
+        var idnd     = parseInt($("#ol-idnd").val()) || 0;
+        var sode     = parseInt($("#ol-sode").val()) || 0;
+        var socau    = parseInt($("#ol-socau").val()) || 0;
+        var thoiGian = parseInt($("#ol-thoigian").val()) || 30;
+        var diem     = parseFloat($("#ol-diemchuan").val()) || 5;
+        var prefix   = $("#ol-prefix").val().trim();
+        var tenDe    = $("#ol-tende").val().trim();
+
+        if (!idnd) { showErr("Chưa chọn Nội dung đào tạo"); return; }
+        if (sode < 1) { showErr("Số đề phải > 0"); return; }
+        if (socau < 1) { showErr("Số câu/đề phải > 0"); return; }
+        if (nbCount > 0 && nbCount < sode * socau) {
+            if (!confirm("Ngân hàng chỉ có " + nbCount + " câu (cần " + (sode * socau) + " câu). Đề cuối sẽ có ít câu hơn. Tiếp tục?")) return;
+        }
+
+        var btn = $(this);
+        btn.prop("disabled", true).html('<i class="fa fa-spinner fa-spin"></i> Đang tạo...');
+
+        $.ajax({
+            url: "/ManageTestExam/TaoDeOnLuyen",
+            type: "POST",
+            contentType: "application/json",
+            data: JSON.stringify({
+                IDND: idnd, SoDe: sode, SoCauMoiDe: socau,
+                ThoiGianLamBai: thoiGian, DiemChuan: diem,
+                MaDePrefix: prefix, TenDe: tenDe
+            }),
+            success: function (r) {
+                if (r.success) {
+                    var html = '<p class="mb-1">Đã sử dụng <strong>' + r.tongCauSuDung + '</strong> / '
+                        + r.tongCauNganHang + ' câu trong ngân hàng.</p><ul class="mb-0">';
+                    $.each(r.created, function (i, d) {
+                        html += '<li><strong>' + d.MaDe + '</strong> — ' + d.TenDe + ' (ID=' + d.IDDeThi + ')</li>';
+                    });
+                    html += '</ul>';
+                    $("#ol-result-list").html(html);
+                    $("#ol-result").show();
+                } else {
+                    showErr(r.message);
+                }
+            },
+            error: function () { showErr("Lỗi kết nối server"); },
+            complete: function () {
+                btn.prop("disabled", false).html('<i class="fa fa-book"></i> Tạo đề ôn luyện');
+            }
+        });
+    });
+
+    function showErr(msg) { $("#ol-error").text(msg).show(); }
+})();
+</script>

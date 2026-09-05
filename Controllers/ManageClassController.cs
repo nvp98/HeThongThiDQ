@@ -551,6 +551,88 @@ namespace HeThongThiDQ.Controllers
             }
         }
 
+        // ── Sinh lớp học hàng loạt theo danh sách đề thi ôn luyện ──────────────────
+
+        [HttpGet]
+        public async Task<IActionResult> SinhLopHangLoat()
+        {
+            ViewBag.NDList = new SelectList(
+                await _db.NoiDungDts.AsNoTracking().ToListAsync(), "Idnd", "NoiDung");
+            return PartialView();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetDeThiOnLuyen(int idnd)
+        {
+            var list = await _db.DeThis.AsNoTracking()
+                .Where(x => x.Idnd == idnd)
+                .OrderBy(x => x.MaDe)
+                .Select(x => new { x.IddeThi, x.MaDe, x.TenDe, x.TongSoCau })
+                .ToListAsync();
+            return Json(list);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> SinhLopHangLoat(
+            List<int>? IdDeThiList, int QuyDT, int NamDT,
+            DateTime TGBDLH, DateTime TGKTLH, string? MaLHPrefix,
+            IFormFile? FileUpload)
+        {
+            if (IdDeThiList == null || IdDeThiList.Count == 0)
+            {
+                TempData["msgError"] = "<script>alert('Chưa chọn đề thi nào');</script>";
+                return RedirectToAction("Index", "ManageClass");
+            }
+
+            try
+            {
+                var deThiList = await _db.DeThis.AsNoTracking()
+                    .Where(x => IdDeThiList.Contains(x.IddeThi))
+                    .OrderBy(x => x.MaDe)
+                    .ToListAsync();
+
+                var prefix = string.IsNullOrWhiteSpace(MaLHPrefix) ? "OL" : MaLHPrefix.Trim().ToUpper();
+                var existingMaLH = (await _db.LopHocs.Select(x => x.MaLh).ToListAsync()).ToHashSet();
+                int counter = 1;
+                int created = 0;
+
+                foreach (var dt in deThiList)
+                {
+                    string maLH;
+                    do { maLH = $"{prefix}{counter++:D4}"; } while (existingMaLH.Contains(maLH));
+                    existingMaLH.Add(maLH);
+
+                    var lopHoc = new LopHoc
+                    {
+                        MaLh     = maLH,
+                        TenLh    = dt.TenDe,
+                        Ndid     = dt.Idnd,
+                        QuyDt    = QuyDT,
+                        NamDt    = NamDT,
+                        Tgbdlh   = TGBDLH,
+                        Tgktlh   = TGKTLH,
+                        Gvid     = _auth.ID,
+                        IddeThi  = dt.IddeThi,
+                        IsCoCtdt = 1
+                    };
+                    _db.LopHocs.Add(lopHoc);
+                    await _db.SaveChangesAsync();
+
+                    if (FileUpload != null && FileUpload.Length > 0)
+                        ImportHocVien(FileUpload, maLH, lopHoc.Idlh);
+
+                    created++;
+                }
+
+                TempData["msgSuccess"] = $"<script>alert('Đã tạo {created} lớp học ôn luyện thành công');</script>";
+            }
+            catch (Exception e)
+            {
+                TempData["msgError"] = $"<script>alert('Có lỗi: {e.Message}');</script>";
+            }
+            return RedirectToAction("Index", "ManageClass");
+        }
+
         private async Task InvalidateLopHocCache(int idlh)
         {
             try

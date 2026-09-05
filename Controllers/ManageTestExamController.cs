@@ -468,9 +468,7 @@ namespace HeThongThiDQ.Controllers
                     return Json(new { success = false, message = $"Loại {pb.LoaiCH}: cần {pb.SoLuong} câu nhưng chỉ có {avail} câu" });
             }
 
-            double diemMoiCau = req.TongSoCau > 0
-                ? Math.Round(10.0 / req.TongSoCau, 4)
-                : 0;
+            double diemMoiCau = 1;
 
             var rng = new Random();
             var created = new List<object>();
@@ -533,6 +531,92 @@ namespace HeThongThiDQ.Controllers
             }
 
             return Json(new { success = true, total = req.SoDe, created });
+        }
+
+        // ── Tạo đề ôn luyện (partition – mỗi câu chỉ xuất hiện đúng 1 đề) ──────────
+
+        [HttpGet]
+        public async Task<IActionResult> TaoDeOnLuyen()
+        {
+            ViewBag.NDList = new SelectList(
+                await _db.NoiDungDts.AsNoTracking().ToListAsync(), "Idnd", "NoiDung");
+            return PartialView();
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> GetSoCauNganHang(int idnd)
+        {
+            var count = await _db.CauHois.AsNoTracking().CountAsync(x => x.Idnd == idnd);
+            return Json(new { count });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> TaoDeOnLuyen([FromBody] TaoDeOnLuyenRequest req)
+        {
+            if (req.SoDe < 1 || req.SoDe > 100)
+                return Json(new { success = false, message = "Số đề hợp lệ: 1–100" });
+            if (req.SoCauMoiDe < 1)
+                return Json(new { success = false, message = "Số câu mỗi đề phải > 0" });
+
+            int tongCauCan = req.SoDe * req.SoCauMoiDe;
+
+            var allQ = await _db.CauHois.AsNoTracking()
+                .Where(x => x.Idnd == req.IDND)
+                .Select(x => x.Idch)
+                .ToListAsync();
+
+            if (allQ.Count == 0)
+                return Json(new { success = false, message = "Ngân hàng câu hỏi chưa có câu nào cho nội dung này" });
+
+            var prefix   = string.IsNullOrWhiteSpace(req.MaDePrefix) ? "OL" : req.MaDePrefix.Trim();
+            var tenGoc   = string.IsNullOrWhiteSpace(req.TenDe) ? "Đề ôn luyện" : req.TenDe.Trim();
+            var shuffled = allQ.OrderBy(_ => Random.Shared.Next()).ToList();
+            var created  = new List<object>();
+
+            for (int i = 0; i < req.SoDe; i++)
+            {
+                var slice = shuffled.Skip(i * req.SoCauMoiDe).Take(req.SoCauMoiDe).ToList();
+                if (slice.Count == 0) break; // hết câu hỏi, dừng
+
+                var deThi = new DeThi
+                {
+                    MaDe           = $"{prefix}{i + 1:D2}",
+                    TenDe          = $"{tenGoc} — Đề {i + 1:D2}",
+                    TongSoCau      = slice.Count, // đề cuối có thể ít hơn SoCauMoiDe
+                    ThoiGianLamBai = req.ThoiGianLamBai,
+                    DiemChuan      = req.DiemChuan,
+                    Idnd           = req.IDND,
+                    Gvid           = _auth.ID,
+                };
+                _db.DeThis.Add(deThi);
+                await _db.SaveChangesAsync();
+
+                foreach (var idch in slice)
+                {
+                    _db.CauHoiDeThis.Add(new CauHoiDeThi
+                    {
+                        IdcauHoi = idch,
+                        IddeThi  = deThi.IddeThi,
+                        Diem     = 1,
+                    });
+                }
+                await _db.SaveChangesAsync();
+
+                created.Add(new { IDDeThi = deThi.IddeThi, MaDe = deThi.MaDe, TenDe = deThi.TenDe, SoCau = slice.Count });
+            }
+
+            return Json(new { success = true, total = created.Count, tongCauSuDung = Math.Min(tongCauCan, allQ.Count), tongCauNganHang = allQ.Count, created });
+        }
+
+        public class TaoDeOnLuyenRequest
+        {
+            public int    IDND           { get; set; }
+            public int    SoDe           { get; set; }
+            public int    SoCauMoiDe     { get; set; }
+            public int    ThoiGianLamBai { get; set; }
+            public double DiemChuan      { get; set; }
+            public string MaDePrefix     { get; set; } = "OL";
+            public string TenDe          { get; set; } = "";
         }
 
         // Input model

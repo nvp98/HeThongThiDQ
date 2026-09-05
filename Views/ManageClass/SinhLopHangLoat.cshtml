@@ -1,0 +1,184 @@
+<form asp-action="SinhLopHangLoat" asp-controller="ManageClass" method="post" enctype="multipart/form-data">
+    @Html.AntiForgeryToken()
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5><i class="fa fa-th-list"></i> Sinh lớp học hàng loạt theo đề ôn luyện</h5>
+                <a href="#" class="close" data-dismiss="modal">&times;</a>
+            </div>
+            <div class="modal-body">
+
+                <div class="row">
+                    <!-- CỘT TRÁI: cấu hình chung -->
+                    <div class="col-md-5">
+                        <div class="form-group">
+                            <label class="small mb-1">Nội dung đào tạo <span class="text-danger">*</span></label>
+                            <select id="slhl-idnd" class="form-control">
+                                <option value="">-- Chọn nội dung --</option>
+                                @foreach (var nd in ViewBag.NDList as IEnumerable<SelectListItem> ?? Enumerable.Empty<SelectListItem>())
+                                {
+                                    <option value="@nd.Value">@nd.Text</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="row">
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label class="small mb-1">Quý</label>
+                                    <input type="number" name="QuyDT" class="form-control" value="1" min="1" max="4">
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="form-group">
+                                    <label class="small mb-1">Năm</label>
+                                    <input type="number" name="NamDT" class="form-control" value="@DateTime.Now.Year" min="2020">
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label class="small mb-1">Thời gian bắt đầu <span class="text-danger">*</span></label>
+                                    <input type="datetime-local" name="TGBDLH" id="slhl-tgbd" class="form-control">
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label class="small mb-1">Thời gian kết thúc <span class="text-danger">*</span></label>
+                                    <input type="datetime-local" name="TGKTLH" id="slhl-tgkt" class="form-control">
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label class="small mb-1">Tiền tố mã lớp</label>
+                                    <input type="text" name="MaLHPrefix" class="form-control" value="OL" maxlength="10" placeholder="OL, ON, ...">
+                                    <small class="text-muted">Mã lớp tự sinh: <strong>OL0001</strong>, <strong>OL0002</strong>, ...</small>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="form-group">
+                                    <label class="small mb-1">Danh sách học viên (Excel)</label>
+                                    <input type="file" name="FileUpload" id="slhl-file" class="form-control" accept=".xls,.xlsx" onchange="checkfileOL(this)">
+                                    <small class="text-muted">File Excel dùng chung cho tất cả lớp được tạo</small>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- CỘT PHẢI: danh sách đề thi -->
+                    <div class="col-md-7">
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <label class="small mb-0">Chọn đề thi ôn luyện <span class="text-danger">*</span></label>
+                            <div>
+                                <button class="btn btn-sm btn-outline-secondary mr-1" id="btn-slhl-tai" type="button">
+                                    <i class="fa fa-refresh"></i> Tải danh sách
+                                </button>
+                                <button class="btn btn-sm btn-outline-primary" id="btn-slhl-all" type="button" style="display:none">
+                                    Chọn tất cả
+                                </button>
+                            </div>
+                        </div>
+                        <div id="slhl-list" class="border rounded p-2" style="min-height:200px;max-height:320px;overflow-y:auto;background:#fafafa">
+                            <p class="text-muted small text-center mt-4">
+                                Chọn Nội dung đào tạo rồi nhấn "Tải danh sách"
+                            </p>
+                        </div>
+                        <div class="mt-2 small">
+                            Đã chọn: <strong id="slhl-count" class="text-primary">0</strong> đề thi
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Đóng</button>
+                <button type="submit" id="btn-slhl-submit" class="btn btn-primary">
+                    <i class="fa fa-th-list"></i> Tạo lớp học
+                </button>
+            </div>
+        </div>
+    </div>
+</form>
+
+<script>
+    function checkfileOL(sender) {
+        var validExts = [".xlsx", ".xls"];
+        var fileExt = sender.value.substring(sender.value.lastIndexOf('.'));
+        if (validExts.indexOf(fileExt) < 0) {
+            alert("Vui lòng chọn file Excel (.xlsx, .xls)");
+            sender.value = '';
+        }
+    }
+
+    (function () {
+        function updateCount() {
+            $("#slhl-count").text($(".slhl-check:checked").length);
+        }
+
+        $("#btn-slhl-tai").click(function () {
+            var idnd = $("#slhl-idnd").val();
+            if (!idnd) { alert("Vui lòng chọn Nội dung đào tạo"); return; }
+
+            var self = this;
+            $(self).prop("disabled", true).html('<i class="fa fa-spinner fa-spin"></i>');
+
+            $.get("/ManageClass/GetDeThiOnLuyen", { idnd: idnd }, function (data) {
+                if (!data || data.length === 0) {
+                    $("#slhl-list").html('<p class="text-warning small text-center mt-4">Không có đề thi nào</p>');
+                    $("#btn-slhl-all").hide();
+                    return;
+                }
+                var html = '<table class="table table-sm table-hover mb-0">'
+                    + '<thead><tr><th width="30"><input type="checkbox" id="slhl-chk-all"></th>'
+                    + '<th>Mã đề</th><th>Tên đề</th><th class="text-center">Số câu</th></tr></thead><tbody>';
+                $.each(data, function (i, d) {
+                    html += '<tr>'
+                        + '<td><input type="checkbox" class="slhl-check" name="IdDeThiList" value="' + d.IddeThi + '"></td>'
+                        + '<td><strong>' + d.MaDe + '</strong></td>'
+                        + '<td>' + d.TenDe + '</td>'
+                        + '<td class="text-center">' + d.TongSoCau + '</td>'
+                        + '</tr>';
+                });
+                html += '</tbody></table>';
+                $("#slhl-list").html(html);
+                $("#btn-slhl-all").show();
+                updateCount();
+
+                $("#slhl-chk-all").change(function () {
+                    $(".slhl-check").prop("checked", this.checked);
+                    updateCount();
+                });
+            }).fail(function () {
+                $("#slhl-list").html('<p class="text-danger small">Lỗi tải dữ liệu</p>');
+            }).always(function () {
+                $(self).prop("disabled", false).html('<i class="fa fa-refresh"></i> Tải danh sách');
+            });
+        });
+
+        $(document).on("change", ".slhl-check", updateCount);
+
+        $("#btn-slhl-all").click(function () {
+            var allChecked = $(".slhl-check:checked").length === $(".slhl-check").length;
+            $(".slhl-check, #slhl-chk-all").prop("checked", !allChecked);
+            updateCount();
+        });
+
+        $("#btn-slhl-submit").click(function (e) {
+            if ($(".slhl-check:checked").length === 0) {
+                e.preventDefault();
+                alert("Chưa chọn đề thi nào");
+                return;
+            }
+            var tgbd = $("#slhl-tgbd").val();
+            var tgkt = $("#slhl-tgkt").val();
+            if (!tgbd || !tgkt) {
+                e.preventDefault();
+                alert("Vui lòng nhập đầy đủ thời gian bắt đầu và kết thúc");
+                return;
+            }
+            if (new Date(tgkt) <= new Date(tgbd)) {
+                e.preventDefault();
+                alert("Thời gian kết thúc phải sau thời gian bắt đầu");
+                return;
+            }
+        });
+    })();
+</script>

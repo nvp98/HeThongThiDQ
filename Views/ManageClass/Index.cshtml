@@ -82,7 +82,11 @@
                             @if ((ViewBag.QUYENCN as List<string>).Contains(CONSTKEY.ADD))
                             {
                                 <button type="button" id="btn-add" class="btn btn-primary m-l-auto"><i class="fa fa-plus">&nbsp;</i>&nbsp;Thêm mới</button>
+                                <button type="button" id="btn-sinh-lop-hl" class="btn btn-warning m-l-auto" title="Sinh lớp học hàng loạt theo danh sách đề ôn luyện">
+                                    <i class="fa fa-th-list"></i>&nbsp;Sinh lớp ôn luyện
+                                </button>
                                 <span class="modal fade" id="myModal" role="dialog" data-url="@Url.Action("Create","ManageClass")"></span>
+                                <span class="modal fade" id="myModalSinhLopHL" role="dialog" data-url="@Url.Action("SinhLopHangLoat","ManageClass")"></span>
                             }
                         </div>
                     </div>
@@ -197,6 +201,15 @@
         $.get(url, function (data) {
             $("#myModal").html(data);
             $("#ModalTitle").html("Thêm mới Lớp Học");
+            $("#myModal").modal('show');
+        });
+    });
+
+    $('#btn-sinh-lop-hl').click(function () {
+        var url = $('#myModalSinhLopHL').data('url');
+        $.get(url, function (data) {
+            $("#myModal").html(data);
+            $("#myModal").modal({ backdrop: "static" });
             $("#myModal").modal('show');
         });
     });
