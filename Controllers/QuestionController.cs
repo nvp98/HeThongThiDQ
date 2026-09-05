@@ -26,7 +26,7 @@ namespace HeThongThiDQ.Controllers
             _db = db;
             _auth = auth;
             _home = home;
-            _env  = env;
+            _env = env;
         }
 
         public async Task<IActionResult> Index(int? page, int? IDND, int? IDDaoCH)
@@ -40,8 +40,8 @@ namespace HeThongThiDQ.Controllers
                 return RedirectToAction("", "Home");
             }
 
-            int id   = _auth.ID;
-            IDND   ??= 0;
+            int id = _auth.ID;
+            IDND ??= 0;
             bool isGv = listQuyen.Contains(CONSTKEY.V_GV);
 
             // Đẩy các filter xuống SQL thay vì load hết rồi lọc trong C#
@@ -53,18 +53,18 @@ namespace HeThongThiDQ.Controllers
                              from d in ul.DefaultIfEmpty()
                              select new ManageQuestionValidation
                              {
-                                 IDCH      = c.Idch,
+                                 IDCH = c.Idch,
                                  NoiDungCH = c.NoiDungCh,
-                                 DapAnA    = c.DapAnA,
-                                 DapAnB    = c.DapAnB,
-                                 DapAnC    = c.DapAnC,
-                                 DapAnD    = c.DapAnD,
-                                 IDDADung  = c.Iddađung ?? 0,
+                                 DapAnA = c.DapAnA,
+                                 DapAnB = c.DapAnB,
+                                 DapAnC = c.DapAnC,
+                                 DapAnD = c.DapAnD,
+                                 IDDADung = c.Iddađung ?? 0,
                                  DapAnDung = d != null ? d.TenĐa : null,
-                                 IDND      = c.Idnd ?? 0,
-                                 GVID      = c.Gvid ?? 0,
-                                 MaCH      = c.MaCh,
-                                 IsDao     = c.IsDao ?? false
+                                 IDND = c.Idnd ?? 0,
+                                 GVID = c.Gvid ?? 0,
+                                 MaCH = c.MaCh,
+                                 IsDao = c.IsDao ?? false
                              }).ToListAsync();
 
             ViewBag.IDND = new SelectList(await _db.NoiDungDts.AsNoTracking().ToListAsync(), "Idnd", "NoiDung", IDND);
@@ -89,7 +89,7 @@ namespace HeThongThiDQ.Controllers
 
         public async Task<IActionResult> Create()
         {
-            ViewBag.IDND  = new SelectList(await _db.NoiDungDts.AsNoTracking().ToListAsync(), "Idnd", "NoiDung");
+            ViewBag.IDND = new SelectList(await _db.NoiDungDts.AsNoTracking().ToListAsync(), "Idnd", "NoiDung");
             ViewBag.DSList = new SelectList(await _db.DanhSachDa.AsNoTracking().ToListAsync(), "Iddsđa", "TenĐa");
             return PartialView();
         }
@@ -102,15 +102,15 @@ namespace HeThongThiDQ.Controllers
                 var ch = new CauHoi
                 {
                     NoiDungCh = _DO.NoiDungCH,
-                    DapAnA    = _DO.DapAnA,
-                    DapAnB    = _DO.DapAnB,
-                    DapAnC    = _DO.DapAnC,
-                    DapAnD    = _DO.DapAnD,
-                    Iddađung  = _DO.IDDADung,
-                    Idnd      = _DO.IDND,
-                    Gvid      = _auth.ID,
-                    MaCh      = _DO.MaCH,
-                    IsDao     = _DO.IsDao
+                    DapAnA = _DO.DapAnA,
+                    DapAnB = _DO.DapAnB,
+                    DapAnC = _DO.DapAnC,
+                    DapAnD = _DO.DapAnD,
+                    Iddađung = _DO.IDDADung,
+                    Idnd = _DO.IDND,
+                    Gvid = _auth.ID,
+                    MaCh = _DO.MaCH,
+                    IsDao = _DO.IsDao
                 };
                 _db.CauHois.Add(ch);
                 await _db.SaveChangesAsync();
@@ -130,10 +130,10 @@ namespace HeThongThiDQ.Controllers
                 return Json(new { location = "" });
 
             string fileName = Path.GetFileName(file.FileName);
-            string folder   = Path.Combine(_env.WebRootPath, "UploadedFiles", "ImagesUpload");
+            string folder = Path.Combine(_env.WebRootPath, "UploadedFiles", "ImagesUpload");
             Directory.CreateDirectory(folder);
             string filePath = Path.Combine(folder, fileName);
-            using var fs    = new FileStream(filePath, FileMode.Create);
+            using var fs = new FileStream(filePath, FileMode.Create);
             file.CopyTo(fs);
             return Json(new { location = "/UploadedFiles/ImagesUpload/" + fileName });
         }
@@ -147,20 +147,20 @@ namespace HeThongThiDQ.Controllers
 
             var DO = new ManageQuestionValidation
             {
-                IDCH      = c.Idch,
+                IDCH = c.Idch,
                 NoiDungCH = c.NoiDungCh,
-                DapAnA    = c.DapAnA,
-                DapAnB    = c.DapAnB,
-                DapAnC    = c.DapAnC,
-                DapAnD    = c.DapAnD,
-                IDDADung  = c.Iddađung ?? 0,
+                DapAnA = c.DapAnA,
+                DapAnB = c.DapAnB,
+                DapAnC = c.DapAnC,
+                DapAnD = c.DapAnD,
+                IDDADung = c.Iddađung ?? 0,
                 DapAnDung = da?.TenĐa,
-                IDND      = c.Idnd ?? 0,
-                MaCH      = c.MaCh,
-                IsDao     = c.IsDao ?? false
+                IDND = c.Idnd ?? 0,
+                MaCH = c.MaCh,
+                IsDao = c.IsDao ?? false
             };
 
-            ViewBag.IDND    = new SelectList(await _db.NoiDungDts.AsNoTracking().ToListAsync(), "Idnd", "NoiDung", DO.IDND);
+            ViewBag.IDND = new SelectList(await _db.NoiDungDts.AsNoTracking().ToListAsync(), "Idnd", "NoiDung", DO.IDND);
             ViewBag.IDDADung = new SelectList(await _db.DanhSachDa.AsNoTracking().ToListAsync(), "Iddsđa", "TenĐa", DO.IDDADung);
 
             return PartialView(DO);
@@ -175,14 +175,14 @@ namespace HeThongThiDQ.Controllers
                 if (c != null)
                 {
                     c.NoiDungCh = _DO.NoiDungCH;
-                    c.DapAnA    = _DO.DapAnA;
-                    c.DapAnB    = _DO.DapAnB;
-                    c.DapAnC    = _DO.DapAnC;
-                    c.DapAnD    = _DO.DapAnD;
-                    c.Iddađung  = _DO.IDDADung;
-                    c.Idnd      = _DO.IDND;
-                    c.MaCh      = _DO.MaCH;
-                    c.IsDao     = _DO.IsDao;
+                    c.DapAnA = _DO.DapAnA;
+                    c.DapAnB = _DO.DapAnB;
+                    c.DapAnC = _DO.DapAnC;
+                    c.DapAnD = _DO.DapAnD;
+                    c.Iddađung = _DO.IDDADung;
+                    c.Idnd = _DO.IDND;
+                    c.MaCh = _DO.MaCH;
+                    c.IsDao = _DO.IsDao;
                     await _db.SaveChangesAsync();
                 }
                 TempData["msgSuccess"] = "<script>alert('Cập nhập thành công');</script>";
@@ -244,33 +244,33 @@ namespace HeThongThiDQ.Controllers
                     ? ExcelReaderFactory.CreateBinaryReader(stream)
                     : ExcelReaderFactory.CreateOpenXmlReader(stream);
                 DataSet result = reader.AsDataSet();
-                DataTable dt   = result.Tables[0];
+                DataTable dt = result.Tables[0];
                 reader.Close();
 
                 for (int i = 5; i < dt.Rows.Count; i++)
                 {
-                    string maCH      = dt.Rows[i][1].ToString()!.Trim();
+                    string maCH = dt.Rows[i][1].ToString()!.Trim();
                     string noiDungCH = dt.Rows[i][2].ToString()!.Trim();
-                    string dapAnA    = dt.Rows[i][3].ToString()!.Trim();
-                    string dapAnB    = dt.Rows[i][4].ToString()!.Trim();
-                    string dapAnC    = dt.Rows[i][5].ToString()!.Trim();
-                    string dapAnD    = dt.Rows[i][6].ToString()!.Trim();
+                    string dapAnA = dt.Rows[i][3].ToString()!.Trim();
+                    string dapAnB = dt.Rows[i][4].ToString()!.Trim();
+                    string dapAnC = dt.Rows[i][5].ToString()!.Trim();
+                    string dapAnD = dt.Rows[i][6].ToString()!.Trim();
                     string dapAnDungRaw = dt.Rows[i][7].ToString()!.Trim().ToUpper();
 
-                    int dapAnDung = dapAnDungRaw switch { "A" => 1, "B" => 2, "C" => 3, "D" => 4, _ => 1 };
+                    int dapAnDung = dapAnDungRaw switch { "A" or "1" => 1, "B" or "2" => 2, "C" or "3" => 3, "D" or "4" => 4, _ => 1 };
 
                     _db.CauHois.Add(new CauHoi
                     {
                         NoiDungCh = noiDungCH,
-                        DapAnA    = dapAnA,
-                        DapAnB    = dapAnB,
-                        DapAnC    = dapAnC,
-                        DapAnD    = dapAnD,
-                        Iddađung  = dapAnDung,
-                        Idnd      = _DO.IDND,
-                        Gvid      = _auth.ID,
-                        MaCh      = maCH,
-                        IsDao     = true
+                        DapAnA = dapAnA,
+                        DapAnB = dapAnB,
+                        DapAnC = dapAnC,
+                        DapAnD = dapAnD,
+                        Iddađung = dapAnDung,
+                        Idnd = _DO.IDND,
+                        Gvid = _auth.ID,
+                        MaCh = maCH,
+                        IsDao = true
                     });
                 }
                 await _db.SaveChangesAsync();

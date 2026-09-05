@@ -3,7 +3,9 @@
     ViewBag.Title = "Dashboard Quản trị";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
-
+@section HeadScripts {
+    <script src="~/Content/assets/plotly-latest.min.js"></script>
+}
 <style>
     .dash-wrap {
         padding: 24px;
@@ -532,6 +534,29 @@
                             </div>
                         </div>
 
+                        <!-- Cache Warm-up -->
+                        <div class="panel" style="margin-top:16px;">
+                            <div class="panel-head">
+                                <span><i class="fa fa-bolt" style="margin-right:7px;color:#1565c0;"></i>Cache — Tải trước danh sách lớp học</span>
+                                <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+                                    <button onclick="runWarmUp()" id="btn-warmup"
+                                            style="font-size:12px;padding:5px 16px;border-radius:6px;border:none;background:#1565c0;color:#fff;cursor:pointer;font-weight:700;">
+                                        <i class="fa fa-fire"></i>&nbsp;Warm-up cache
+                                    </button>
+                                    <button onclick="clearClassCache()"
+                                            style="font-size:11px;padding:4px 12px;border-radius:6px;border:1px solid #ddd;background:#fff;cursor:pointer;color:#666;"
+                                            title="Xóa cache để buộc reload từ DB">
+                                        Xóa cache
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="panel-body" style="padding:14px 20px;">
+                                <div id="warmup-result" style="font-size:13px;color:#666;">
+                                    Chạy warm-up trước giờ thi để pre-load toàn bộ 17k user vào Redis — giảm lag lần đầu đăng nhập.
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- RabbitMQ Monitor -->
                         <div class="panel" style="margin-top:16px;">
                             <div class="panel-head">
@@ -981,4 +1006,69 @@
 
                         refreshMqStats();
                         setInterval(refreshMqStats, 5000);
+
+                        // ── Cache Warm-up ──────────────────────────────────────
+                        let _warmPoll = null;
+                        async function runWarmUp() {
+                            const btn = document.getElementById('btn-warmup');
+                            const res = document.getElementById('warmup-result');
+                            try {
+                                const r = await fetch('/AdminDashboard/WarmUpCache', { method: 'POST' });
+                                const d = await r.json();
+                                if (d.running) {
+                                    res.style.color = '#888';
+                                    res.textContent = 'Đang có warm-up chạy, đang theo dõi tiến trình...';
+                                    startWarmPoll(btn, res);
+                                    return;
+                                }
+                                if (!d.started) {
+                                    res.style.color = '#c62828';
+                                    res.textContent = d.message || 'Thất bại.';
+                                    return;
+                                }
+                                btn.disabled = true;
+                                btn.innerHTML = '<i class="fa fa-spinner fa-spin"></i>&nbsp;Đang chạy...';
+                                startWarmPoll(btn, res);
+                            } catch (e) {
+                                res.style.color = '#c62828';
+                                res.textContent = 'Lỗi: ' + e.message;
+                            }
+                        }
+
+                        function startWarmPoll(btn, res) {
+                            if (_warmPoll) clearInterval(_warmPoll);
+                            _warmPoll = setInterval(async () => {
+                                try {
+                                    const r = await fetch('/AdminDashboard/WarmUpStatus');
+                                    const d = await r.json();
+                                    if (d.running) {
+                                        res.style.color = '#1565c0';
+                                        res.innerHTML = `<i class="fa fa-spinner fa-spin"></i>&nbsp;`
+                                            + `${d.done.toLocaleString()} / ${d.total.toLocaleString()} user `
+                                            + `<b>(${d.pct}%)</b> — ${d.message}`;
+                                    } else {
+                                        clearInterval(_warmPoll);
+                                        _warmPoll = null;
+                                        btn.disabled = false;
+                                        btn.innerHTML = '<i class="fa fa-fire"></i>&nbsp;Warm-up cache';
+                                        res.style.color = d.message.startsWith('Lỗi') ? '#c62828' : '#2e7d32';
+                                        res.innerHTML = `<i class="fa fa-check-circle"></i>&nbsp;${d.message}`;
+                                    }
+                                } catch { }
+                            }, 1000);
+                        }
+
+                        async function clearClassCache() {
+                            if (!confirm('Xóa toàn bộ cache eclassroom:classes:*?\n\nUser sẽ bị load lại từ DB ở lần đăng nhập tiếp theo.')) return;
+                            const res = document.getElementById('warmup-result');
+                            try {
+                                const r = await fetch('/AdminDashboard/ClearClassCache', { method: 'POST' });
+                                const d = await r.json();
+                                res.style.color = '#e65100';
+                                res.innerHTML = `<i class="fa fa-trash"></i>&nbsp;Đã xóa <b>${d.deleted}</b> key khỏi Redis.`;
+                            } catch (e) {
+                                res.style.color = '#c62828';
+                                res.textContent = 'Lỗi: ' + e.message;
+                            }
+                        }
                     </script>

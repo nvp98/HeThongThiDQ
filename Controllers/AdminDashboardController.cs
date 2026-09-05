@@ -1,9 +1,12 @@
 using HeThongThiDQ.Common;
 using HeThongThiDQ.Data;
+using HeThongThiDQ.Data.Models;
+using HeThongThiDQ.Models;
 using HeThongThiDQ.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
 using StackExchange.Redis;
 using System.Diagnostics;
 using System.Net.Http.Headers;
@@ -17,6 +20,7 @@ namespace HeThongThiDQ.Controllers
         private readonly ELEARNINGEntities _db;
         private readonly MyAuthentication _auth;
         private readonly IConnectionMultiplexer _mux;
+        private readonly IDistributedCache _cache;
         private readonly IConfiguration _config;
         private readonly IHttpClientFactory _httpFactory;
 
@@ -29,12 +33,13 @@ namespace HeThongThiDQ.Controllers
         private static readonly object _cpuLock = new();
 
         public AdminDashboardController(ELEARNINGEntities db, MyAuthentication auth,
-                                        IConnectionMultiplexer mux, IConfiguration config,
-                                        IHttpClientFactory httpFactory)
+                                        IConnectionMultiplexer mux, IDistributedCache cache,
+                                        IConfiguration config, IHttpClientFactory httpFactory)
         {
             _db          = db;
             _auth        = auth;
             _mux         = mux;
+            _cache       = cache;
             _config      = config;
             _httpFactory = httpFactory;
         }
@@ -288,6 +293,177 @@ namespace HeThongThiDQ.Controllers
             catch { }
 
             return data;
+        }
+
+        // ── Cache warm-up ────────────────────────────────────────────────────────
+
+        // Trạng thái warm-up dùng chung (static — IIS inprocess single process)
+        private static volatile bool _warmRunning = false;
+        private static volatile int  _warmTotal   = 0;
+        private static volatile int  _warmDone    = 0;
+        private static volatile string _warmMsg   = "";
+
+        [HttpPost]
+        public IActionResult WarmUpCache()
+        {
+            if (_auth.IDQuyen != 1) return Json(new { success = false });
+            if (_warmRunning)
+                return Json(new { success = false, running = true, message = "Đang chạy warm-up, vui lòng chờ." });
+
+            // Trả về ngay, chạy background để tránh IIS timeout
+            var services = HttpContext.RequestServices;
+            _ = Task.Run(() => DoWarmUpAsync(services));
+            return Json(new { success = true, started = true });
+        }
+
+        [HttpGet]
+        public IActionResult WarmUpStatus()
+        {
+            if (_auth.IDQuyen != 1) return Json(new { });
+            return Json(new
+            {
+                running = _warmRunning,
+                total   = _warmTotal,
+                done    = _warmDone,
+                message = _warmMsg,
+                pct     = _warmTotal > 0 ? (int)(_warmDone * 100.0 / _warmTotal) : 0,
+            });
+        }
+
+        private static async Task DoWarmUpAsync(IServiceProvider services)
+        {
+            _warmRunning = true;
+            _warmDone    = 0;
+            _warmTotal   = 0;
+            _warmMsg     = "Đang khởi tạo...";
+            var sw = Stopwatch.StartNew();
+
+            try
+            {
+                using var scope = services.CreateScope();
+                var db    = scope.ServiceProvider.GetRequiredService<ELEARNINGEntities>();
+                var cache = scope.ServiceProvider.GetRequiredService<IDistributedCache>();
+
+                // Lấy danh sách user IDs (lightweight — chỉ 1 cột)
+                var allIds = await db.XnhocTaps
+                    .Where(x => x.Nvid.HasValue)
+                    .Select(x => x.Nvid!.Value)
+                    .Distinct()
+                    .ToListAsync();
+
+                _warmTotal = allIds.Count;
+                _warmMsg   = $"Đang xử lý {allIds.Count:N0} user theo từng chunk 1000...";
+
+                var cacheOpts = new DistributedCacheEntryOptions
+                {
+                    AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30)
+                };
+
+                // Chunk 1000 user/lần — tránh load toàn bộ dataset vào RAM cùng lúc
+                const int chunkSize = 1000;
+                for (int i = 0; i < allIds.Count; i += chunkSize)
+                {
+                    var chunk = allIds.GetRange(i, Math.Min(chunkSize, allIds.Count - i));
+
+                    var rows = await (from h in db.XnhocTaps
+                                      join l in db.LopHocs on h.Lhid equals l.Idlh
+                                      join n in db.NhanViens on h.Nvid equals n.Id
+                                      join p in db.PhongBans on n.IdphongBan equals p.IdphongBan
+                                      join nd in db.NoiDungDts on l.Ndid equals nd.Idnd into ndj
+                                      from nd in ndj.DefaultIfEmpty()
+                                      join lv in db.LinhVucDts on nd.Lvdtid equals lv.Idlvdt into lvj
+                                      from lv in lvj.DefaultIfEmpty()
+                                      join v in db.Vitris on n.IdviTri equals v.IdviTri into vj
+                                      from v in vj.DefaultIfEmpty()
+                                      where chunk.Contains(n.Id)
+                                      select new
+                                      {
+                                          n.Id,
+                                          h.Idht, p.IdphongBan, p.TenPhongBan,
+                                          MaNv     = n.MaNv, n.HoTen,
+                                          TenViTri = v  != null ? v.TenViTri  : null,
+                                          l.Idlh, l.MaLh, l.TenLh,
+                                          NoiDung  = nd != null ? nd.NoiDung  : null,
+                                          TenLvdt  = lv != null ? lv.TenLvdt  : null,
+                                          VideoNd  = nd != null ? nd.VideoNd  : null,
+                                          ImageNd  = nd != null ? nd.ImageNd  : null,
+                                          l.Tgbdlh, l.Tgktlh,
+                                          h.NgayTg, h.NgayHt, h.Xntg, h.Xnht,
+                                          l.ToChucThi, l.IddeThi, l.IsCoCtdt
+                                      }).ToListAsync();
+
+                    var redisTasks = new List<Task>();
+                    foreach (var group in rows.GroupBy(x => x.Id))
+                    {
+                        var model = group.Select(x => new EClassroomValidation
+                        {
+                            IDHT        = x.Idht,
+                            PBID        = x.IdphongBan,
+                            TenPB       = x.TenPhongBan,
+                            NVID        = x.Id,
+                            MaNV        = x.MaNv,
+                            HoTenHV    = x.HoTen,
+                            TenVT       = x.TenViTri,
+                            LHID        = x.Idlh,
+                            MaLH        = x.MaLh,
+                            TenLH       = x.TenLh,
+                            TenND       = x.NoiDung,
+                            LinhVuc     = x.TenLvdt,
+                            VideoLH     = x.VideoNd,
+                            ImageLH     = x.ImageNd,
+                            TGBDLH      = x.Tgbdlh ?? default,
+                            TGKTLH      = x.Tgktlh ?? default,
+                            NgayTG      = x.NgayTg.HasValue ? x.NgayTg.Value.ToDateTime(TimeOnly.MinValue) : default,
+                            NgayHT      = x.NgayHt.HasValue ? x.NgayHt.Value.ToDateTime(TimeOnly.MinValue) : default,
+                            XNTG        = x.Xntg ?? false,
+                            XNHT        = x.Xnht ?? false,
+                            ToChucThi   = x.ToChucThi ?? false,
+                            IDDeThi     = x.IddeThi,
+                            ThiNhieuLan = x.IsCoCtdt ?? 0
+                        }).OrderBy(x => x.LHID).ToList();
+
+                        redisTasks.Add(cache.SetStringAsync(
+                            $"eclassroom:classes:{group.Key}",
+                            JsonSerializer.Serialize(model),
+                            cacheOpts));
+                    }
+                    await Task.WhenAll(redisTasks);
+                    _warmDone += chunk.Count;
+                }
+
+                sw.Stop();
+                _warmMsg = $"Hoàn thành {_warmTotal:N0} user | {sw.ElapsedMilliseconds:N0}ms | TTL 30 phút";
+            }
+            catch (Exception ex)
+            {
+                _warmMsg = $"Lỗi: {ex.Message}";
+            }
+            finally
+            {
+                _warmRunning = false;
+            }
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ClearClassCache()
+        {
+            if (_auth.IDQuyen != 1) return Json(new { success = false });
+
+            // Xóa toàn bộ key eclassroom:classes:* khỏi Redis
+            var server = _mux.GetServer(_mux.GetEndPoints().First());
+            long deleted = 0;
+            await foreach (var key in server.KeysAsync(pattern: "HPDQ:eclassroom:classes:*"))
+            {
+                await _mux.GetDatabase().KeyDeleteAsync(key);
+                deleted++;
+            }
+            // IDistributedCache dùng prefix HPDQ: — thử cả dạng không prefix
+            await foreach (var key in server.KeysAsync(pattern: "eclassroom:classes:*"))
+            {
+                await _mux.GetDatabase().KeyDeleteAsync(key);
+                deleted++;
+            }
+            return Json(new { success = true, deleted });
         }
 
         public class AdminDashboardData
