@@ -28,19 +28,19 @@ namespace HeThongThiDQ.Controllers
 
         // CPU delta tracking (shared across requests)
         private static DateTime _lastCpuCheck = DateTime.MinValue;
-        private static TimeSpan _lastProcCpu  = TimeSpan.Zero;
-        private static double   _cpuPct       = 0;
+        private static TimeSpan _lastProcCpu = TimeSpan.Zero;
+        private static double _cpuPct = 0;
         private static readonly object _cpuLock = new();
 
         public AdminDashboardController(ELEARNINGEntities db, MyAuthentication auth,
                                         IConnectionMultiplexer mux, IDistributedCache cache,
                                         IConfiguration config, IHttpClientFactory httpFactory)
         {
-            _db          = db;
-            _auth        = auth;
-            _mux         = mux;
-            _cache       = cache;
-            _config      = config;
+            _db = db;
+            _auth = auth;
+            _mux = mux;
+            _cache = cache;
+            _config = config;
             _httpFactory = httpFactory;
         }
 
@@ -66,7 +66,7 @@ namespace HeThongThiDQ.Controllers
 
             lock (_cpuLock)
             {
-                var now    = DateTime.UtcNow;
+                var now = DateTime.UtcNow;
                 var wallMs = (_lastCpuCheck == DateTime.MinValue)
                     ? 0
                     : (now - _lastCpuCheck).TotalMilliseconds;
@@ -77,11 +77,11 @@ namespace HeThongThiDQ.Controllers
                     _cpuPct = Math.Round(cpuMs / wallMs / Environment.ProcessorCount * 100, 1);
                 }
                 _lastCpuCheck = now;
-                _lastProcCpu  = proc.TotalProcessorTime;
+                _lastProcCpu = proc.TotalProcessorTime;
             }
 
-            var ramMb  = Math.Round(proc.WorkingSet64 / 1024.0 / 1024.0, 1);
-            var gcMb   = Math.Round(GC.GetTotalMemory(false) / 1024.0 / 1024.0, 1);
+            var ramMb = Math.Round(proc.WorkingSet64 / 1024.0 / 1024.0, 1);
+            var gcMb = Math.Round(GC.GetTotalMemory(false) / 1024.0 / 1024.0, 1);
             var gcInfo = GC.GetGCMemoryInfo();
             var totalRamMb = Math.Round(gcInfo.TotalAvailableMemoryBytes / 1024.0 / 1024.0, 0);
 
@@ -97,12 +97,12 @@ namespace HeThongThiDQ.Controllers
 
             return Json(new
             {
-                CpuPct         = _cpuPct,
-                RamMb          = ramMb,
-                TotalRamMb     = totalRamMb,
-                GcMb           = gcMb,
-                Threads        = proc.Threads.Count,
-                Uptime         = uptimeStr,
+                CpuPct = _cpuPct,
+                RamMb = ramMb,
+                TotalRamMb = totalRamMb,
+                GcMb = gcMb,
+                Threads = proc.Threads.Count,
+                Uptime = uptimeStr,
                 ProcessorCount = Environment.ProcessorCount,
             });
         }
@@ -112,24 +112,24 @@ namespace HeThongThiDQ.Controllers
         {
             if (_auth.IDQuyen != 1) return Json(new { });
 
-            long   published = 0, processed = 0, failed = 0, pending = 0;
-            long   queueMessages = -1, queueReady = -1, queueUnacked = -1;
+            long published = 0, processed = 0, failed = 0, pending = 0;
+            long queueMessages = -1, queueReady = -1, queueUnacked = -1;
             double publishRate = -1, deliverRate = -1;
-            bool   mgmtAvailable = false;
+            bool mgmtAvailable = false;
             string mgmtError = "";
 
             // --- Redis counters ---
             try
             {
                 var rdb = _mux.GetDatabase();
-                var t1  = rdb.StringGetAsync(RabbitMqPublisher.KeyPublished);
-                var t2  = rdb.StringGetAsync(RabbitMqPublisher.KeyProcessed);
-                var t3  = rdb.StringGetAsync(RabbitMqPublisher.KeyFailed);
+                var t1 = rdb.StringGetAsync(RabbitMqPublisher.KeyPublished);
+                var t2 = rdb.StringGetAsync(RabbitMqPublisher.KeyProcessed);
+                var t3 = rdb.StringGetAsync(RabbitMqPublisher.KeyFailed);
                 await Task.WhenAll(t1, t2, t3);
                 published = (long)t1.Result;
                 processed = (long)t2.Result;
-                failed    = (long)t3.Result;
-                pending   = Math.Max(0, published - processed - failed);
+                failed = (long)t3.Result;
+                pending = Math.Max(0, published - processed - failed);
             }
             catch { }
 
@@ -137,9 +137,12 @@ namespace HeThongThiDQ.Controllers
             try
             {
                 var amqpUri = _config.GetConnectionString("RabbitMQ") ?? "";
-                var amqpU   = new Uri(amqpUri);
-                var parts   = amqpU.UserInfo.Split(':');
+                var amqpU = new Uri(amqpUri);
+                var parts = amqpU.UserInfo.Split(':');
                 var mgmtUrl = $"http://{amqpU.Host}:15672/api/queues/%2F/{RabbitMqPublisher.QueueName}";
+                Console.WriteLine($"RabbitMQ ConnectionString = {amqpUri}");
+                Console.WriteLine($"RabbitMQ Host = {amqpU.Host}");
+                Console.WriteLine($"RabbitMQ Management URL = {mgmtUrl}");
                 var authB64 = Convert.ToBase64String(
                     System.Text.Encoding.UTF8.GetBytes(
                         $"{Uri.UnescapeDataString(parts[0])}:{(parts.Length > 1 ? Uri.UnescapeDataString(parts[1]) : "")}"));
@@ -154,12 +157,12 @@ namespace HeThongThiDQ.Controllers
                     var json = await resp.Content.ReadAsStringAsync();
                     using var doc = JsonDocument.Parse(json);
                     var root = doc.RootElement;
-                    queueMessages = root.TryGetProperty("messages",               out var m)  ? m.GetInt64()  : 0;
-                    queueReady    = root.TryGetProperty("messages_ready",          out var mr) ? mr.GetInt64() : 0;
-                    queueUnacked  = root.TryGetProperty("messages_unacknowledged", out var mu) ? mu.GetInt64() : 0;
+                    queueMessages = root.TryGetProperty("messages", out var m) ? m.GetInt64() : 0;
+                    queueReady = root.TryGetProperty("messages_ready", out var mr) ? mr.GetInt64() : 0;
+                    queueUnacked = root.TryGetProperty("messages_unacknowledged", out var mu) ? mu.GetInt64() : 0;
                     if (root.TryGetProperty("message_stats", out var ms))
                     {
-                        if (ms.TryGetProperty("publish_details",     out var pd) && pd.TryGetProperty("rate", out var pr)) publishRate = pr.GetDouble();
+                        if (ms.TryGetProperty("publish_details", out var pd) && pd.TryGetProperty("rate", out var pr)) publishRate = pr.GetDouble();
                         if (ms.TryGetProperty("deliver_get_details", out var dd) && dd.TryGetProperty("rate", out var dr)) deliverRate = dr.GetDouble();
                     }
                     mgmtAvailable = true;
@@ -171,27 +174,27 @@ namespace HeThongThiDQ.Controllers
             // Trạng thái toàn vẹn
             bool integrityOk = !mgmtAvailable || Math.Abs(pending - queueMessages) <= 2;
             string status, statusMsg;
-            if      (failed > 0)     { status = "error";   statusMsg = $"Có {failed:N0} message lỗi — kiểm tra dead-letter queue"; }
-            else if (published == 0) { status = "idle";    statusMsg = "Chưa có dữ liệu — counter bắt đầu đếm khi có người nộp bài"; }
-            else if (pending > 0)    { status = "warning"; statusMsg = $"Còn {pending:N0} message đang chờ xử lý"; }
-            else                     { status = "ok";      statusMsg = "Toàn vẹn dữ liệu — tất cả bài thi đã lưu DB"; }
+            if (failed > 0) { status = "error"; statusMsg = $"Có {failed:N0} message lỗi — kiểm tra dead-letter queue"; }
+            else if (published == 0) { status = "idle"; statusMsg = "Chưa có dữ liệu — counter bắt đầu đếm khi có người nộp bài"; }
+            else if (pending > 0) { status = "warning"; statusMsg = $"Còn {pending:N0} message đang chờ xử lý"; }
+            else { status = "ok"; statusMsg = "Toàn vẹn dữ liệu — tất cả bài thi đã lưu DB"; }
 
             return Json(new
             {
-                Published     = published,
-                Processed     = processed,
-                Failed        = failed,
-                Pending       = pending,
+                Published = published,
+                Processed = processed,
+                Failed = failed,
+                Pending = pending,
                 QueueMessages = queueMessages,
-                QueueReady    = queueReady,
-                QueueUnacked  = queueUnacked,
-                PublishRate   = publishRate >= 0 ? Math.Round(publishRate, 1) : (double?)null,
-                DeliverRate   = deliverRate >= 0 ? Math.Round(deliverRate, 1) : (double?)null,
+                QueueReady = queueReady,
+                QueueUnacked = queueUnacked,
+                PublishRate = publishRate >= 0 ? Math.Round(publishRate, 1) : (double?)null,
+                DeliverRate = deliverRate >= 0 ? Math.Round(deliverRate, 1) : (double?)null,
                 MgmtAvailable = mgmtAvailable,
-                MgmtError     = mgmtError,
-                IntegrityOk   = integrityOk,
-                Status        = status,
-                StatusMsg     = statusMsg,
+                MgmtError = mgmtError,
+                IntegrityOk = integrityOk,
+                Status = status,
+                StatusMsg = statusMsg,
             });
         }
 
@@ -214,20 +217,20 @@ namespace HeThongThiDQ.Controllers
             var data = new AdminDashboardData();
             try
             {
-                var rdb      = _mux.GetDatabase();
-                var nowMs    = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-                var staleMs  = nowMs - OnlineWindowMs;
-                var today    = DateTime.Now.ToString("yyyyMMdd");
+                var rdb = _mux.GetDatabase();
+                var nowMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                var staleMs = nowMs - OnlineWindowMs;
+                var today = DateTime.Now.ToString("yyyyMMdd");
 
                 // Dọn stale entries trước khi đọc
                 await rdb.SortedSetRemoveRangeByScoreAsync("HPDQ:online:users", 0, staleMs);
                 await rdb.SortedSetRemoveRangeByScoreAsync("HPDQ:online:exams", 0, staleMs);
 
                 // Tổng quan
-                data.OnlineCount  = (long)await rdb.SortedSetLengthAsync("HPDQ:online:users");
-                data.ExamCount    = (long)await rdb.SortedSetLengthAsync("HPDQ:online:exams");
-                data.TodayLogins  = (long)await rdb.StringGetAsync($"HPDQ:stats:logins:daily:{today}");
-                data.TotalLogins  = (long)await rdb.StringGetAsync("HPDQ:stats:logins:total");
+                data.OnlineCount = (long)await rdb.SortedSetLengthAsync("HPDQ:online:users");
+                data.ExamCount = (long)await rdb.SortedSetLengthAsync("HPDQ:online:exams");
+                data.TodayLogins = (long)await rdb.StringGetAsync($"HPDQ:stats:logins:daily:{today}");
+                data.TotalLogins = (long)await rdb.StringGetAsync("HPDQ:stats:logins:total");
 
                 // Dữ liệu biểu đồ theo giờ hôm nay
                 var hourTasks = Enumerable.Range(0, 24)
@@ -272,17 +275,17 @@ namespace HeThongThiDQ.Controllers
                         {
                             var u = users.FirstOrDefault(x => x.Id == id);
                             scoreMap.TryGetValue(id.ToString(), out double score);
-                            var lastMs  = (long)score;
+                            var lastMs = (long)score;
                             var elapsed = (nowMs - lastMs) / 1000;
                             var lastStr = elapsed < 60
                                 ? "Vừa xong"
                                 : $"{elapsed / 60} phút trước";
                             return new OnlineUserInfo
                             {
-                                IDNV      = id,
-                                HoTen     = u?.HoTen ?? "",
-                                MaNV      = u?.MaNv  ?? "",
-                                PhongBan  = u?.TenPB ?? "",
+                                IDNV = id,
+                                HoTen = u?.HoTen ?? "",
+                                MaNV = u?.MaNv ?? "",
+                                PhongBan = u?.TenPB ?? "",
                                 LastActive = lastStr,
                             };
                         })
@@ -299,9 +302,9 @@ namespace HeThongThiDQ.Controllers
 
         // Trạng thái warm-up dùng chung (static — IIS inprocess single process)
         private static volatile bool _warmRunning = false;
-        private static volatile int  _warmTotal   = 0;
-        private static volatile int  _warmDone    = 0;
-        private static volatile string _warmMsg   = "";
+        private static volatile int _warmTotal = 0;
+        private static volatile int _warmDone = 0;
+        private static volatile string _warmMsg = "";
 
         [HttpPost]
         public IActionResult WarmUpCache()
@@ -323,25 +326,25 @@ namespace HeThongThiDQ.Controllers
             return Json(new
             {
                 running = _warmRunning,
-                total   = _warmTotal,
-                done    = _warmDone,
+                total = _warmTotal,
+                done = _warmDone,
                 message = _warmMsg,
-                pct     = _warmTotal > 0 ? (int)(_warmDone * 100.0 / _warmTotal) : 0,
+                pct = _warmTotal > 0 ? (int)(_warmDone * 100.0 / _warmTotal) : 0,
             });
         }
 
         private static async Task DoWarmUpAsync(IServiceProvider services)
         {
             _warmRunning = true;
-            _warmDone    = 0;
-            _warmTotal   = 0;
-            _warmMsg     = "Đang khởi tạo...";
+            _warmDone = 0;
+            _warmTotal = 0;
+            _warmMsg = "Đang khởi tạo...";
             var sw = Stopwatch.StartNew();
 
             try
             {
                 using var scope = services.CreateScope();
-                var db    = scope.ServiceProvider.GetRequiredService<ELEARNINGEntities>();
+                var db = scope.ServiceProvider.GetRequiredService<ELEARNINGEntities>();
                 var cache = scope.ServiceProvider.GetRequiredService<IDistributedCache>();
 
                 // Lấy danh sách user IDs (lightweight — chỉ 1 cột)
@@ -352,7 +355,7 @@ namespace HeThongThiDQ.Controllers
                     .ToListAsync();
 
                 _warmTotal = allIds.Count;
-                _warmMsg   = $"Đang xử lý {allIds.Count:N0} user theo từng chunk 1000...";
+                _warmMsg = $"Đang xử lý {allIds.Count:N0} user theo từng chunk 1000...";
 
                 var cacheOpts = new DistributedCacheEntryOptions
                 {
@@ -379,17 +382,28 @@ namespace HeThongThiDQ.Controllers
                                       select new
                                       {
                                           n.Id,
-                                          h.Idht, p.IdphongBan, p.TenPhongBan,
-                                          MaNv     = n.MaNv, n.HoTen,
-                                          TenViTri = v  != null ? v.TenViTri  : null,
-                                          l.Idlh, l.MaLh, l.TenLh,
-                                          NoiDung  = nd != null ? nd.NoiDung  : null,
-                                          TenLvdt  = lv != null ? lv.TenLvdt  : null,
-                                          VideoNd  = nd != null ? nd.VideoNd  : null,
-                                          ImageNd  = nd != null ? nd.ImageNd  : null,
-                                          l.Tgbdlh, l.Tgktlh,
-                                          h.NgayTg, h.NgayHt, h.Xntg, h.Xnht,
-                                          l.ToChucThi, l.IddeThi, l.IsCoCtdt
+                                          h.Idht,
+                                          p.IdphongBan,
+                                          p.TenPhongBan,
+                                          MaNv = n.MaNv,
+                                          n.HoTen,
+                                          TenViTri = v != null ? v.TenViTri : null,
+                                          l.Idlh,
+                                          l.MaLh,
+                                          l.TenLh,
+                                          NoiDung = nd != null ? nd.NoiDung : null,
+                                          TenLvdt = lv != null ? lv.TenLvdt : null,
+                                          VideoNd = nd != null ? nd.VideoNd : null,
+                                          ImageNd = nd != null ? nd.ImageNd : null,
+                                          l.Tgbdlh,
+                                          l.Tgktlh,
+                                          h.NgayTg,
+                                          h.NgayHt,
+                                          h.Xntg,
+                                          h.Xnht,
+                                          l.ToChucThi,
+                                          l.IddeThi,
+                                          l.IsCoCtdt
                                       }).ToListAsync();
 
                     var redisTasks = new List<Task>();
@@ -397,28 +411,28 @@ namespace HeThongThiDQ.Controllers
                     {
                         var model = group.Select(x => new EClassroomValidation
                         {
-                            IDHT        = x.Idht,
-                            PBID        = x.IdphongBan,
-                            TenPB       = x.TenPhongBan,
-                            NVID        = x.Id,
-                            MaNV        = x.MaNv,
-                            HoTenHV    = x.HoTen,
-                            TenVT       = x.TenViTri,
-                            LHID        = x.Idlh,
-                            MaLH        = x.MaLh,
-                            TenLH       = x.TenLh,
-                            TenND       = x.NoiDung,
-                            LinhVuc     = x.TenLvdt,
-                            VideoLH     = x.VideoNd,
-                            ImageLH     = x.ImageNd,
-                            TGBDLH      = x.Tgbdlh ?? default,
-                            TGKTLH      = x.Tgktlh ?? default,
-                            NgayTG      = x.NgayTg.HasValue ? x.NgayTg.Value.ToDateTime(TimeOnly.MinValue) : default,
-                            NgayHT      = x.NgayHt.HasValue ? x.NgayHt.Value.ToDateTime(TimeOnly.MinValue) : default,
-                            XNTG        = x.Xntg ?? false,
-                            XNHT        = x.Xnht ?? false,
-                            ToChucThi   = x.ToChucThi ?? false,
-                            IDDeThi     = x.IddeThi,
+                            IDHT = x.Idht,
+                            PBID = x.IdphongBan,
+                            TenPB = x.TenPhongBan,
+                            NVID = x.Id,
+                            MaNV = x.MaNv,
+                            HoTenHV = x.HoTen,
+                            TenVT = x.TenViTri,
+                            LHID = x.Idlh,
+                            MaLH = x.MaLh,
+                            TenLH = x.TenLh,
+                            TenND = x.NoiDung,
+                            LinhVuc = x.TenLvdt,
+                            VideoLH = x.VideoNd,
+                            ImageLH = x.ImageNd,
+                            TGBDLH = x.Tgbdlh ?? default,
+                            TGKTLH = x.Tgktlh ?? default,
+                            NgayTG = x.NgayTg.HasValue ? x.NgayTg.Value.ToDateTime(TimeOnly.MinValue) : default,
+                            NgayHT = x.NgayHt.HasValue ? x.NgayHt.Value.ToDateTime(TimeOnly.MinValue) : default,
+                            XNTG = x.Xntg ?? false,
+                            XNHT = x.Xnht ?? false,
+                            ToChucThi = x.ToChucThi ?? false,
+                            IDDeThi = x.IddeThi,
                             ThiNhieuLan = x.IsCoCtdt ?? 0
                         }).OrderBy(x => x.LHID).ToList();
 
@@ -468,10 +482,10 @@ namespace HeThongThiDQ.Controllers
 
         public class AdminDashboardData
         {
-            public long OnlineCount  { get; set; }
-            public long ExamCount    { get; set; }
-            public long TodayLogins  { get; set; }
-            public long TotalLogins  { get; set; }
+            public long OnlineCount { get; set; }
+            public long ExamCount { get; set; }
+            public long TodayLogins { get; set; }
+            public long TotalLogins { get; set; }
             public int[] HourlyLogins { get; set; } = new int[24];
             public List<OnlineUserInfo> OnlineUsers { get; set; } = new();
             public List<TrendPoint> TrendPoints { get; set; } = new();
@@ -486,10 +500,10 @@ namespace HeThongThiDQ.Controllers
 
         public class OnlineUserInfo
         {
-            public int    IDNV       { get; set; }
-            public string HoTen      { get; set; } = "";
-            public string MaNV       { get; set; } = "";
-            public string PhongBan   { get; set; } = "";
+            public int IDNV { get; set; }
+            public string HoTen { get; set; } = "";
+            public string MaNV { get; set; } = "";
+            public string PhongBan { get; set; } = "";
             public string LastActive { get; set; } = "";
         }
     }

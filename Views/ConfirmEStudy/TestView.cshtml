@@ -83,7 +83,7 @@
 .tv-content { flex: 1; min-width: 0; }
 
 /* ---- question navigator (left panel) ---- */
-.tv-qnav { width: 168px; min-width: 152px; flex-shrink: 0; }
+.tv-qnav { width: 168px; min-width: 152px; flex-shrink: 0; align-self: stretch; }
 .tv-qnav-inner {
     position: sticky;
     top: 74px;
@@ -361,11 +361,8 @@
                 <div class="tv-stats">
                     <div class="tv-stat-card">
                         <div class="tv-stat-num" style="color:@scoreColor">
-                            @Model.DiemSo.ToString("G4")
-                            @if (maxScore > 0)
-                            {
-                                <span style="font-size:15px;font-weight:600;color:#aaa">/@maxScore.ToString("G4")</span>
-                            }
+                            @correctQ
+                            <span style="font-size:15px;font-weight:600;color:#aaa">/@totalQ</span>
                         </div>
                         <div class="tv-stat-label">Điểm số đạt được</div>
                     </div>
