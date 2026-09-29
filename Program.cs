@@ -35,7 +35,8 @@ builder.Services.AddStackExchangeRedisCache(options =>
 });
 
 // IConnectionMultiplexer — cho ZSET, INCR và các lệnh Redis nâng cao
-builder.Services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(
+// Dùng factory (lazy) để tránh block startup nếu Redis chưa sẵn sàng
+builder.Services.AddSingleton<StackExchange.Redis.IConnectionMultiplexer>(sp =>
     StackExchange.Redis.ConnectionMultiplexer.Connect(
         builder.Configuration.GetConnectionString("Redis")!));
 

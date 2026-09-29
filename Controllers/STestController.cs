@@ -526,7 +526,7 @@ namespace HeThongThiDQ.Controllers
                 IDNV          = _auth.ID,
                 IDPhongBan    = _auth.IDPhongban,
                 IDViTri       = _auth.IDViTri,
-                LanThi        = lanthi + 1,
+                LanThi        = lanthi,
                 ThoiGianSec   = dto.ThoiGianSec,
                 TGBDLamBaiThi = dto.TGBDLamBaiThi,
                 DiemSo        = diemSo,
@@ -541,6 +541,7 @@ namespace HeThongThiDQ.Controllers
             {
                 success     = true,
                 score       = diemSo,
+                isOnLuyen   = lophoc?.IsCoCtdt == 1,
                 redirectUrl = Url.Action("ViewResult", "EClassroom", new { IDLH = dto.IDLH }),
             });
         }

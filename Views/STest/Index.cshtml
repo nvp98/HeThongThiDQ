@@ -690,22 +690,56 @@
 
         document.getElementById('submitOverlay').style.display = 'flex';
 
-        try {
-            const res  = await fetch('/STest/SubmitExamAjax', {
-                method:  'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify(payload)
-            });
-            const data = await res.json();
-            if (data.success) {
-                window.location.href = data.redirectUrl;
-            } else {
-                document.getElementById('submitOverlay').style.display = 'none';
-                alert(data.message || 'Có lỗi xảy ra khi nộp bài');
+        const MAX_RETRY = 3;
+        for (var attempt = 1; attempt <= MAX_RETRY; attempt++) {
+            try {
+                const res  = await fetch('/STest/SubmitExamAjax', {
+                    method:  'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body:    JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (data.isOnLuyen) {
+                        // Poll cho đến khi consumer lưu xong DB rồi chuyển sang TestView
+                        var overlayMsg = document.querySelector('#submitOverlay p, #submitOverlay span, #submitOverlay div:last-child');
+                        if (overlayMsg) overlayMsg.textContent = 'Đang xử lý kết quả...';
+                        var pollIdlh = payload.IDLH;
+                        var pollDeadline = Date.now() + 30000; // timeout 30 giây
+                        var pollTimer = setInterval(async function () {
+                            if (Date.now() > pollDeadline) {
+                                clearInterval(pollTimer);
+                                document.getElementById('submitOverlay').style.display = 'none';
+                                alert('Kết quả đang được xử lý, vui lòng vào Lịch sử ôn luyện để xem lại sau.');
+                                window.location.href = data.redirectUrl; // fallback về ViewResult
+                                return;
+                            }
+                            try {
+                                var pr = await fetch('/STest/ResultReady?IDLH=' + pollIdlh);
+                                var pd = await pr.json();
+                                if (pd.ready) {
+                                    clearInterval(pollTimer);
+                                    window.location.href = pd.redirectUrl;
+                                }
+                            } catch (pe) {}
+                        }, 300);
+                    } else {
+                        window.location.href = data.redirectUrl;
+                    }
+                    return;
+                } else {
+                    document.getElementById('submitOverlay').style.display = 'none';
+                    alert(data.message || 'Có lỗi xảy ra khi nộp bài');
+                    return;
+                }
+            } catch (e) {
+                if (attempt < MAX_RETRY) {
+                    await new Promise(function (r) { setTimeout(r, 2000 * attempt); });
+                } else {
+                    document.getElementById('submitOverlay').style.display = 'none';
+                    alert('Mất kết nối sau ' + MAX_RETRY + ' lần thử. Vui lòng liên hệ quản trị viên.');
+                }
             }
-        } catch (e) {
-            document.getElementById('submitOverlay').style.display = 'none';
-            alert('Mất kết nối, vui lòng thử lại');
         }
     }
 
@@ -797,6 +831,9 @@
             clearInterval(timerInterval);
             timerEl.textContent = 'Hết giờ!';
             timerCard.className = 'timer-card danger';
+            // Gán đúng tổng thời gian thi để tránh lệch 1 giây do setInterval drift
+            var hf = document.getElementById('hiddenField');
+            if (hf) hf.value = Math.floor(EXAM_DURATION_MS / 1000);
             ['quizAnswers', 'savedExamTime', 'exam_start_time', 'IDLH'].forEach(function (k) {
                 localStorage.removeItem(k);
             });
