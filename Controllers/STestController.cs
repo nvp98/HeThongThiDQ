@@ -30,10 +30,10 @@ namespace HeThongThiDQ.Controllers
                                IDistributedCache cache, IConnectionMultiplexer mux,
                                IExamQueuePublisher queue)
         {
-            _db    = db;
-            _auth  = auth;
+            _db = db;
+            _auth = auth;
             _cache = cache;
-            _mux   = mux;
+            _mux = mux;
             _queue = queue;
         }
 
@@ -187,19 +187,19 @@ namespace HeThongThiDQ.Controllers
                     join da in _db.DanhSachDa on ch.Iddađung equals da.Iddsđa
                     select new TestValidation
                     {
-                        IDCH      = ch.Idch,
+                        IDCH = ch.Idch,
                         NoiDungCH = ch.NoiDungCh,
-                        DapAnA    = ch.DapAnA,
-                        DapAnB    = ch.DapAnB,
-                        DapAnC    = ch.DapAnC,
-                        DapAnD    = ch.DapAnD,
-                        IDDADung  = ch.Iddađung ?? 0,
+                        DapAnA = ch.DapAnA,
+                        DapAnB = ch.DapAnB,
+                        DapAnC = ch.DapAnC,
+                        DapAnD = ch.DapAnD,
+                        IDDADung = ch.Iddađung ?? 0,
                         DapAnDung = da.TenĐa,
-                        Diem      = cd.Diem ?? 0,
-                        IDLH      = LHID,
-                        IDDeThi   = selectedDeThiId,
-                        IDND      = lh.Ndid ?? 0,
-                        IsDao     = ch.IsDao ?? false,
+                        Diem = cd.Diem ?? 0,
+                        IDLH = LHID,
+                        IDDeThi = selectedDeThiId,
+                        IDND = lh.Ndid ?? 0,
+                        IsDao = ch.IsDao ?? false,
                         GioBatDau = DateTime.Now,
                     }).ToListAsync();
 
@@ -244,16 +244,16 @@ namespace HeThongThiDQ.Controllers
                 var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                 session = new ExamSession
                 {
-                    IDDeThi        = selectedDeThiId,
-                    IDND           = lh.Ndid ?? 0,
-                    IDLH           = LHID,
-                    IDNV           = _auth.ID,
-                    TotalTimeSec   = totalTimeSec,
+                    IDDeThi = selectedDeThiId,
+                    IDND = lh.Ndid ?? 0,
+                    IDLH = LHID,
+                    IDNV = _auth.ID,
+                    TotalTimeSec = totalTimeSec,
                     StartTimestamp = now,
-                    EndTimestamp   = now + (long)totalTimeSec * 1000,
-                    SavedAt        = now,
-                    QuestionOrder  = res.Select(q => q.IDCH).ToList(),
-                    Answers        = res.ToDictionary(q => q.IDCH, _ => new SessionAnswer()),
+                    EndTimestamp = now + (long)totalTimeSec * 1000,
+                    SavedAt = now,
+                    QuestionOrder = res.Select(q => q.IDCH).ToList(),
+                    Answers = res.ToDictionary(q => q.IDCH, _ => new SessionAnswer()),
                 };
 
                 try
@@ -265,11 +265,11 @@ namespace HeThongThiDQ.Controllers
             }
 
             ViewBag.ThoiGianLamBai = DateTime.Now.AddMinutes(lh.ThoiGianLamBai ?? 0);
-            ViewBag.ThoiGianThi    = lh.ThoiGianLamBai ?? 0;
-            ViewBag.IsOnLuyen      = lh.IsCoCtdt == 1;
-            ViewBag.IDNV           = _auth.ID;
-            ViewBag.IDLH           = LHID;
-            ViewBag.ExamSession    = JsonSerializer.Serialize(session);
+            ViewBag.ThoiGianThi = lh.ThoiGianLamBai ?? 0;
+            ViewBag.IsOnLuyen = lh.IsCoCtdt == 1;
+            ViewBag.IDNV = _auth.ID;
+            ViewBag.IDLH = LHID;
+            ViewBag.ExamSession = JsonSerializer.Serialize(session);
 
             // Ghi nhận thí sinh đang thi vào Redis
             try
@@ -290,8 +290,8 @@ namespace HeThongThiDQ.Controllers
                 return RedirectToAction("Index", "EClassroom");
 
             int IDBaiThi = 0;
-            int IDDeThi  = 0;
-            int i        = 0;
+            int IDDeThi = 0;
+            int i = 0;
 
             foreach (var Q in ListQ)
             {
@@ -310,18 +310,18 @@ namespace HeThongThiDQ.Controllers
 
                     var baiThi = new BaiThi
                     {
-                        Idlh        = Q.IDLH,
-                        IddeThi     = Q.IDDeThi,
-                        Idnd        = Q.IDND,
-                        Idnv        = _auth.ID,
-                        IdphongBan  = _auth.IDPhongban,
-                        IdviTri     = _auth.IDViTri,
-                        DiemSo      = 0,
-                        NgayThi     = DateOnly.FromDateTime(DateTime.Now),
-                        TinhTrang   = false,
-                        LanThi      = lanthi.Count + 1,
-                        GioBatDau   = lophoc?.Tgbdlh,
-                        GioKetThuc  = lophoc?.Tgktlh
+                        Idlh = Q.IDLH,
+                        IddeThi = Q.IDDeThi,
+                        Idnd = Q.IDND,
+                        Idnv = _auth.ID,
+                        IdphongBan = _auth.IDPhongban,
+                        IdviTri = _auth.IDViTri,
+                        DiemSo = 0,
+                        NgayThi = DateOnly.FromDateTime(DateTime.Now),
+                        TinhTrang = false,
+                        LanThi = lanthi.Count + 1,
+                        GioBatDau = lophoc?.Tgbdlh,
+                        GioKetThuc = lophoc?.Tgktlh
                     };
 
                     int.TryParse(yourParamName, out int thoiGianSec);
@@ -329,22 +329,22 @@ namespace HeThongThiDQ.Controllers
 
                     if (long.TryParse(TGBDLamBaiThi, out long milliseconds))
                     {
-                        baiThi.GioBatDau  = DateTimeOffset.FromUnixTimeMilliseconds(milliseconds).LocalDateTime;
+                        baiThi.GioBatDau = DateTimeOffset.FromUnixTimeMilliseconds(milliseconds).LocalDateTime;
                         baiThi.GioKetThuc = DateTime.Now;
                     }
 
                     _db.BaiThis.Add(baiThi);
                     await _db.SaveChangesAsync();
                     IDBaiThi = baiThi.IdbaiThi;
-                    IDDeThi  = Q.IDDeThi;
+                    IDDeThi = Q.IDDeThi;
 
                     _db.CtbaiThis.Add(new CtbaiThi
                     {
-                        IdbaiThi    = IDBaiThi,
-                        IdcauHoi    = Q.IDCH,
+                        IdbaiThi = IDBaiThi,
+                        IdcauHoi = Q.IDCH,
                         IddapAnDung = Q.IDDADung,
-                        IddapAnNv   = Q.Answer,
-                        Diem        = Q.IDDADung == Q.Answer ? Q.Diem : 0
+                        IddapAnNv = Q.Answer,
+                        Diem = Q.IDDADung == Q.Answer ? Q.Diem : 0
                     });
                     i++;
                 }
@@ -352,11 +352,11 @@ namespace HeThongThiDQ.Controllers
                 {
                     _db.CtbaiThis.Add(new CtbaiThi
                     {
-                        IdbaiThi    = IDBaiThi,
-                        IdcauHoi    = Q.IDCH,
+                        IdbaiThi = IDBaiThi,
+                        IdcauHoi = Q.IDCH,
                         IddapAnDung = Q.IDDADung,
-                        IddapAnNv   = Q.Answer,
-                        Diem        = Q.IDDADung == Q.Answer ? Q.Diem : 0
+                        IddapAnNv = Q.Answer,
+                        Diem = Q.IDDADung == Q.Answer ? Q.Diem : 0
                     });
                 }
             }
@@ -367,7 +367,7 @@ namespace HeThongThiDQ.Controllers
             var bt = await _db.BaiThis.Where(x => x.IdbaiThi == IDBaiThi).FirstOrDefaultAsync();
             if (bt != null)
             {
-                bt.DiemSo    = diemSo;
+                bt.DiemSo = diemSo;
                 bt.TinhTrang = true;
                 await _db.SaveChangesAsync();
             }
@@ -384,7 +384,7 @@ namespace HeThongThiDQ.Controllers
             if (dto == null) return Json(new { success = false });
             try
             {
-                var key  = SessionKey(dto.IDLH);
+                var key = SessionKey(dto.IDLH);
                 var json = await _cache.GetStringAsync(key);
                 if (json == null) return Json(new { success = false, expired = true });
 
@@ -448,7 +448,7 @@ namespace HeThongThiDQ.Controllers
                     return Json(new { success = false, message = "Bạn đã hoàn thành bài thi", redirectUrl = Url.Action("Index", "EClassroom") });
             }
 
-            var rdbLT     = _mux.GetDatabase();
+            var rdbLT = _mux.GetDatabase();
             var lanThiKey = $"exam:lanthi:{_auth.ID}:{dto.IDLH}";
             if (!await rdbLT.KeyExistsAsync(lanThiKey))
             {
@@ -484,7 +484,7 @@ namespace HeThongThiDQ.Controllers
                 ).ToDictionaryAsync(x => x.IdcauHoi, x => (x.Iddađung, x.Diem));
             }
 
-            answersReady:
+        answersReady:
 
             // Lấy timestamp từng câu + giờ bắt đầu (do server ghi khi phát đề) từ Redis session
             Dictionary<int, long?> chosenAtMap = new();
@@ -505,11 +505,11 @@ namespace HeThongThiDQ.Controllers
             // Thời gian làm bài dùng để xếp hạng → tính bằng giờ server, không tin số liệu trình duyệt gửi lên.
             // Chỉ khi mất session (Redis lỗi) mới dùng tạm giá trị từ trình duyệt.
             var submittedAtMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            long startMs      = dto.TGBDLamBaiThi;
-            int  thoiGianSec  = dto.ThoiGianSec;
+            long startMs = dto.TGBDLamBaiThi;
+            int thoiGianSec = dto.ThoiGianSec;
             if (examSession != null && examSession.StartTimestamp > 0)
             {
-                startMs     = examSession.StartTimestamp;
+                startMs = examSession.StartTimestamp;
                 thoiGianSec = (int)Math.Max(0, (submittedAtMs - startMs) / 1000);
                 if (examSession.TotalTimeSec > 0)
                     thoiGianSec = Math.Min(thoiGianSec, examSession.TotalTimeSec);
@@ -527,33 +527,33 @@ namespace HeThongThiDQ.Controllers
                     chosenAt = DateTimeOffset.FromUnixTimeMilliseconds(ts.Value).LocalDateTime;
 
                 var diem = info.Iddađung == ans.Answer ? (info.Diem ?? 0) : 0;
-                diemSo  += diem;
+                diemSo += diem;
                 answerRecords.Add(new AnswerRecord
                 {
-                    IDCH         = ans.IDCH,
-                    DapAnDung    = info.Iddađung,
-                    DapAnNv      = ans.Answer,
-                    Diem         = diem,
+                    IDCH = ans.IDCH,
+                    DapAnDung = info.Iddađung,
+                    DapAnNv = ans.Answer,
+                    Diem = diem,
                     ThoiGianChon = chosenAt,
                 });
             }
 
             // Tính thống kê câu hỏi để hiển thị ngay lập tức
-            int soCauDung       = answerRecords.Count(a => a.DapAnNv.HasValue && a.DapAnDung == a.DapAnNv);
-            int soCauSai        = answerRecords.Count(a => a.DapAnNv.HasValue && a.DapAnDung != a.DapAnNv);
+            int soCauDung = answerRecords.Count(a => a.DapAnNv.HasValue && a.DapAnDung == a.DapAnNv);
+            int soCauSai = answerRecords.Count(a => a.DapAnNv.HasValue && a.DapAnDung != a.DapAnNv);
             int soCauChuaTraLoi = answerRecords.Count(a => !a.DapAnNv.HasValue);
 
             var qr = new QuickResultDto(
-                DiemSo:          diemSo,
-                TongSoCau:       answerRecords.Count,
-                SoCauDung:       soCauDung,
-                SoCauSai:        soCauSai,
+                DiemSo: diemSo,
+                TongSoCau: answerRecords.Count,
+                SoCauDung: soCauDung,
+                SoCauSai: soCauSai,
                 SoCauChuaTraLoi: soCauChuaTraLoi,
-                ThoiGianSec:     thoiGianSec,
-                TGBDLamBaiThi:   startMs,
-                GioKetThucMs:    submittedAtMs,
-                TaiKhoan:        _auth.Username ?? "",
-                HoTen:           _auth.TenNV ?? ""
+                ThoiGianSec: thoiGianSec,
+                TGBDLamBaiThi: startMs,
+                GioKetThucMs: submittedAtMs,
+                TaiKhoan: _auth.Username ?? "",
+                HoTen: _auth.TenNV ?? ""
             );
             try
             {
@@ -567,18 +567,18 @@ namespace HeThongThiDQ.Controllers
             // Publish vào queue — HTTP request trả về ngay, không đợi DB
             await _queue.PublishAsync(new ExamSubmitMessage
             {
-                IDLH          = dto.IDLH,
-                IDDeThi       = dto.IDDeThi,
-                IDND          = dto.IDND,
-                IDNV          = _auth.ID,
-                IDPhongBan    = _auth.IDPhongban,
-                IDViTri       = _auth.IDViTri,
-                LanThi        = lanthi,
-                ThoiGianSec   = thoiGianSec,
+                IDLH = dto.IDLH,
+                IDDeThi = dto.IDDeThi,
+                IDND = dto.IDND,
+                IDNV = _auth.ID,
+                IDPhongBan = _auth.IDPhongban,
+                IDViTri = _auth.IDViTri,
+                LanThi = lanthi,
+                ThoiGianSec = thoiGianSec,
                 TGBDLamBaiThi = startMs,
                 SubmittedAtMs = submittedAtMs,
-                DiemSo        = diemSo,
-                Answers       = answerRecords,
+                DiemSo = diemSo,
+                Answers = answerRecords,
             });
 
             // Dọn Redis session
@@ -587,9 +587,9 @@ namespace HeThongThiDQ.Controllers
 
             return Json(new
             {
-                success     = true,
-                score       = diemSo,
-                isOnLuyen   = lophoc?.IsCoCtdt == 1,
+                success = true,
+                score = diemSo,
+                isOnLuyen = lophoc?.IsCoCtdt == 1,
                 redirectUrl = Url.Action("ViewResult", "EClassroom", new { IDLH = dto.IDLH }),
             });
         }
@@ -609,7 +609,7 @@ namespace HeThongThiDQ.Controllers
             if (val.HasValue && int.TryParse(val.ToString(), out int idbaithi))
                 return Json(new
                 {
-                    ready       = true,
+                    ready = true,
                     idbaithi,
                     redirectUrl = Url.Action("TestView", "ConfirmEStudy",
                         new { LHID = IDLH, IDNV = _auth.ID, IDBaiThi = idbaithi }),
@@ -620,24 +620,24 @@ namespace HeThongThiDQ.Controllers
 
         public class AutoSaveDto
         {
-            public int  IDLH     { get; set; }
-            public int  IDCH     { get; set; }
+            public int IDLH { get; set; }
+            public int IDCH { get; set; }
             public int? AnswerId { get; set; }
             public long ChosenAt { get; set; }
         }
 
         public class ExamAnswerDto
         {
-            public int  IDCH   { get; set; }
+            public int IDCH { get; set; }
             public int? Answer { get; set; }
         }
 
         public class ExamSubmitDto
         {
-            public int  IDLH          { get; set; }
-            public int  IDDeThi       { get; set; }
-            public int  IDND          { get; set; }
-            public int  ThoiGianSec   { get; set; }
+            public int IDLH { get; set; }
+            public int IDDeThi { get; set; }
+            public int IDND { get; set; }
+            public int ThoiGianSec { get; set; }
             public long TGBDLamBaiThi { get; set; }
             public List<ExamAnswerDto> Answers { get; set; } = new();
         }
