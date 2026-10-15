@@ -12,185 +12,206 @@
     <title>Đăng nhập — Hệ thống đánh giá năng lực</title>
     <link rel="icon" type="image/x-icon" href="~/favicon.ico">
     <link rel="shortcut icon" type="image/x-icon" href="~/favicon.ico">
-    <link rel="preload" href="/Content/assets/images/bg4.jpg" as="image" />
+    <link rel="preload" href="/Content/assets/images/Banner_login_qday_2.jpg" as="image" />
     <link href="~/Content/main.css" rel="stylesheet" />
     <link href="~/Content/custom_responsive_mobile.css" rel="stylesheet" />
     <script src="~/Content/jquery-3.0.0.min.js" defer></script>
     <script src="~/Content/bootstrap.min.js" defer></script>
     <style>
-        .login-wrapper {
-        width: 100%;
-        max-width: 430px;
-        }
+            /* Nền đăng nhập Q-DAY (ghi đè bg4.jpg trong main.css và bản mobile) */
+            body.bg-login {
+                width: 100%;
+                height: auto;
+                min-height: 100vh;
+                background: url('/Content/assets/images/Banner_login_qday_2.jpg') no-repeat center top / cover fixed;
+                /* Ảnh nền phủ kín: chiều cao ảnh = max(màn hình, 56.25vw); dòng chữ dưới logo Q-DAY kết thúc ở ~23.5% ảnh */
+                --login-top: max(23.5vh, 13.2vw);
+            }
 
-        .login-card {
-        background: #fff;
-        border-radius: 14px;
-        box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
-        overflow: hidden;
-        }
+            /* Form nằm giữa, ngay dưới logo Q-DAY và giữa 2 dòng slogan như thiết kế */
+            .login-stage {
+                display: flex;
+                justify-content: center;
+                padding: var(--login-top) 16px 3vh;
+            }
 
-        .login-header {
-        background: #fff;
-        border-bottom: 3px solid #05418A;
-        padding: 24px 28px 18px;
-        text-align: center;
-        }
+            .login-wrapper {
+                width: clamp(320px, 26vw, 440px);
+                max-width: 100%;
+            }
 
-        .login-header img {
-        max-width: 210px;
-        width: 100%;
-        height: auto;
-        }
+            .login-card {
+                background: #fff;
+                border-radius: 14px;
+                box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+                overflow: hidden;
+            }
 
-        .login-header .system-name {
-        color: #05418A;
-        font-size: 0.95rem;
-        font-weight: 800;
-        margin-top: 10px;
-        letter-spacing: 0.4px;
-        text-transform: uppercase;
-        }
+            .login-header {
+                background: #fff;
+                border-bottom: 3px solid #05418A;
+                padding: clamp(10px, 2vh, 22px) 24px clamp(8px, 1.6vh, 16px);
+                text-align: center;
+            }
 
-        .login-header .event-name {
-        color: #4b5563;
-        font-size: 0.8rem;
-        margin-top: 3px;
-        }
+            .login-header img {
+                max-width: clamp(150px, 20vh, 200px);
+                width: 100%;
+                height: auto;
+            }
 
-        .login-body {
-        padding: 24px 28px 28px;
-        }
+            .login-header .system-name {
+                color: #05418A;
+                font-size: clamp(.82rem, 1.6vh, .95rem);
+                font-weight: 800;
+                margin-top: clamp(4px, .8vh, 10px);
+                letter-spacing: 0.4px;
+                text-transform: uppercase;
+            }
 
-        .info-box {
-        background: #EFF6FF;
-        border-left: 4px solid #05418A;
-        border-radius: 6px;
-        padding: 11px 14px;
-        margin-bottom: 20px;
-        font-size: 0.8rem;
-        color: #1e3a5f;
-        }
+            .login-header .event-name {
+                color: #4b5563;
+                font-size: clamp(.7rem, 1.35vh, .8rem);
+                margin-top: 3px;
+            }
 
-        .info-box .info-title {
-        font-weight: 700;
-        margin-bottom: 5px;
-        }
+            .login-body {
+                padding: clamp(12px, 2.2vh, 24px) 24px clamp(12px, 2.2vh, 24px);
+            }
 
-        .info-box ul {
-        margin: 0;
-        padding-left: 16px;
-        }
+            .info-box {
+                background: #EFF6FF;
+                border-left: 4px solid #05418A;
+                border-radius: 6px;
+                padding: clamp(7px, 1.1vh, 11px) 12px;
+                margin-bottom: clamp(10px, 2vh, 20px);
+                font-size: clamp(.72rem, 1.35vh, .8rem);
+                color: #1e3a5f;
+            }
 
-        .info-box ul li {
-        margin-bottom: 2px;
-        line-height: 1.5;
-        }
+            .info-box .info-title {
+                font-weight: 700;
+                margin-bottom: 5px;
+            }
 
-        .info-box ul li b {
-        color: #05418A;
-        }
+            .info-box ul {
+                margin: 0;
+                padding-left: 16px;
+            }
 
-        .input-wrap {
-        position: relative;
-        margin-bottom: 14px;
-        }
+            .info-box ul li {
+                margin-bottom: 2px;
+                line-height: 1.5;
+            }
 
-        .input-wrap .ico {
-        position: absolute;
-        left: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        color: #9ca3af;
-        font-size: 14px;
-        pointer-events: none;
-        }
+            .info-box ul li b {
+                color: #05418A;
+            }
 
-        .input-wrap input {
-        width: 100%;
-        padding: 11px 38px;
-        border: 1.5px solid #d1d5db;
-        border-radius: 8px;
-        font-size: 0.9rem;
-        outline: none;
-        transition: border-color 0.2s, box-shadow 0.2s;
-        color: #111827;
-        font-family: inherit;
-        }
+            .input-wrap {
+                position: relative;
+                margin-bottom: 14px;
+            }
 
-        .input-wrap input:focus {
-        border-color: #05418A;
-        box-shadow: 0 0 0 3px rgba(5, 65, 138, 0.1);
-        }
+            .input-wrap .ico {
+                position: absolute;
+                left: 12px;
+                top: 50%;
+                transform: translateY(-50%);
+                color: #9ca3af;
+                font-size: 14px;
+                pointer-events: none;
+            }
 
-        .input-wrap input::placeholder {
-        color: #9ca3af;
-        }
+            .input-wrap input {
+                width: 100%;
+                padding: clamp(8px, 1.2vh, 11px) 38px;
+                border: 1.5px solid #d1d5db;
+                border-radius: 8px;
+                font-size: 0.9rem;
+                outline: none;
+                transition: border-color 0.2s, box-shadow 0.2s;
+                color: #111827;
+                font-family: inherit;
+            }
 
-        .toggle-pass {
-        position: absolute;
-        right: 12px;
-        top: 50%;
-        transform: translateY(-50%);
-        cursor: pointer;
-        color: #9ca3af;
-        font-size: 14px;
-        }
+            .input-wrap input:focus {
+                border-color: #05418A;
+                box-shadow: 0 0 0 3px rgba(5, 65, 138, 0.1);
+            }
 
-        .toggle-pass:hover {
-        color: #05418A;
-        }
+            .input-wrap input::placeholder {
+                color: #9ca3af;
+            }
 
-        .error-msg {
-        font-size: 0.76rem;
-        color: #dc2626;
-        margin-top: -10px;
-        margin-bottom: 8px;
-        padding-left: 4px;
-        min-height: 14px;
-        }
+            .toggle-pass {
+                position: absolute;
+                right: 12px;
+                top: 50%;
+                transform: translateY(-50%);
+                cursor: pointer;
+                color: #9ca3af;
+                font-size: 14px;
+            }
 
-        .btn-login {
-        width: 100%;
-        padding: 12px;
-        background: linear-gradient(135deg, #05418A, #1565C0);
-        color: #fff;
-        border: none;
-        border-radius: 8px;
-        font-size: 0.93rem;
-        font-weight: 700;
-        letter-spacing: 0.4px;
-        cursor: pointer;
-        transition: opacity 0.2s, transform 0.1s;
-        margin-top: 4px;
-        font-family: inherit;
-        }
+            .toggle-pass:hover {
+                color: #05418A;
+            }
 
-        .btn-login:hover {
-        opacity: 0.9;
-        transform: translateY(-1px);
-        }
+            .error-msg {
+                font-size: 0.76rem;
+                color: #dc2626;
+                margin-top: -10px;
+                margin-bottom: 8px;
+                padding-left: 4px;
+                min-height: 14px;
+            }
 
-        .btn-login:active {
-        transform: translateY(0);
-        }
+            .btn-login {
+                width: 100%;
+                padding: clamp(9px, 1.3vh, 12px);
+                background: linear-gradient(135deg, #05418A, #1565C0);
+                color: #fff;
+                border: none;
+                border-radius: 8px;
+                font-size: 0.93rem;
+                font-weight: 700;
+                letter-spacing: 0.4px;
+                cursor: pointer;
+                transition: opacity 0.2s, transform 0.1s;
+                margin-top: 4px;
+                font-family: inherit;
+            }
 
-        .login-note {
-        text-align: center;
-        margin-top: 16px;
-        font-size: 0.76rem;
-        color: #9ca3af;
-        }
+            .btn-login:hover {
+                opacity: 0.9;
+                transform: translateY(-1px);
+            }
 
-        @@media (max-width: 480px) {
-        .login-body {
-        padding: 18px 18px 22px;
-        }
+            .btn-login:active {
+                transform: translateY(0);
+            }
 
-        .login-header {
-        padding: 18px 18px 14px;
-        }
-        }
+            .login-note {
+                text-align: center;
+                margin-top: clamp(8px, 1.6vh, 16px);
+                font-size: 0.76rem;
+                color: #9ca3af;
+            }
+
+            @@media (max-width: 480px) {
+                .login-wrapper {
+                    width: 100%;
+                }
+
+                .login-body {
+                    padding: 16px 16px 18px;
+                }
+
+                .login-header {
+                    padding: 14px 16px 10px;
+                }
+            }
     </style>
 </head>
 
@@ -205,9 +226,8 @@
         <script>alert('Tài khoản của bạn đã được đăng nhập ở thiết bị khác. Vui lòng đăng nhập lại.');</script>
     }
 
-    <div class="container" style="height:100%">
-        <div class="main-content">
-            <div class="content-centered" style="min-width:0; width:430px; max-width:95vw;">
+    <div class="login-stage">
+            <div class="login-wrapper">
 
                 <div class="login-card">
 
@@ -267,7 +287,6 @@
                 </div>
 
             </div>
-        </div>
     </div>
 
 </body>
@@ -279,29 +298,29 @@
     localStorage.removeItem("IDLH");
 
     $('#togglePass').on('click', function () {
-    var inp = $('#MatKhau');
-    var icon = $('#eyeIcon');
-    if (inp.attr('type') === 'password') {
-    inp.attr('type', 'text');
-    icon.removeClass('fa-eye').addClass('fa-eye-slash');
-    } else {
-    inp.attr('type', 'password');
-    icon.removeClass('fa-eye-slash').addClass('fa-eye');
-    }
+        var inp = $('#MatKhau');
+        var icon = $('#eyeIcon');
+        if (inp.attr('type') === 'password') {
+            inp.attr('type', 'text');
+            icon.removeClass('fa-eye').addClass('fa-eye-slash');
+        } else {
+            inp.attr('type', 'password');
+            icon.removeClass('fa-eye-slash').addClass('fa-eye');
+        }
     });
 
     $('#MatKhau').on('keyup', function (e) {
-    if (e.keyCode === 13) $('#LoginUser').click();
+        if (e.keyCode === 13) $('#LoginUser').click();
     });
 
     $('#LoginUser').on('click', function () {
-    var u = $('#SoDienThoai').val().trim();
-    var p = $('#MatKhau').val();
-    var ok = true;
-    if (!u) { $('#show_error_user').text('Vui lòng nhập mã nhân viên.'); ok = false; }
-    else { $('#show_error_user').text(''); }
-    if (!p) { $('#show_error_pass').text('Vui lòng nhập mật khẩu.'); ok = false; }
-    else { $('#show_error_pass').text(''); }
-    return ok;
+        var u = $('#SoDienThoai').val().trim();
+        var p = $('#MatKhau').val();
+        var ok = true;
+        if (!u) { $('#show_error_user').text('Vui lòng nhập mã nhân viên.'); ok = false; }
+        else { $('#show_error_user').text(''); }
+        if (!p) { $('#show_error_pass').text('Vui lòng nhập mật khẩu.'); ok = false; }
+        else { $('#show_error_pass').text(''); }
+        return ok;
     });
 </script>

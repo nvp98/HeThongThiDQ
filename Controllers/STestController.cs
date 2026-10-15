@@ -106,6 +106,24 @@ namespace HeThongThiDQ.Controllers
             return lh.IddeThi ?? 0;
         }
 
+        // Số đề ôn luyện (IsCoCtdt == 1) được giao cho nhân viên mà chưa nộp bài nào
+        private async Task<int> CountUnfinishedPracticeAsync(int idnv)
+        {
+            var practiceIds = await (from h in _db.XnhocTaps
+                                     join l in _db.LopHocs on h.Lhid equals l.Idlh
+                                     where h.Nvid == idnv && l.IsCoCtdt == 1
+                                     select l.Idlh).Distinct().ToListAsync();
+            if (practiceIds.Count == 0) return 0;
+
+            var doneCount = await _db.BaiThis
+                .Where(b => b.Idnv == idnv && practiceIds.Contains(b.Idlh ?? 0))
+                .Select(b => b.Idlh)
+                .Distinct()
+                .CountAsync();
+
+            return practiceIds.Count - doneCount;
+        }
+
         public async Task<IActionResult> Index(int LHID)
         {
             var random = new Random();
@@ -133,6 +151,18 @@ namespace HeThongThiDQ.Controllers
             {
                 try { await _cache.RemoveAsync(SessionKey(LHID)); } catch { }
                 session = null;
+            }
+
+            // Rule: đề thi chính thức chỉ mở khi đã hoàn thành (nộp ≥ 1 bài) tất cả đề ôn luyện được giao.
+            // Chỉ chặn khi bắt đầu phiên mới — phiên đang làm dở vẫn được khôi phục.
+            if (session == null && lh.IsCoCtdt != 1)
+            {
+                var soDeChuaOn = await CountUnfinishedPracticeAsync(_auth.ID);
+                if (soDeChuaOn > 0)
+                {
+                    TempData["msgError"] = $"<script>alert('Bạn cần hoàn thành tất cả đề ôn luyện trước khi làm bài thi chính thức (còn {soDeChuaOn} đề chưa ôn).');</script>";
+                    return RedirectToAction("Index", "EClassroom");
+                }
             }
 
             // Xác định đề thi cho user: session HIT → giữ nguyên; session MISS → chọn mới
@@ -206,8 +236,10 @@ namespace HeThongThiDQ.Controllers
             }
             else
             {
-                // New session — shuffle and save to Redis
-                res = allQuestions.OrderBy(_ => random.Next()).ToList();
+                // New session — shuffle câu hỏi (chỉ khi thi chính thức, không xáo trộn khi ôn luyện)
+                res = lh.IsCoCtdt == 1
+                    ? allQuestions.ToList()
+                    : allQuestions.OrderBy(_ => random.Next()).ToList();
 
                 var now = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
                 session = new ExamSession
@@ -234,6 +266,7 @@ namespace HeThongThiDQ.Controllers
 
             ViewBag.ThoiGianLamBai = DateTime.Now.AddMinutes(lh.ThoiGianLamBai ?? 0);
             ViewBag.ThoiGianThi    = lh.ThoiGianLamBai ?? 0;
+            ViewBag.IsOnLuyen      = lh.IsCoCtdt == 1;
             ViewBag.IDNV           = _auth.ID;
             ViewBag.IDLH           = LHID;
             ViewBag.ExamSession    = JsonSerializer.Serialize(session);
@@ -453,20 +486,34 @@ namespace HeThongThiDQ.Controllers
 
             answersReady:
 
-            // Lấy timestamp từng câu từ Redis session
+            // Lấy timestamp từng câu + giờ bắt đầu (do server ghi khi phát đề) từ Redis session
             Dictionary<int, long?> chosenAtMap = new();
+            ExamSession? examSession = null;
             try
             {
                 var json = await _cache.GetStringAsync(SessionKey(dto.IDLH));
                 if (json != null)
                 {
-                    var session = JsonSerializer.Deserialize<ExamSession>(json);
-                    if (session?.Answers != null)
-                        foreach (var kv in session.Answers)
+                    examSession = JsonSerializer.Deserialize<ExamSession>(json);
+                    if (examSession?.Answers != null)
+                        foreach (var kv in examSession.Answers)
                             chosenAtMap[kv.Key] = kv.Value.ChosenAt;
                 }
             }
             catch { }
+
+            // Thời gian làm bài dùng để xếp hạng → tính bằng giờ server, không tin số liệu trình duyệt gửi lên.
+            // Chỉ khi mất session (Redis lỗi) mới dùng tạm giá trị từ trình duyệt.
+            var submittedAtMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            long startMs      = dto.TGBDLamBaiThi;
+            int  thoiGianSec  = dto.ThoiGianSec;
+            if (examSession != null && examSession.StartTimestamp > 0)
+            {
+                startMs     = examSession.StartTimestamp;
+                thoiGianSec = (int)Math.Max(0, (submittedAtMs - startMs) / 1000);
+                if (examSession.TotalTimeSec > 0)
+                    thoiGianSec = Math.Min(thoiGianSec, examSession.TotalTimeSec);
+            }
 
             // Tính điểm + build danh sách câu trả lời — hoàn toàn in-memory, không cần DB
             double diemSo = 0;
@@ -502,9 +549,9 @@ namespace HeThongThiDQ.Controllers
                 SoCauDung:       soCauDung,
                 SoCauSai:        soCauSai,
                 SoCauChuaTraLoi: soCauChuaTraLoi,
-                ThoiGianSec:     dto.ThoiGianSec,
-                TGBDLamBaiThi:   dto.TGBDLamBaiThi,
-                GioKetThucMs:    DateTimeOffset.UtcNow.ToUnixTimeMilliseconds(),
+                ThoiGianSec:     thoiGianSec,
+                TGBDLamBaiThi:   startMs,
+                GioKetThucMs:    submittedAtMs,
                 TaiKhoan:        _auth.Username ?? "",
                 HoTen:           _auth.TenNV ?? ""
             );
@@ -527,8 +574,9 @@ namespace HeThongThiDQ.Controllers
                 IDPhongBan    = _auth.IDPhongban,
                 IDViTri       = _auth.IDViTri,
                 LanThi        = lanthi,
-                ThoiGianSec   = dto.ThoiGianSec,
-                TGBDLamBaiThi = dto.TGBDLamBaiThi,
+                ThoiGianSec   = thoiGianSec,
+                TGBDLamBaiThi = startMs,
+                SubmittedAtMs = submittedAtMs,
                 DiemSo        = diemSo,
                 Answers       = answerRecords,
             });

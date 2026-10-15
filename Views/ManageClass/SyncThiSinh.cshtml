@@ -1,0 +1,57 @@
+<div class="modal-dialog modal-lg" role="document">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h5 class="modal-title"><i class="fa fa-refresh"></i> Sync Thí Sinh từ Nhân Sự</h5>
+            <button type="button" class="close" data-dismiss="modal"><span>&times;</span></button>
+        </div>
+        <form method="post" action="/ManageClass/SyncThiSinh" id="formSyncThiSinh">
+            <div class="modal-body">
+                <div class="alert alert-info" style="font-size:13px;margin-bottom:12px">
+                    <i class="fa fa-info-circle"></i>
+                    Hệ thống sẽ đọc danh sách nhân sự <strong>đang làm việc</strong> và đẩy vào các lớp được chọn (bỏ qua nếu đã tồn tại).
+                </div>
+                <div class="mb-2">
+                    <label style="font-weight:700;cursor:pointer">
+                        <input type="checkbox" id="cbAllLH" checked style="margin-right:6px">
+                        Chọn tất cả lớp học
+                    </label>
+                </div>
+                <hr style="margin:6px 0 10px">
+                <div id="lhCheckList" style="max-height:380px;overflow-y:auto">
+                    @foreach (var lh in (IEnumerable<dynamic>)ViewBag.LopHocList)
+                    {
+                        <div class="mb-1">
+                            <label style="font-weight:400;cursor:pointer">
+                                <input type="checkbox" class="cb-lh-item" name="lhIds" value="@lh.Idlh" checked style="margin-right:6px">
+                                <span class="badge badge-secondary" style="font-size:11px;margin-right:4px">@lh.MaLh</span>
+                                @lh.TenLh
+                            </label>
+                        </div>
+                    }
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-dismiss="modal">Hủy</button>
+                <button type="submit" class="btn btn-primary" id="btn-do-sync">
+                    <i class="fa fa-refresh"></i> Sync thí sinh
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script type="text/javascript">
+    $('#cbAllLH').on('change', function () {
+        $('.cb-lh-item').prop('checked', $(this).prop('checked'));
+    });
+    $(document).on('change', '.cb-lh-item', function () {
+        $('#cbAllLH').prop('checked', $('.cb-lh-item').length === $('.cb-lh-item:checked').length);
+    });
+
+    $('#btn-do-sync').on('click', function (e) {
+        if ($('.cb-lh-item:checked').length === 0) {
+            e.preventDefault();
+            alert('Vui lòng chọn ít nhất một lớp học.');
+        }
+    });
+</script>

@@ -3,6 +3,8 @@ using HeThongThiDQ.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Distributed;
+using System.Text.Json;
 
 namespace HeThongThiDQ.Controllers
 {
@@ -11,210 +13,278 @@ namespace HeThongThiDQ.Controllers
     {
         private readonly ELEARNINGEntities _db;
         private readonly MyAuthentication _auth;
+        private readonly IDistributedCache _cache;
         private readonly HomeController _home;
         private const string ControllerName = "XepHangCaNhan";
 
-        public XepHangCaNhanController(ELEARNINGEntities db, MyAuthentication auth, HomeController home)
+        private static readonly DistributedCacheEntryOptions _bxhOpts =
+            new() { AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(60) };
+
+        public XepHangCaNhanController(ELEARNINGEntities db, MyAuthentication auth, IDistributedCache cache, HomeController home)
         {
             _db = db;
             _auth = auth;
+            _cache = cache;
             _home = home;
         }
 
         public async Task<IActionResult> Index()
         {
-            // var listQuyen = await _home.GetPermisionCN(_auth.IDQuyen, ControllerName);
-            // ViewBag.QUYENCN = listQuyen;
-
-            // if (!listQuyen.Contains(CONSTKEY.V))
-            // {
-            //     TempData["msgError"] = "<script>alert('Bạn không có quyền truy cập chức năng này');</script>";
-            //     return RedirectToAction("", "Home");
-            // }
-
-            ViewBag.LopHocList = await _db.LopHocs
-                .Where(x => x.ToChucThi == true)
-                .OrderByDescending(x => x.Tgbdlh)
-                .Select(x => new { x.Idlh, x.TenLh })
-                .ToListAsync();
-
-            ViewBag.PhongBanList = await _db.PhongBans
-                .Where(x => x.TenPhongBan != null)
-                .OrderBy(x => x.TenPhongBan)
-                .Select(x => new { x.IdphongBan, x.TenPhongBan })
-                .ToListAsync();
-
+            ViewBag.MyNVID = _auth.ID;
             return View();
         }
 
-        // ── Thống kê tổng hợp ─────────────────────────────────────────────────
+        // Danh sách lớp thi chính thức (có thể có lớp thi lại), mới nhất trước
         [HttpGet]
-        public async Task<IActionResult> GetStats(int? idLH)
+        public async Task<IActionResult> GetLopThi()
         {
-            var allQ = _db.BaiThis.AsQueryable();
-            if (idLH.HasValue && idLH > 0) allQ = allQ.Where(x => x.Idlh == idLH);
-            var doneQ = allQ.Where(x => x.DiemSo != null);
-
-            var tongLuotThi = await allQ.CountAsync();
-            var tongHoanThanh = await doneQ.CountAsync();
-            var tongNguoi = await doneQ.Select(x => x.Idnv).Distinct().CountAsync();
-            var tongDonVi = await (from bt in doneQ
-                                   join nv in _db.NhanViens on bt.Idnv equals nv.Id
-                                   where nv.IdphongBan != null
-                                   select nv.IdphongBan).Distinct().CountAsync();
-
-            return Json(new { tongNguoi, tongDonVi, tongLuotThi, tongHoanThanh });
+            var list = await _db.LopHocs
+                .Where(l => l.IsCoCtdt != 1)
+                .OrderByDescending(l => l.Tgbdlh).ThenByDescending(l => l.Idlh)
+                .Select(l => new { l.Idlh, TenLH = l.TenLh ?? ("Lớp thi " + l.Idlh) })
+                .ToListAsync();
+            return Json(list);
         }
 
-        // ── BXH ôn luyện: tổng điểm + tổng thời gian tất cả chủ đề ôn luyện ──
+        // loai = "thi"           → xếp hạng thi chính thức theo Điều 4 thể lệ, lọc theo lớp thi (idlh)
+        // loai = "onluyen"       → xếp hạng ôn luyện tổng hợp (DiemOnLuyen desc, SoDe desc)
+        // loai = "onluyen-ngay"  → ôn luyện trong ngày (tham số ngay = "yyyy-MM-dd")
+        // loai = "onluyen-tuan"  → ôn luyện trong tuần (tham số tuan = "yyyy-Www")
         [HttpGet]
-        public async Task<IActionResult> GetBxhOnLuyen()
+        public async Task<IActionResult> GetBangXepHang(string? loai, int? idlh, string? ngay, string? tuan)
         {
-            int currentId = _auth.ID;
-
-            var onLuyenLhIds = await _db.LopHocs
-                .Where(l => l.IsCoCtdt == 1)
-                .Select(l => l.Idlh)
-                .ToListAsync();
-
-            if (onLuyenLhIds.Count == 0)
-                return Json(new { Ranked = Array.Empty<object>() });
-
-            var btRaw = await _db.BaiThis
-                .Where(b => b.Idnv != null && onLuyenLhIds.Contains(b.Idlh ?? 0))
-                .Select(b => new { b.Idnv, DiemSo = b.DiemSo ?? 0, ThoiGianThi = b.ThoiGianThi ?? 0 })
-                .ToListAsync();
-
-            if (btRaw.Count == 0)
-                return Json(new { Ranked = Array.Empty<object>() });
-
-            var nvIds = btRaw.Select(x => x.Idnv!.Value).Distinct().ToList();
-            var nvMap = await (from n in _db.NhanViens
-                               join pb in _db.PhongBans on n.IdphongBan equals pb.IdphongBan into pbj
-                               from pb in pbj.DefaultIfEmpty()
-                               where nvIds.Contains(n.Id)
-                               select new { n.Id, n.HoTen, n.MaNv, TenPB = pb != null ? pb.TenPhongBan : null })
-                               .ToDictionaryAsync(x => x.Id);
-
-            var sorted = btRaw
-                .GroupBy(x => x.Idnv!.Value)
-                .Select(g =>
-                {
-                    nvMap.TryGetValue(g.Key, out var nv);
-                    return new
-                    {
-                        Idnv         = g.Key,
-                        HoTen        = nv?.HoTen ?? "",
-                        MaNV         = nv?.MaNv ?? "",
-                        TenPB        = nv?.TenPB ?? "",
-                        TongDiem     = g.Sum(x => x.DiemSo),
-                        TongThoiGian = g.Sum(x => x.ThoiGianThi),
-                        SoLanThi     = g.Count()
-                    };
-                })
-                .OrderByDescending(x => x.TongDiem)
-                .ThenBy(x => x.TongThoiGian)
-                .ToList();
-
-            var ranked = sorted.Select((x, i) => new
+            string key = loai switch
             {
-                Rank         = i + 1,
-                NVID         = x.Idnv,
-                x.HoTen,
-                x.MaNV,
-                x.TenPB,
-                x.TongDiem,
-                x.TongThoiGian,
-                x.SoLanThi,
-                IsCurrent    = x.Idnv == currentId
-            }).ToList();
+                "onluyen"      => "xephangcanhan:onluyen:v4",
+                "onluyen-ngay" => $"xephangcanhan:onluyen-ngay:{ngay ?? DateOnly.FromDateTime(DateTime.Today).ToString("yyyy-MM-dd")}:v1",
+                "onluyen-tuan" => $"xephangcanhan:onluyen-tuan:{tuan ?? GetCurrentWeekStr()}:v1",
+                _              => $"xephangcanhan:thi:{idlh ?? 0}:v3"
+            };
 
-            return Json(new { Ranked = ranked });
+            try
+            {
+                var cached = await _cache.GetStringAsync(key);
+                if (cached != null) return Content(cached, "application/json");
+            }
+            catch { }
+
+            List<BxhRow> rows = loai switch
+            {
+                "onluyen"      => await BuildOnLuyenRankingAsync(),
+                "onluyen-ngay" => await BuildOnLuyenNgayRankingAsync(
+                                      DateOnly.TryParse(ngay, out var d) ? d : DateOnly.FromDateTime(DateTime.Today)),
+                "onluyen-tuan" => await BuildOnLuyenTuanRankingAsync(ParseWeekStart(tuan)),
+                _              => await BuildThiRankingAsync(idlh)
+            };
+
+            var json = JsonSerializer.Serialize(rows);
+            try { await _cache.SetStringAsync(key, json, _bxhOpts); } catch { }
+            return Content(json, "application/json");
         }
 
-        // ── Xếp hạng cá nhân ──────────────────────────────────────────────────
-        [HttpGet]
-        public async Task<IActionResult> GetData(int? idLH, int? idPB, string? search)
+        // ── Helpers ─────────────────────────────────────────────────────────────
+
+        private async Task<List<int>> GetOnLuyenLhIdsAsync()
+            => await _db.LopHocs.Where(l => l.IsCoCtdt == 1).Select(l => l.Idlh).ToListAsync();
+
+        private async Task<Dictionary<int, (string HoTen, string MaNV, string TenPB)>> GetNvInfoAsync(List<int> nvIds)
+            => await (from n in _db.NhanViens
+                      join pb in _db.PhongBans on n.IdphongBan equals pb.IdphongBan into pbj
+                      from pb in pbj.DefaultIfEmpty()
+                      where nvIds.Contains(n.Id)
+                      select new { n.Id, n.HoTen, n.MaNv, TenPB = pb != null ? pb.TenPhongBan : null })
+                     .ToDictionaryAsync(x => x.Id, x => (x.HoTen ?? "", x.MaNv ?? "", x.TenPB ?? ""));
+
+        private static DateTime TruncateToSecond(DateTime d) => d.AddTicks(-(d.Ticks % TimeSpan.TicksPerSecond));
+
+        // Tính stats ôn luyện tổng hợp (tất cả thời gian) cho mỗi NV trong các lớp olLhIds
+        private async Task<Dictionary<int, (DateTime? HoanThanh, double Diem, int SoDe)>> GetOnLuyenStatsAsync(List<int> olLhIds)
         {
-            var listQuyen = await _home.GetPermisionCN(_auth.IDQuyen, ControllerName);
-            if (!listQuyen.Contains(CONSTKEY.V)) return Json("Unauthorized");
-
-            var query = _db.BaiThis.Where(x => x.DiemSo != null);
-            if (idLH.HasValue && idLH > 0) query = query.Where(x => x.Idlh == idLH);
-
-            var raw = await (from bt in query
-                             join nv in _db.NhanViens on bt.Idnv equals nv.Id
-                             join pb in _db.PhongBans on nv.IdphongBan equals pb.IdphongBan into pbj
-                             from pb in pbj.DefaultIfEmpty()
-                             select new
-                             {
-                                 IDNV = nv.Id,
-                                 nv.MaNv,
-                                 nv.HoTen,
-                                 IDPhongBan = nv.IdphongBan,
-                                 TenPB = pb != null ? pb.TenPhongBan : "Chưa phân công",
-                                 bt.DiemSo,
-                                 bt.TinhTrang,
-                                 bt.GioBatDau,
-                                 bt.GioKetThuc,
-                                 bt.ThoiGianThi
-                             }).ToListAsync();
-
-            if (idPB.HasValue && idPB > 0)
-                raw = raw.Where(x => x.IDPhongBan == idPB).ToList();
-
-            if (!string.IsNullOrEmpty(search))
-                raw = raw.Where(x => (x.HoTen?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false)
-                                  || (x.MaNv?.Contains(search, StringComparison.OrdinalIgnoreCase) ?? false)).ToList();
-
-            var ranked = raw
-                .GroupBy(x => new { x.IDNV, x.MaNv, x.HoTen, x.TenPB })
-                .Select(g =>
+            if (olLhIds.Count == 0) return new();
+            return (await _db.BaiThis.AsNoTracking()
+                    .Where(b => b.Idnv != null && olLhIds.Contains(b.Idlh ?? 0))
+                    .Select(b => new { Idnv = b.Idnv!.Value, Idlh = b.Idlh ?? 0, b.GioKetThuc, b.NgayThi, b.DiemSo })
+                    .ToListAsync())
+                .GroupBy(b => b.Idnv)
+                .ToDictionary(g => g.Key, g =>
                 {
-                    // Lấy lần thi đạt điểm cao nhất
-                    var best = g.OrderByDescending(x => x.DiemSo).First();
-                    int? giay = null;
-                    if (best.GioBatDau.HasValue && best.GioKetThuc.HasValue)
-                        giay = (int)(best.GioKetThuc.Value - best.GioBatDau.Value).TotalSeconds;
-                    else if (best.ThoiGianThi.HasValue)
-                        giay = best.ThoiGianThi.Value * 60;
+                    var nopDauTheoDe = g.GroupBy(b => b.Idlh)
+                        .Select(d => d.Min(b => b.GioKetThuc ?? b.NgayThi?.ToDateTime(TimeOnly.MaxValue) ?? DateTime.MaxValue))
+                        .ToList();
+                    DateTime? hoanThanh = olLhIds.Count > 0 && nopDauTheoDe.Count == olLhIds.Count
+                        ? TruncateToSecond(nopDauTheoDe.Max())
+                        : null;
+                    return (HoanThanh: hoanThanh, Diem: g.Sum(b => b.DiemSo ?? 0), SoDe: nopDauTheoDe.Count);
+                });
+        }
 
-                    var soLanThi = g.Count();
-                    var soLanDat = g.Count(x => x.TinhTrang == true);
-                    return new
+        // ── Thi chính thức ──────────────────────────────────────────────────────
+
+        private async Task<List<BxhRow>> BuildThiRankingAsync(int? idlh)
+            => await XepHangThiChinhThuc.TinhAsync(_db, idlh ?? await XepHangThiChinhThuc.GetLopThiMoiNhatAsync(_db));
+
+        // ── Ôn luyện tổng hợp ───────────────────────────────────────────────────
+
+        private async Task<List<BxhRow>> BuildOnLuyenRankingAsync()
+        {
+            var olLhIds = await GetOnLuyenLhIdsAsync();
+            if (olLhIds.Count == 0) return new();
+
+            var enrolledNvIds = await _db.XnhocTaps
+                .Where(x => x.Nvid != null && olLhIds.Contains(x.Lhid ?? 0))
+                .Select(x => x.Nvid!.Value)
+                .Distinct()
+                .ToListAsync();
+            if (enrolledNvIds.Count == 0) return new();
+
+            var olPerNv = await GetOnLuyenStatsAsync(olLhIds);
+            var nvMap = await GetNvInfoAsync(enrolledNvIds);
+
+            return enrolledNvIds
+                .Select(id =>
+                {
+                    olPerNv.TryGetValue(id, out var ol);
+                    nvMap.TryGetValue(id, out var nv);
+                    return new BxhRow
                     {
-                        g.Key.MaNv,
-                        g.Key.HoTen,
-                        PhongBan = g.Key.TenPB,
-                        DiemCaoNhat = Math.Round(g.Max(x => x.DiemSo ?? 0), 1),
-                        DiemTrungBinh = Math.Round(g.Average(x => x.DiemSo ?? 0), 1),
-                        SoLanThi = soLanThi,
-                        SoLanDat = soLanDat,
-                        TiLeDat = soLanThi > 0
-                                        ? Math.Round((double)soLanDat * 100 / soLanThi, 1)
-                                        : 0.0,
-                        ThoiGian = giay.HasValue
-                                        ? $"{giay.Value / 60:D2}:{giay.Value % 60:D2}"
-                                        : "--"
+                        NVID = id,
+                        HoTen = nv.HoTen ?? "",
+                        MaNV = nv.MaNV ?? "",
+                        TenPB = nv.TenPB ?? "",
+                        HoanThanhOnLuyen = ol.HoanThanh,
+                        DiemOnLuyen = ol.Diem,
+                        SoDeOnLuyenHoanThanh = ol.SoDe
                     };
                 })
-                .OrderByDescending(x => x.DiemCaoNhat)
-                .ThenBy(x => x.ThoiGian)
+                .OrderByDescending(x => x.DiemOnLuyen)
+                .ThenByDescending(x => x.SoDeOnLuyenHoanThanh)
+                .Select((x, i) => { x.Rank = i + 1; return x; })
                 .ToList();
+        }
 
-            return Json(ranked.Select((x, i) => new
+        // ── Ôn luyện theo ngày ──────────────────────────────────────────────────
+
+        private async Task<List<BxhRow>> BuildOnLuyenNgayRankingAsync(DateOnly ngay)
+        {
+            var olLhIds = await GetOnLuyenLhIdsAsync();
+            if (olLhIds.Count == 0) return new();
+
+            var ngayDt     = ngay.ToDateTime(TimeOnly.MinValue);
+            var ngayDtNext = ngay.AddDays(1).ToDateTime(TimeOnly.MinValue);
+
+            var data = (await _db.BaiThis.AsNoTracking()
+                    .Where(b => b.Idnv != null && b.DiemSo != null && olLhIds.Contains(b.Idlh ?? 0)
+                        && (b.NgayThi == ngay
+                            || (b.NgayThi == null && b.GioKetThuc >= ngayDt && b.GioKetThuc < ngayDtNext)))
+                    .Select(b => new { Idnv = b.Idnv!.Value, b.Idlh, b.DiemSo })
+                    .ToListAsync())
+                .GroupBy(b => b.Idnv)
+                .ToDictionary(
+                    g => g.Key,
+                    g => (Diem: g.Sum(x => x.DiemSo ?? 0), SoDe: g.Select(x => x.Idlh).Distinct().Count()));
+
+            if (data.Count == 0) return new();
+
+            var nvMap = await GetNvInfoAsync(data.Keys.ToList());
+
+            return data
+                .Select(kvp =>
+                {
+                    nvMap.TryGetValue(kvp.Key, out var nv);
+                    return new BxhRow
+                    {
+                        NVID = kvp.Key,
+                        HoTen = nv.HoTen ?? "",
+                        MaNV = nv.MaNV ?? "",
+                        TenPB = nv.TenPB ?? "",
+                        DiemOnLuyen = kvp.Value.Diem,
+                        SoDeOnLuyenHoanThanh = kvp.Value.SoDe
+                    };
+                })
+                .OrderByDescending(x => x.DiemOnLuyen)
+                .ThenByDescending(x => x.SoDeOnLuyenHoanThanh)
+                .Select((x, i) => { x.Rank = i + 1; return x; })
+                .ToList();
+        }
+
+        // ── Ôn luyện theo tuần ──────────────────────────────────────────────────
+
+        private async Task<List<BxhRow>> BuildOnLuyenTuanRankingAsync(DateOnly weekStart)
+        {
+            var olLhIds = await GetOnLuyenLhIdsAsync();
+            if (olLhIds.Count == 0) return new();
+
+            var weekEnd    = weekStart.AddDays(7);
+            var weekStartDt = weekStart.ToDateTime(TimeOnly.MinValue);
+            var weekEndDt   = weekEnd.ToDateTime(TimeOnly.MinValue);
+
+            var data = (await _db.BaiThis.AsNoTracking()
+                    .Where(b => b.Idnv != null && b.DiemSo != null && olLhIds.Contains(b.Idlh ?? 0)
+                        && (b.NgayThi >= weekStart && b.NgayThi < weekEnd
+                            || (b.NgayThi == null && b.GioKetThuc >= weekStartDt && b.GioKetThuc < weekEndDt)))
+                    .Select(b => new { Idnv = b.Idnv!.Value, b.Idlh, b.DiemSo })
+                    .ToListAsync())
+                .GroupBy(b => b.Idnv)
+                .ToDictionary(
+                    g => g.Key,
+                    g => (Diem: g.Sum(x => x.DiemSo ?? 0), SoDe: g.Select(x => x.Idlh).Distinct().Count()));
+
+            if (data.Count == 0) return new();
+
+            var nvMap = await GetNvInfoAsync(data.Keys.ToList());
+
+            return data
+                .Select(kvp =>
+                {
+                    nvMap.TryGetValue(kvp.Key, out var nv);
+                    return new BxhRow
+                    {
+                        NVID = kvp.Key,
+                        HoTen = nv.HoTen ?? "",
+                        MaNV = nv.MaNV ?? "",
+                        TenPB = nv.TenPB ?? "",
+                        DiemOnLuyen = kvp.Value.Diem,
+                        SoDeOnLuyenHoanThanh = kvp.Value.SoDe
+                    };
+                })
+                .OrderByDescending(x => x.DiemOnLuyen)
+                .ThenByDescending(x => x.SoDeOnLuyenHoanThanh)
+                .Select((x, i) => { x.Rank = i + 1; return x; })
+                .ToList();
+        }
+
+        // ── Week helpers ────────────────────────────────────────────────────────
+
+        // Tính ngày thứ Hai đầu tuần từ chuỗi "yyyy-Www" (ISO 8601)
+        private static DateOnly ParseWeekStart(string? tuan)
+        {
+            if (!string.IsNullOrEmpty(tuan) && System.Text.RegularExpressions.Regex.IsMatch(tuan, @"^\d{4}-W\d{1,2}$"))
             {
-                Rank = i + 1,
-                x.MaNv,
-                x.HoTen,
-                x.PhongBan,
-                x.DiemCaoNhat,
-                x.DiemTrungBinh,
-                x.TiLeDat,
-                x.SoLanThi,
-                x.SoLanDat,
-                x.ThoiGian
-            }));
+                int year = int.Parse(tuan[..4]);
+                int week = int.Parse(tuan[6..]);
+                var jan4 = new DateTime(year, 1, 4);
+                int dow = (int)jan4.DayOfWeek; if (dow == 0) dow = 7;
+                var monday = jan4.AddDays(1 - dow).AddDays((week - 1) * 7);
+                return DateOnly.FromDateTime(monday);
+            }
+            return GetCurrentWeekStart();
+        }
+
+        private static DateOnly GetCurrentWeekStart()
+        {
+            var today = DateTime.Today;
+            int dow = (int)today.DayOfWeek; if (dow == 0) dow = 7;
+            return DateOnly.FromDateTime(today.AddDays(1 - dow));
+        }
+
+        private static string GetCurrentWeekStr()
+        {
+            var ws = GetCurrentWeekStart();
+            var cal = System.Globalization.CultureInfo.InvariantCulture.Calendar;
+            int weekNum = cal.GetWeekOfYear(ws.ToDateTime(TimeOnly.MinValue),
+                System.Globalization.CalendarWeekRule.FirstFourDayWeek,
+                DayOfWeek.Monday);
+            return $"{ws.Year}-W{weekNum:D2}";
         }
     }
 }

@@ -438,6 +438,7 @@ namespace HeThongThiDQ.Controllers
                            join d in _db.DanhSachDa on c.Iddađung equals d.Iddsđa
                            join e in _db.DanhSachDa on b.IddapAnNv equals e.Iddsđa into gj
                            from sub in gj.DefaultIfEmpty()
+                           orderby b.Idctbt
                            select new ManageQuestionValidation
                            {
                                IDCH = c.Idch,

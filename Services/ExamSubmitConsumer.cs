@@ -129,7 +129,10 @@ public class ExamSubmitConsumer : BackgroundService
             GioBatDau = msg.TGBDLamBaiThi > 0
                 ? DateTimeOffset.FromUnixTimeMilliseconds(msg.TGBDLamBaiThi).LocalDateTime
                 : null,
-            GioKetThuc = DateTime.Now,
+            // Giờ nộp = lúc server nhận bài, không phải lúc consumer xử lý hàng đợi
+            GioKetThuc = msg.SubmittedAtMs > 0
+                ? DateTimeOffset.FromUnixTimeMilliseconds(msg.SubmittedAtMs).LocalDateTime
+                : DateTime.Now,
         };
         db.BaiThis.Add(baiThi);
         await db.SaveChangesAsync();

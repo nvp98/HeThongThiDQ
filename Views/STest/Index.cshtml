@@ -354,15 +354,20 @@
 
 /* ====== MOBILE ====== */
 @@media (max-width: 991px) {
-    .app-main .app-main__outer { overflow: auto; }
-    .app-main .app-main__inner { overflow: auto; }
-    .exam-wrapper   { flex-direction: column; height: auto; overflow: visible; }
+    /* Mobile: khung thi cao đúng 1 màn hình (dưới header). Phần trên (đồng hồ, tiến độ,
+       danh sách câu, Nộp bài) đứng yên; chỉ vùng câu hỏi bên dưới cuộn.
+       Không dùng position: sticky vì các wrapper của theme có overflow làm sticky mất tác dụng. */
+    .exam-wrapper   {
+        flex-direction: column;
+        height: calc(100vh - var(--nav-h));
+        height: calc(100dvh - var(--nav-h));
+        overflow: hidden;
+    }
     .exam-sidebar   {
         width: 100%;
         min-width: unset;
         height: auto;
-        position: sticky;
-        top: var(--nav-h);
+        flex: 0 0 auto;
         flex-direction: row;
         flex-wrap: wrap;
         overflow: visible;
@@ -370,15 +375,25 @@
         gap: 8px;
         border-right: none;
         border-bottom: 1px solid #e0e0e0;
+        box-shadow: 0 2px 8px rgba(0,0,0,.08);
         z-index: 200;
     }
     .timer-card     { flex: 1; min-width: 140px; padding: 10px 12px; }
     #exam-timer     { font-size: 24px; }
     .progress-card  { flex: 1; min-width: 120px; }
-    .nav-card       { width: 100%; flex: unset; max-height: 120px; }
-    .btn-submit     { min-width: 110px; align-self: center; padding: 10px 12px; font-size: 14px; }
-    .exam-main      { height: auto; padding: 12px; overflow-y: visible; }
-    .question-card  { padding: 14px 14px; }
+    .nav-card       { width: 100%; flex: unset; max-height: 112px; padding: 8px 10px; gap: 6px; }
+    .nav-card-title { display: none; }
+    .btn-submit     { width: 100%; padding: 11px 12px; font-size: 15px; }
+    .exam-main      {
+        flex: 1 1 auto;
+        min-height: 0;
+        height: auto;
+        padding: 12px;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        overscroll-behavior: contain;
+    }
+    .question-card  { padding: 14px 14px; scroll-margin-top: 8px; }
 }
 </style>
 
@@ -468,7 +483,7 @@
                                     };
 
                                     var shuffledTags = htmlTags.ToList();
-                                    if (Model[i].IsDao)
+                                    if (Model[i].IsDao && !(bool)(ViewBag.IsOnLuyen ?? false))
                                         shuffledTags = htmlTags.OrderBy(_ => Guid.NewGuid()).ToList();
                                 }
                                 @foreach (var tag in shuffledTags) { @Html.Raw(tag) }
@@ -664,7 +679,7 @@
     // ----- Cuộn đến câu hỏi -----
     function scrollToQuestion(number) {
         const card = document.getElementById('question-card-' + number);
-        if (card) card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        if (card) card.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 </script>
 

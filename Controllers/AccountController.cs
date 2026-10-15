@@ -465,9 +465,6 @@ namespace HeThongThiDQ.Controllers
                                     || existing.CCCD != item.cmnd;
                         if (changed)
                         {
-                            if (item.tinhtranglamviec == 0)
-                                existing.IdquyenKnl = null; // nghỉ việc → xóa KNL
-
                             existing.IdphongBan = idPB > 0 ? idPB : null;
                             existing.IdviTri = idVT > 0 ? idVT : null;
                             existing.MaViTri = item.mavitri;
@@ -482,8 +479,25 @@ namespace HeThongThiDQ.Controllers
                     }
                 }
 
+                // Xử lý nhân viên đã nghỉ việc: HR báo tinhtranglamviec=0 → cập nhật trạng thái, xóa quyền KNL
+                var resignedCodes = listNV
+                    .Where(x => !string.IsNullOrEmpty(x.manv)
+                             && x.tinhtranglamviec == 0
+                             && prefixes.Any(p => x.manv!.StartsWith(p, StringComparison.OrdinalIgnoreCase)))
+                    .Select(x => x.manv!)
+                    .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                int cleared = 0;
+                foreach (var nv in allNV.Where(x => x.MaNv != null && resignedCodes.Contains(x.MaNv!)))
+                {
+                    if (nv.IdtinhTrangLv == 0 && nv.IdquyenKnl == null) continue;
+                    nv.IdtinhTrangLv = 0;
+                    nv.IdquyenKnl = null;
+                    cleared++;
+                }
+
                 await _db.SaveChangesAsync();
-                var msg = $"Đồng bộ HR thành công: thêm mới {inserted}, cập nhật {updated} nhân viên";
+                var msg = $"Đồng bộ HR thành công: thêm mới {inserted}, cập nhật {updated}, clear nghỉ việc {cleared} nhân viên";
                 TempData["msgSuccess"] = $"<script>alert('{msg}');</script>";
             }
             catch (Exception ex)

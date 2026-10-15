@@ -3,301 +3,713 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="app-main__outer">
-<div class="app-main__inner pb-4">
-
-<!-- ══ BANNER ══════════════════════════════════════════════════════════════ -->
-<div class="rk-banner rk-banner-team">
-    <div class="rk-banner-left">
-        <div class="rk-banner-icon"><i class="fa fa-flag"></i></div>
-        <div>
-            <div class="rk-banner-title">XẾP HẠNG TẬP THỂ</div>
-            <div class="rk-banner-sub">Tỉ lệ CBCNV hoàn thành ôn luyện</div>
-        </div>
-    </div>
-    <a asp-controller="XepHangCaNhan" asp-action="Index" class="rk-switch-btn">
-        <i class="fa fa-user"></i>&nbsp; Xem xếp hạng cá nhân &rarr;
-    </a>
-</div>
-
-<!-- ══ STAT CARDS ══════════════════════════════════════════════════════════ -->
-<div class="rk-stat-cards mb-4">
-    <div class="rk-sc rk-sc-teal">
-        <div class="rk-sc-ico"><i class="fa fa-building"></i></div>
-        <div><div class="rk-sc-num" id="sDonVi">--</div><div class="rk-sc-lbl">Đơn vị tham gia</div></div>
-    </div>
-    <div class="rk-sc rk-sc-blue">
-        <div class="rk-sc-ico"><i class="fa fa-users"></i></div>
-        <div><div class="rk-sc-num" id="sDangKy">--</div><div class="rk-sc-lbl">CBCNV đăng ký</div></div>
-    </div>
-    <div class="rk-sc rk-sc-green">
-        <div class="rk-sc-ico"><i class="fa fa-check-circle"></i></div>
-        <div><div class="rk-sc-num" id="sHT">--</div><div class="rk-sc-lbl">CBCNV hoàn thành</div></div>
-    </div>
-</div>
-
-<!-- ══ PODIUM ══════════════════════════════════════════════════════════════ -->
-<div id="podiumWrap" class="mb-4"></div>
-
-<!-- ══ BIỂU ĐỒ ════════════════════════════════════════════════════════════ -->
-<div class="rk-card mb-4" id="chartCard" style="display:none">
-    <div class="rk-card-hd">
-        <span><i class="fa fa-bar-chart"></i>&nbsp; Biểu đồ tỉ lệ hoàn thành theo đơn vị</span>
-        <div style="display:flex;align-items:center;gap:12px;font-size:.75rem;color:#6b7280">
-            <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#22c55e;margin-right:4px"></span>≥ 80%</span>
-            <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#f59e0b;margin-right:4px"></span>≥ 50%</span>
-            <span><span style="display:inline-block;width:10px;height:10px;border-radius:2px;background:#ef4444;margin-right:4px"></span>&lt; 50%</span>
-        </div>
-    </div>
-    <div style="padding:20px 24px 24px">
-        <div id="chartWrap" style="position:relative">
-            <canvas id="chartTapThe"></canvas>
-        </div>
-    </div>
-</div>
-
-<!-- ══ FILTER ══════════════════════════════════════════════════════════════ -->
-<div class="rk-filter-card mb-4">
-    <div class="rk-filter-hd"><i class="fa fa-filter"></i> Bộ lọc dữ liệu</div>
-    <div class="rk-filter-row">
-        <div class="rk-search-box">
-            <i class="fa fa-search"></i>
-            <input id="txtSearch" placeholder="Tìm tên phòng ban, đơn vị..." autocomplete="off" />
-            <button id="btnClear" class="rk-clear-btn" style="display:none"><i class="fa fa-times"></i></button>
-        </div>
-        <div class="rk-filter-right">
-            <span class="rk-count-badge" id="badgeTotal" style="display:none"></span>
-            <button class="rk-btn-refresh" id="btnLoad"><i class="fa fa-refresh"></i> Làm mới</button>
-        </div>
-    </div>
-</div>
-
-<!-- ══ TABLE ═══════════════════════════════════════════════════════════════ -->
-<div class="rk-card">
-    <div class="rk-card-hd">
-        <span><i class="fa fa-list-ol"></i>&nbsp; Bảng xếp hạng tập thể</span>
-        <span id="badgeTotal2" class="rk-count-badge" style="display:none"></span>
-    </div>
-    <div class="table-responsive">
-        <table class="rk-table">
-            <thead>
-                <tr>
-                    <th style="width:56px" class="text-center">Hạng</th>
-                    <th style="min-width:220px">Đơn vị / Phòng ban</th>
-                    <th style="width:140px" class="text-center">Tổng CBCNV</th>
-                    <th style="width:150px" class="text-center">Đã hoàn thành</th>
-                    <th style="min-width:180px" class="text-center">Tỉ lệ hoàn thành</th>
-                </tr>
-            </thead>
-            <tbody id="tblBody">
-                <tr><td colspan="5" class="rk-loading"><i class="fa fa-spinner fa-spin"></i> Đang tải dữ liệu...</td></tr>
-            </tbody>
-        </table>
-    </div>
-</div>
-
-</div>
-<div class="app-wrapper-footer"><div class="app-footer"><div class="app-footer__inner"></div></div></div>
-</div>
-
-@Html.Partial("~/Views/XepHang/_XepHangStyle.cshtml")
 <style>
-.rk-table { width:100%; border-collapse:collapse; font-size:.875rem; }
-.rk-table thead th {
-    padding:11px 14px; background:#0e7490; color:#fff;
-    font-size:.71rem; font-weight:700; text-transform:uppercase;
-    letter-spacing:.6px; white-space:nowrap; border:none;
-}
-.rk-table tbody tr { border-bottom:1px solid #f1f5f9; transition:background .12s; }
-.rk-table tbody tr:hover td { background:#f0fdfa !important; }
-.rk-table tbody td { padding:12px 14px; vertical-align:middle; }
-.rk-table tr.rk-gold   td { background:#fffbeb; }
-.rk-table tr.rk-silver td { background:#f8fafc; }
-.rk-table tr.rk-bronze td { background:#fff7f0; }
-.rk-unit-cell { display:flex; align-items:center; gap:12px; }
-.rk-unit-icon {
-    width:40px; height:40px; border-radius:10px; flex-shrink:0;
-    display:flex; align-items:center; justify-content:center; color:#fff; font-size:.95rem;
-}
-.rk-unit-name { font-weight:700; font-size:.9rem; color:#111; }
-.rk-unit-sub  { font-size:.73rem; color:#6b7280; margin-top:1px; }
-.rk-nv-passed { color:#16a34a; font-weight:700; font-size:.95rem; }
-.rk-nv-total  { color:#6b7280; font-size:.78rem; }
-.rk-rate-col  { display:flex; flex-direction:column; gap:3px; }
-.rk-rate-bar  { height:8px; border-radius:4px; background:#e5e7eb; overflow:hidden; }
-.rk-rate-fill { height:100%; border-radius:4px; transition:width .6s; }
+    .tt-page {
+        --tt-navy: #1e3a8a;
+        --tt-blue: #27509b;
+        --tt-line: #d3dae6;
+        min-height: calc(100vh - 60px);
+        padding: 18px 24px 32px;
+        position: relative;
+        isolation: isolate;
+        overflow: hidden;
+        box-sizing: border-box;
+    }
+
+    .tt-page::before,
+    .tt-page::after {
+        content: '';
+        position: fixed;
+        top: 60px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: -1;
+        pointer-events: none;
+    }
+
+    .tt-page::before {
+        background: url('/Content/assets/images/bg4_tachnen.jpg') center / cover no-repeat;
+    }
+
+    /* Phủ sáng để nền nhạt như thiết kế */
+    .tt-page::after {
+        background: linear-gradient(180deg, rgba(236, 244, 255, .86) 0%, rgba(222, 236, 255, .78) 100%);
+    }
+
+    /* ---- Header: tab | tiêu đề | bộ lọc ---- */
+    .tt-head {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: start;
+        gap: 16px;
+    }
+
+    .tt-seg {
+        display: inline-flex;
+        padding: 4px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, .8);
+        box-shadow: 0 2px 8px rgba(30, 58, 138, .12);
+    }
+
+    .tt-seg button {
+        border: none;
+        background: transparent;
+        padding: 7px 16px;
+        border-radius: 7px;
+        font-size: 13px;
+        font-weight: 700;
+        color: var(--tt-navy);
+        cursor: pointer;
+        white-space: nowrap;
+        transition: background .2s, color .2s;
+    }
+
+    .tt-seg button.active {
+        background: var(--tt-navy);
+        color: #fff;
+        box-shadow: 0 3px 10px rgba(30, 58, 138, .3);
+    }
+
+    .tt-title {
+        text-align: center;
+        padding-top: 22px;
+        font-size: 40px;
+        font-weight: 900;
+        font-style: italic;
+        line-height: 1.1;
+        letter-spacing: .5px;
+        text-transform: uppercase;
+        background: linear-gradient(180deg, #4f6fe8 0%, #1e3a8a 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        filter: drop-shadow(0 2px 0 #fff) drop-shadow(0 4px 6px rgba(30, 58, 138, .25));
+        white-space: nowrap;
+    }
+
+    .tt-tools {
+        justify-self: end;
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+        width: 300px;
+    }
+
+    .tt-ky {
+        display: flex;
+        gap: 6px;
+    }
+
+    .tt-ky button {
+        flex: 1;
+        padding: 7px 8px;
+        border: 1px solid #c9d4ea;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, .9);
+        color: var(--tt-navy);
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        white-space: nowrap;
+        box-shadow: 0 2px 6px rgba(30, 58, 138, .1);
+        transition: all .2s;
+    }
+
+    .tt-ky button:hover {
+        border-color: var(--tt-navy);
+    }
+
+    .tt-ky button.active {
+        background: var(--tt-navy);
+        border-color: var(--tt-navy);
+        color: #fff;
+        font-size: 12.5px;
+        box-shadow: 0 3px 10px rgba(30, 58, 138, .3);
+    }
+
+    .tt-srch {
+        position: relative;
+    }
+
+    .tt-srch i {
+        position: absolute;
+        left: 13px;
+        top: 50%;
+        transform: translateY(-50%);
+        color: var(--tt-navy);
+        pointer-events: none;
+    }
+
+    .tt-srch input {
+        width: 100%;
+        height: 38px;
+        padding: 0 14px 0 36px;
+        border: 1px solid #c9d4ea;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, .95);
+        font-size: 13px;
+        color: var(--tt-navy);
+        outline: none;
+        box-shadow: 0 2px 6px rgba(30, 58, 138, .1);
+    }
+
+    .tt-srch input:focus {
+        border-color: var(--tt-navy);
+    }
+
+    /* ---- Bục vinh danh top 3 ---- */
+    .tt-podium {
+        display: grid;
+        grid-template-columns: 1fr 1.18fr 1fr;
+        align-items: end;
+        max-width: 1180px;
+        margin: -6px auto -2%;
+    }
+
+    .tt-pd {
+        position: relative;
+        aspect-ratio: 3 / 2;
+        background: center / contain no-repeat;
+        container-type: inline-size;
+    }
+
+    .tt-pd-1 {
+        background-image: url('/Content/assets/images/xephang_vang_web.png');
+        --my: 25.9%;
+        --mf: 24px;
+        --it: 40%;
+        --ix: 19%;
+        --clr: #b26a00;
+    }
+
+    .tt-pd-2 {
+        background-image: url('/Content/assets/images/xephang_xanh_web.png');
+        --my: 21%;
+        --mf: 24px;
+        --it: 34%;
+        --ix: 19%;
+        --clr: var(--tt-navy);
+    }
+
+    .tt-pd-3 {
+        background-image: url('/Content/assets/images/xephang_dong_web.png');
+        --my: 21%;
+        --mf: 24px;
+        --it: 34%;
+        --ix: 19%;
+        --clr: #8a3b12;
+    }
+
+    .tt-pd-2,
+    .tt-pd-3 {
+        margin-bottom: 1%;
+    }
+
+    .tt-pd-rank {
+        position: absolute;
+        left: 50%;
+        top: var(--my);
+        transform: translate(-50%, -50%);
+        font-size: var(--mf);
+        font-weight: 900;
+        line-height: 1;
+        color: var(--clr);
+        text-shadow: 0 1px 0 rgba(255, 255, 255, .8);
+    }
+
+    .tt-pd-info {
+        position: absolute;
+        left: var(--ix);
+        right: var(--ix);
+        top: var(--it);
+        text-align: center;
+    }
+
+    .tt-pd-name {
+        font-size: 13px;
+        font-weight: 900;
+        color: var(--tt-navy);
+        text-transform: uppercase;
+        line-height: 1.15;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        margin-top: 4px;
+    }
+
+    .tt-pd-stats {
+        @* margin-top: 8px; *@
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+    }
+
+    .tt-pd-stats>div+div {
+        border-left: 1px solid rgba(30, 58, 138, .18);
+    }
+
+    .tt-pd-val {
+        font-size: 20px;
+        font-weight: 800;
+        color: var(--tt-navy);
+        line-height: 1.1;
+    }
+
+    .tt-pd-val.rate {
+        color: #0a8f3c;
+    }
+
+    .tt-pd-val.people {
+        color: #05418A;
+    }
+
+    .tt-pd-lbl {
+        font-size: 12px;
+        color: #2d3d5c;
+        font-weight: 600;
+        margin-top: 3px;
+        white-space: nowrap;
+    }
+
+    /* ---- Bảng ---- */
+    .tt-card {
+        position: relative;
+        max-width: 1180px;
+        margin: 0 auto;
+        background: #fff;
+        box-shadow: 0 8px 28px rgba(30, 58, 138, .16);
+    }
+
+    .tt-table-wrap {
+        overflow-x: auto;
+    }
+
+    .tt-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 15px;
+    }
+
+    .tt-table th,
+    .tt-table td {
+        border: 1px solid var(--tt-line);
+        text-align: center;
+        vertical-align: middle;
+    }
+
+    .tt-table thead th {
+        background: var(--tt-blue);
+        color: #fff;
+        font-weight: 400;
+        font-size: 14.5px;
+        line-height: 1.4;
+        padding: 12px 10px;
+        border-color: rgba(255, 255, 255, .55);
+    }
+
+    .tt-table th.sortable {
+        cursor: pointer;
+        user-select: none;
+    }
+
+    .tt-table th.sortable i {
+        margin-left: 4px;
+        opacity: .5;
+    }
+
+    .tt-table th.sortable.on i {
+        opacity: 1;
+    }
+
+    .tt-table tbody td {
+        padding: 10px 12px;
+        color: #222;
+    }
+
+    .tt-table td.tt-unit {
+        text-align: left;
+        padding-left: 14px;
+    }
+
+    .tt-table tbody tr:hover td {
+        background: #f2f6ff;
+    }
+
+    .tt-rank {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        font-size: 15px;
+        font-weight: 800;
+        color: #333;
+    }
+
+    /* Đồng xu huy chương cho top 3 */
+    .tt-rank.m1,
+    .tt-rank.m2,
+    .tt-rank.m3 {
+        border-radius: 50%;
+        font-size: 14px;
+    }
+
+    .tt-rank.m1 {
+        background: radial-gradient(circle at 35% 30%, #fff6c4, #f5c518 55%, #c48a00);
+        color: #fff;
+        text-shadow: 0 1px 1px rgba(150, 100, 0, .6);
+        box-shadow: inset 0 0 0 3px #f7d95c, 0 2px 4px rgba(150, 100, 0, .3);
+    }
+
+    .tt-rank.m2 {
+        background: radial-gradient(circle at 35% 30%, #ffffff, #c7ced9 55%, #8c96a8);
+        color: #fff;
+        text-shadow: 0 1px 1px rgba(60, 70, 90, .6);
+        box-shadow: inset 0 0 0 3px #dfe4ec, 0 2px 4px rgba(60, 70, 90, .3);
+    }
+
+    .tt-rank.m3 {
+        background: radial-gradient(circle at 35% 30%, #ffe2c2, #d4914f 55%, #9a5520);
+        color: #fff;
+        text-shadow: 0 1px 1px rgba(110, 50, 10, .6);
+        box-shadow: inset 0 0 0 3px #e9b787, 0 2px 4px rgba(110, 50, 10, .3);
+    }
+
+    .tt-sub {
+        font-size: 12px;
+        color: #8a93a8;
+    }
+
+    .tt-empty {
+        color: #8a93a8;
+        padding: 32px 12px !important;
+    }
+
+    @@media (max-width: 1199px) {
+        .tt-head {
+            grid-template-columns: 1fr;
+            justify-items: center;
+        }
+
+        .tt-title {
+            order: -1;
+            padding-top: 0;
+            font-size: 32px;
+        }
+
+        .tt-tools {
+            justify-self: center;
+            width: min(100%, 420px);
+        }
+
+        .tt-podium {
+            margin-top: 8px;
+        }
+    }
+
+    @@media (max-width: 640px) {
+        .tt-page {
+            padding: 14px 12px 24px;
+        }
+
+        .tt-page::before {
+            background-image: url('/Content/assets/images/bg4_mobile.jpg');
+        }
+
+        .tt-title {
+            font-size: 24px;
+            white-space: normal;
+        }
+
+        .tt-podium {
+            grid-template-columns: 1fr;
+            max-width: 420px;
+            margin-bottom: 8px;
+        }
+
+        .tt-pd-1 {
+            order: -1;
+        }
+
+        .tt-table {
+            font-size: 13px;
+        }
+
+        .tt-table thead th {
+            font-size: 12.5px;
+            padding: 10px 6px;
+        }
+    }
 </style>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script>
-var _tC=['#0e7490','#1565C0','#6d28d9','#0d9488','#059669','#d97706','#dc2626','#7c3aed'];
-function teamColor(n){ var s=0; for(var i=0;i<(n||'').length;i++) s+=n.charCodeAt(i); return _tC[s%_tC.length]; }
-function rateClr(r){ return r>=80?'#22c55e':r>=50?'#f59e0b':'#ef4444'; }
+<div class="app-main__outer">
+    <div class="app-main__inner" style="padding:0;">
+        <div class="tt-page">
 
-var _chart=null;
+            <div class="tt-head">
+                <!-- Ôn luyện / Thi chính thức -->
+                <div>
+                    <div class="tt-seg" role="tablist">
+                        <button type="button" class="active" data-tab="on-luyen"><i class="fa fa-book"></i> Ôn
+                            luyện</button>
+                            <button type="button" data-tab="chinh-thuc"><i class="fa fa-trophy"></i> Thi chính thức</button>
+                        </div>
+                    </div>
 
-function renderChart(data) {
-    if (!data||!data.length) { $('#chartCard').hide(); return; }
-    var sorted = data.slice().sort(function(a,b){ return a.Rank-b.Rank; });
-    var labels  = sorted.map(function(d){
-        var badge = d.Rank<=3?['🥇','🥈','🥉'][d.Rank-1]:'#'+d.Rank;
-        return badge+' '+d.PhongBan;
-    });
-    var values    = sorted.map(function(d){ return d.TiLeHoanThanh; });
-    var bgColors  = sorted.map(function(d){
-        var r=d.TiLeHoanThanh||0;
-        return r>=80?'rgba(34,197,94,.82)':r>=50?'rgba(245,158,11,.82)':'rgba(239,68,68,.82)';
-    });
-    var brdColors = sorted.map(function(d){ return rateClr(d.TiLeHoanThanh||0); });
+                    <h1 class="tt-title">Bảng xếp hạng đơn vị</h1>
 
-    var canvasH = Math.max(260, sorted.length*38);
-    $('#chartWrap').css('height', canvasH+'px');
-    if (_chart) { _chart.destroy(); _chart=null; }
+                    <div class="tt-tools">
+                        <div class="tt-ky">
+                            <button type="button" class="active" data-ky="">Toàn Công ty</button>
+                            <button type="button" data-ky="day">Theo ngày</button>
+                            <button type="button" data-ky="week">Theo Tuần</button>
+                        </div>
+                        <div class="tt-srch">
+                            <i class="fa fa-search"></i>
+                            <input type="search" id="ttSearch" placeholder="Tìm kiếm đơn vị..." autocomplete="off">
+                        </div>
+                    </div>
+                </div>
 
-    var ctx = document.getElementById('chartTapThe').getContext('2d');
-    _chart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: 'Tỉ lệ hoàn thành (%)',
-                data: values,
-                backgroundColor: bgColors,
-                borderColor: brdColors,
-                borderWidth: 1.5,
-                borderRadius: 5,
-                borderSkipped: false
-            }]
-        },
-        options: {
-            indexAxis: 'y',
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: { duration: 500 },
-            plugins: {
-                legend: { display: false },
-                tooltip: {
-                    backgroundColor: '#1e2a4a',
-                    titleColor: '#fbbf24',
-                    bodyColor: '#e5e7eb',
-                    padding: 12,
-                    cornerRadius: 8,
-                    callbacks: {
-                        title: function(items) {
-                            var d=sorted[items[0].dataIndex];
-                            return 'Hạng '+d.Rank+' — '+d.PhongBan;
-                        },
-                        label: function(item) {
-                            var d=sorted[item.dataIndex];
-                            return [
-                                '  Tỉ lệ hoàn thành : '+d.TiLeHoanThanh+'%',
-                                '  Đã hoàn thành    : '+d.SoHoanThanh+'/'+d.TongDangKy+' người'
-                            ];
-                        }
-                    }
-                }
-            },
-            scales: {
-                x: {
-                    beginAtZero: true, max: 100,
-                    grid: { color: '#f1f5f9' },
-                    border: { display: false },
-                    ticks: { color: '#6b7280', font: { size: 12 }, callback: function(v){ return v+'%'; } }
-                },
-                y: {
-                    grid: { display: false },
-                    border: { display: false },
-                    ticks: { color: '#374151', font: { size: 12.5 } }
-                }
-            }
-        }
-    });
-    $('#chartCard').show();
-}
+                <!-- Tab: Ôn luyện -->
+                <div id="tab-on-luyen" class="tt-tab-content">
+                    <div class="tt-podium" id="podiumOL"></div>
+                    <div class="tt-card">
+                        <div class="tt-table-wrap">
+                            <table class="tt-table" id="tableOL">
+                                <thead>
+                                    <tr>
+                                        <th style="width:90px">Xếp<br>hạng</th>
+                                        <th style="min-width:220px">Tên đơn vị</th>
+                                        <th style="width:110px" class="sortable" data-sort="SoCBNV">Số CBNV<i
+                                            class="fa fa-caret-down"></i></th>
+                                            <th style="width:180px" class="sortable" data-sort="SoHoanThanh">Số CBNV<br>hoàn
+                                                thành <span id="ttSoBoDe">15</span> bộ đề<i class="fa fa-caret-down"></i></th>
+                                                <th style="width:130px" class="sortable" data-sort="TiLeHoanThanh">% Tỷ lệ<br>hoàn
+                                                    thành<i class="fa fa-caret-down"></i></th>
+                                                    <th style="width:150px" class="sortable" data-sort="DiemTB">Điểm ôn luyện<br>trung
+                                                        bình<i class="fa fa-caret-down"></i></th>
+                                                        <th style="width:160px" class="sortable" data-sort="SoLuotOnLuyen">Số lượt ôn
+                                                            luyện<i class="fa fa-caret-down"></i></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody id="tblBodyOL">
+                                                        <tr>
+                                                            <td colspan="7" class="tt-empty"><i class="fa fa-spinner fa-spin"></i> Đang tải dữ
+                                                                liệu...</td>
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                            </div>
+                                        </div>
 
-function loadStats(){
-    $.get('/XepHangTapThe/GetStats', function(d){
-        animCount('sDonVi',  d.TongDonVi);
-        animCount('sDangKy', d.TongDangKy);
-        animCount('sHT',     d.TongHoanThanh);
-    });
-}
+                                        <!-- Tab: Thi chính thức -->
+                                        <div id="tab-chinh-thuc" class="tt-tab-content" style="display:none">
+                                            <div class="tt-podium" id="podiumCT"></div>
+                                            <div class="tt-card">
+                                                <div class="tt-table-wrap">
+                                                    <table class="tt-table" id="tableCT">
+                                                        <thead>
+                                                            <tr>
+                                                                <th style="width:90px">Xếp<br>hạng</th>
+                                                                <th style="min-width:220px">Tên đơn vị</th>
+                                                                <th style="width:150px" class="sortable" data-sort="SoNguoiThi">Số CBNV<br>dự thi<i
+                                                                    class="fa fa-caret-down"></i></th>
+                                                                    <th style="width:150px" class="sortable" data-sort="SoNguoiDat">Số CBNV<br>đạt<i
+                                                                        class="fa fa-caret-down"></i></th>
+                                                                        <th style="width:140px" class="sortable" data-sort="TiLeDat">% Tỷ lệ<br>đạt<i
+                                                                            class="fa fa-caret-down"></i></th>
+                                                                            <th style="width:170px" class="sortable" data-sort="DiemTbCao">Điểm trung
+                                                                                bình<br>cao nhất<i class="fa fa-caret-down"></i></th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody id="tblBodyCT">
+                                                                            <tr>
+                                                                                <td colspan="6" class="tt-empty"><i class="fa fa-spinner fa-spin"></i> Đang tải dữ
+                                                                                    liệu...</td>
+                                                                                </tr>
+                                                                            </tbody>
+                                                                        </table>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
 
-function load(){
-    var p={ search: $('#txtSearch').val() };
-    $('#tblBody').html('<tr><td colspan="5" class="rk-loading"><i class="fa fa-spinner fa-spin"></i> Đang tải...</td></tr>');
-    $('#podiumWrap').empty();
-    $.get('/XepHangTapThe/GetData', p, function(data){
-        if(!Array.isArray(data)||!data.length){
-            $('#tblBody').html('<tr><td colspan="5" class="rk-loading"><i class="fa fa-inbox fa-lg"></i><br>Không có dữ liệu phù hợp</td></tr>');
-            $('#badgeTotal,#badgeTotal2').hide();
-            $('#chartCard').hide();
-            if(_chart){_chart.destroy();_chart=null;}
-            return;
-        }
-        var label=fmt(data.length)+' đơn vị';
-        $('#badgeTotal').text(label).show();
-        $('#badgeTotal2').text(label).show();
+                                                        </div>
+                                                    </div>
+                                                </div>
 
-        renderPodium(data);
-        renderChart(data);
+                                                <script>
+                                                    (function () {
+                                                        var activeTab = 'on-luyen';
+                                                        var ky = '';
+                                                        var allRows = { OL: [], CT: [] };
+                                                        var sortKey = { OL: 'TiLeHoanThanh', CT: null };
+                                                        var loaded = { OL: false, CT: false };
+                                                        var timer;
 
-        var rows='';
-        data.forEach(function(d){
-            var cls=d.Rank===1?'rk-gold':d.Rank===2?'rk-silver':d.Rank===3?'rk-bronze':'';
-            var rc=rateClr(d.TiLeHoanThanh||0);
-            var tc=teamColor(d.PhongBan);
-            rows+='<tr class="'+cls+'">'+
-                '<td class="text-center">'+rankBadge(d.Rank)+'</td>'+
-                '<td><div class="rk-unit-cell">'+
-                    '<div class="rk-unit-icon" style="background:'+tc+'"><i class="fa fa-building"></i></div>'+
-                    '<div><div class="rk-unit-name">'+(d.PhongBan||'')+'</div>'+
-                    '<div class="rk-unit-sub">'+d.TongDangKy+' người đăng ký &bull; '+d.SoHoanThanh+' người hoàn thành</div></div></div></td>'+
-                '<td class="text-center"><strong style="font-size:.95rem">'+d.TongDangKy+'</strong></td>'+
-                '<td class="text-center"><span class="rk-nv-passed">'+d.SoHoanThanh+'</span><div class="rk-nv-total">/'+d.TongDangKy+' người</div></td>'+
-                '<td>'+
-                    '<div class="rk-rate-col">'+
-                    '<div class="rk-rate-bar"><div class="rk-rate-fill" style="width:'+(d.TiLeHoanThanh||0)+'%;background:'+rc+'"></div></div>'+
-                    '<div style="display:flex;justify-content:space-between;font-size:.72rem">'+
-                        '<span style="font-weight:700;color:'+rc+'">'+(d.TiLeHoanThanh||0)+'%</span>'+
-                        '<span style="color:#9ca3af">'+d.SoHoanThanh+'/'+d.TongDangKy+'</span>'+
-                    '</div></div>'+
-                '</td>'+
-                '</tr>';
-        });
-        $('#tblBody').html(rows);
-    });
-}
+                                                        function fmt(n) { return (n || 0).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+                                                        function dec(n) { return (Math.round((n || 0) * 10) / 10).toString().replace('.', ','); }
+                                                        function pct(n) { return dec(n) + '%'; }
+                                                        function esc(s) { return $('<div>').text(s || '').html(); }
 
-function renderPodium(data){
-    var icons={1:'🥇',2:'🥈',3:'🥉'};
-    var html='<div class="rk-podium">';
-    [2,1,3].forEach(function(r){
-        var d=data.find(function(x){return x.Rank===r;}); if(!d) return;
-        var tc=teamColor(d.PhongBan);
-        html+='<div class="rk-pod rk-pod-'+r+'">'+
-            '<div class="rk-pod-avatar" style="background:'+tc+';border-radius:12px">'+
-                '<i class="fa fa-building" style="font-size:1.2rem"></i>'+
-            '</div>'+
-            '<div class="rk-pod-icon">'+icons[r]+'</div>'+
-            '<div class="rk-pod-name">'+(d.PhongBan||'')+'</div>'+
-            '<div class="rk-pod-unit">'+d.TongDangKy+' NV &bull; '+d.SoHoanThanh+' hoàn thành</div>'+
-            '<div class="rk-pod-score">'+d.TiLeHoanThanh+'<span style="font-size:.7rem;color:#6b7280;font-weight:400">%</span></div>'+
-            '<div class="rk-pod-base rk-base-'+r+'">Hạng '+r+'</div>'+
-            '</div>';
-    });
-    html+='</div>';
-    $('#podiumWrap').html(html);
-}
+                                                        function rankCell(r) {
+                                                            return '<td><span class="tt-rank' + (r <= 3 ? ' m' + r : '') + '">' + r + '</span></td>';
+                                                        }
 
-$(document).ready(function(){
-    loadStats(); load();
-    $('#btnLoad').on('click',function(){ loadStats(); load(); });
-    var st;
-    $('#txtSearch').on('input',function(){
-        $('#btnClear').toggle(!!$(this).val());
-        clearTimeout(st); st=setTimeout(load,300);
-    });
-    $('#btnClear').on('click',function(){ $('#txtSearch').val('').trigger('input'); });
-});
-</script>
+                                                        // ── Bục vinh danh (dùng chung) ───────────────────────────────────
+                                                        function renderPodium(containerId, data, statsFn) {
+                                                            var html = '';
+                                                            [2, 1, 3].forEach(function (r) {
+                                                                var d = data.find(function (x) { return x.Rank === r; });
+                                                                if (!d) { html += '<div></div>'; return; }
+                                                                html +=
+                                                                    '<div class="tt-pd tt-pd-' + r + '">' +
+                                                                    '<div class="tt-pd-rank">' + r + '</div>' +
+                                                                    '<div class="tt-pd-info">' +
+                                                                    '<div class="tt-pd-name" title="' + esc(d.PhongBan) + '">' + esc(d.PhongBan) + '</div>' +
+                                                                    '<div class="tt-pd-stats">' + statsFn(d) + '</div>' +
+                                                                    '</div>' +
+                                                                    '</div>';
+                                                            });
+                                                            $('#' + containerId).html(html);
+                                                        }
+
+                                                        function pdStat(val, lbl, cls) {
+                                                            return '<div><div class="tt-pd-val ' + (cls || '') + '">' + val + '</div><div class="tt-pd-lbl">' + lbl + '</div></div>';
+                                                        }
+
+                                                        // ── Ôn luyện ─────────────────────────────────────────────────────
+                                                        var tab = {
+                                                            OL: {
+                                                                url: '/XepHangTapThe/GetData',
+                                                                cols: 7,
+                                                                podium: function (data) {
+                                                                    renderPodium('podiumOL', data, function (d) {
+                                                                        return pdStat(fmt(d.TongDangKy), 'Người tham gia', 'people') +
+                                                                            pdStat(fmt(d.SoLuotOnLuyen), 'Lượt ôn luyện') +
+                                                                            pdStat(pct(d.TiLeHoanThanh), 'Hoàn thành', 'rate');
+                                                                    });
+                                                                    if (data.length && data[0].SoBoDe) $('#ttSoBoDe').text(data[0].SoBoDe);
+                                                                },
+                                                                row: function (d) {
+                                                                    return '<tr>' + rankCell(d.Rank) +
+                                                                        '<td class="tt-unit">' + esc(d.PhongBan) + '</td>' +
+                                                                        '<td>' + fmt(d.SoCBNV) + '</td>' +
+                                                                        '<td>' + fmt(d.SoHoanThanh) + '</td>' +
+                                                                        '<td>' + pct(d.TiLeHoanThanh) + '</td>' +
+                                                                        '<td>' + dec(d.DiemTB) + '</td>' +
+                                                                        '<td>' + fmt(d.SoLuotOnLuyen) +
+                                                                        (d.TongDangKy ? ' <span class="tt-sub">(' + dec(d.SoLuotOnLuyen / d.TongDangKy) + '/người)</span>' : '') +
+                                                                        '</td></tr>';
+                                                                }
+                                                            },
+                                                            CT: {
+                                                                url: '/XepHangTapThe/GetDataThiChinhThuc',
+                                                                cols: 6,
+                                                                podium: function (data) {
+                                                                    renderPodium('podiumCT', data, function (d) {
+                                                                        return pdStat(fmt(d.SoNguoiThi), 'Người dự thi') +
+                                                                            pdStat(dec(d.DiemTbCao), 'Điểm TB') +
+                                                                            pdStat(pct(d.TiLeDat), 'Tỷ lệ đạt', 'rate');
+                                                                    });
+                                                                },
+                                                                row: function (d) {
+                                                                    return '<tr>' + rankCell(d.Rank) +
+                                                                        '<td class="tt-unit">' + esc(d.PhongBan) + '</td>' +
+                                                                        '<td>' + fmt(d.SoNguoiThi) + '</td>' +
+                                                                        '<td>' + fmt(d.SoNguoiDat) + '</td>' +
+                                                                        '<td>' + pct(d.TiLeDat) + '</td>' +
+                                                                        '<td>' + dec(d.DiemTbCao) + '</td>' +
+                                                                        '</tr>';
+                                                                }
+                                                            }
+                                                        };
+
+                                                        function key() { return activeTab === 'on-luyen' ? 'OL' : 'CT'; }
+
+                                                        function renderTable(k) {
+                                                            var t = tab[k];
+                                                            var q = $('#ttSearch').val().trim().toLowerCase();
+                                                            var list = allRows[k].filter(function (r) {
+                                                                return !q || (r.PhongBan || '').toLowerCase().indexOf(q) >= 0;
+                                                            });
+                                                            if (!list.length) {
+                                                                $('#tblBody' + k).html('<tr><td colspan="' + t.cols + '" class="tt-empty"><i class="fa fa-inbox fa-lg"></i><br>Không có dữ liệu phù hợp</td></tr>');
+                                                                return;
+                                                            }
+                                                            var s = sortKey[k];
+                                                            if (s) list.sort(function (a, b) {
+                                                                var diff = (b[s] || 0) - (a[s] || 0);
+                                                                if (diff !== 0) return diff;
+                                                                if (k === 'OL' && s === 'TiLeHoanThanh') return (b.DiemTB || 0) - (a.DiemTB || 0);
+                                                                return a.Rank - b.Rank;
+                                                            });
+                                                            $('#tblBody' + k).html(list.map(t.row).join(''));
+                                                        }
+
+                                                        function load(k) {
+                                                            var t = tab[k];
+                                                            if (loaded[k]) { renderTable(k); return; }
+                                                            $('#tblBody' + k).html('<tr><td colspan="' + t.cols + '" class="tt-empty"><i class="fa fa-spinner fa-spin"></i> Đang tải dữ liệu...</td></tr>');
+                                                            $.get(t.url, { ky: ky }, function (data) {
+                                                                loaded[k] = true;
+                                                                allRows[k] = Array.isArray(data) ? data : [];
+                                                                if (k === 'OL') {
+                                                                    allRows[k].sort(function (a, b) {
+                                                                        var diff = (b.TiLeHoanThanh || 0) - (a.TiLeHoanThanh || 0);
+                                                                        return diff !== 0 ? diff : (b.DiemTB || 0) - (a.DiemTB || 0);
+                                                                    });
+                                                                    allRows[k].forEach(function (r, i) { r.Rank = i + 1; });
+                                                                }
+                                                                t.podium(allRows[k]);
+                                                                renderTable(k);
+                                                            }).fail(function () {
+                                                                loaded[k] = false;
+                                                                $('#podium' + k).empty();
+                                                                $('#tblBody' + k).html('<tr><td colspan="' + t.cols + '" class="tt-empty">Không tải được dữ liệu, vui lòng thử lại.</td></tr>');
+                                                            });
+                                                        }
+
+                                                        $(function () {
+                                                            $('#tableOL th[data-sort="TiLeHoanThanh"]').addClass('on');
+                                                            load('OL');
+
+                                                            // Đổi tab Ôn luyện / Thi chính thức
+                                                            $('.tt-seg button').on('click', function () {
+                                                                activeTab = $(this).data('tab');
+                                                                $('.tt-seg button').removeClass('active');
+                                                                $(this).addClass('active');
+                                                                $('.tt-tab-content').hide();
+                                                                $('#tab-' + activeTab).show();
+                                                                load(key());
+                                                            });
+
+                                                            // Đổi kỳ: Toàn Công ty / Theo ngày / Theo tuần → tải lại dữ liệu
+                                                            $('.tt-ky button').on('click', function () {
+                                                                if ($(this).hasClass('active')) return;
+                                                                $('.tt-ky button').removeClass('active');
+                                                                $(this).addClass('active');
+                                                                ky = $(this).data('ky') || '';
+                                                                loaded = { OL: false, CT: false };
+                                                                load(key());
+                                                            });
+
+                                                            $('.tt-table').on('click', 'th.sortable', function () {
+                                                                var k = $(this).closest('table').attr('id') === 'tableOL' ? 'OL' : 'CT';
+                                                                var s = $(this).data('sort');
+                                                                sortKey[k] = sortKey[k] === s ? null : s;
+                                                                $(this).closest('tr').find('th.sortable').removeClass('on');
+                                                                if (sortKey[k]) $(this).addClass('on');
+                                                                renderTable(k);
+                                                            });
+
+                                                            $('#ttSearch').on('input', function () {
+                                                                clearTimeout(timer);
+                                                                timer = setTimeout(function () { renderTable(key()); }, 250);
+                                                            });
+                                                        });
+                                                    })();
+                                                </script>

@@ -12,6 +12,7 @@ public class ExamSubmitMessage
     public int    LanThi        { get; set; }
     public int    ThoiGianSec   { get; set; }
     public long   TGBDLamBaiThi { get; set; }
+    public long   SubmittedAtMs { get; set; }   // giờ server nhận bài (Unix ms, UTC)
     public double DiemSo        { get; set; }
     public List<AnswerRecord> Answers { get; set; } = new();
 }

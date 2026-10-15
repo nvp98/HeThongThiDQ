@@ -1,8 +1,10 @@
 using HeThongThiDQ.Common;
 using HeThongThiDQ.Data;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Distributed;
+using StackExchange.Redis;
 using System.Text.Json;
 
 namespace HeThongThiDQ.Controllers
@@ -12,19 +14,22 @@ namespace HeThongThiDQ.Controllers
         private readonly ELEARNINGEntities _db;
         private readonly MyAuthentication _auth;
         private readonly IDistributedCache _cache;
+        private readonly IConnectionMultiplexer _mux;
 
         private static readonly DistributedCacheEntryOptions _permCacheOptions = new()
         {
             AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(30)
         };
 
-        public HomeController(ELEARNINGEntities db, MyAuthentication auth, IDistributedCache cache)
+        public HomeController(ELEARNINGEntities db, MyAuthentication auth, IDistributedCache cache, IConnectionMultiplexer mux)
         {
             _db = db;
             _auth = auth;
             _cache = cache;
+            _mux = mux;
         }
 
+        [Authorize]
         public IActionResult Index()
         {
             return View();
@@ -88,10 +93,20 @@ namespace HeThongThiDQ.Controllers
         // Gọi khi admin cập nhật QuyenDetails — xóa cache của nhóm quyền đó
         public async Task InvalidatePermissionCache(int idQuyen)
         {
-            try { await _cache.RemoveAsync($"perm:ctrl:{idQuyen}"); }
+            try { await _cache.RemoveAsync($"perm:ctrl:{idQuyen}"); } catch { }
+            try
+            {
+                var db = _mux.GetDatabase();
+                var server = _mux.GetServer(_mux.GetEndPoints().First());
+                var keys = server.Keys(pattern: $"perm:cn:{idQuyen}:*").ToArray();
+                if (keys.Length > 0) await db.KeyDeleteAsync(keys);
+            }
             catch { }
-            try { await _cache.RemoveAsync($"perm:cn:{idQuyen}:*"); }
-            catch { }
+        }
+
+        public IActionResult FAQ()
+        {
+            return View();
         }
 
         [HttpGet]

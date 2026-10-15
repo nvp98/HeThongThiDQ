@@ -61,127 +61,127 @@
     <script type="text/javascript" src="~/Content/assets/DataTables/datatables.min.js"></script>
     <script src="~/Content/assets/TinyMCE/js/tinymce/tinymce.min.js"></script>
     <style>
-        /* ---- sidebar-hidden: class riêng, không bị main.js can thiệp ---- */
-        .sidebar-hidden .app-sidebar {
-        display: none !important;
-        }
+            /* ---- sidebar-hidden: class riêng, không bị main.js can thiệp ---- */
+            .sidebar-hidden .app-sidebar {
+                display: none !important;
+            }
 
-        /* Nội dung co dãn mượt khi toggle sidebar */
-        .app-main__outer,
-        .app-main__inner {
-        transition: padding-left 0.3s ease, width 0.3s ease !important;
-        }
+            /* Nội dung co dãn mượt khi toggle sidebar */
+            .app-main__outer,
+            .app-main__inner {
+                transition: padding-left 0.3s ease, width 0.3s ease !important;
+            }
 
-        .sidebar-hidden .app-main__outer {
-        padding-left: 0 !important;
-        }
+            .sidebar-hidden .app-main__outer {
+                padding-left: 0 !important;
+            }
 
-        /* Mobile: khi sidebar-mobile-open thì sidebar hiện bình thường */
-        .sidebar-mobile-open .app-sidebar {
-        display: flex !important;
-        }
+            /* Mobile: khi sidebar-mobile-open thì sidebar hiện bình thường */
+            .sidebar-mobile-open .app-sidebar {
+                display: flex !important;
+            }
 
-        /* Giữ logo-src và header width bình thường khi sidebar ẩn */
-        .sidebar-hidden .app-header .app-header__logo .logo-src {
-        display: block !important;
-        }
+            /* Giữ logo-src và header width bình thường khi sidebar ẩn */
+            .sidebar-hidden .app-header .app-header__logo .logo-src {
+                display: block !important;
+            }
 
-        .sidebar-hidden .app-header .app-header__logo {
-        width: 280px !important;
-        }
+            .sidebar-hidden .app-header .app-header__logo {
+                width: 280px !important;
+            }
 
-        /* ---- Icon dùng class riêng, tránh xung đột template ---- */
-        .nav-icon {
-        display: inline-flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        width: 26px !important;
-        height: 26px !important;
-        font-size: 14px !important;
-        flex-shrink: 0 !important;
-        opacity: .6;
-        transition: color .18s, opacity .18s !important;
-        }
+            /* ---- Icon dùng class riêng, tránh xung đột template ---- */
+            .nav-icon {
+                display: inline-flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+                width: 26px !important;
+                height: 26px !important;
+                font-size: 14px !important;
+                flex-shrink: 0 !important;
+                opacity: .6;
+                transition: color .18s, opacity .18s !important;
+            }
 
-        /* ---- Menu item enhancements ---- */
-        .vertical-nav-menu li>a {
-        border-radius: 8px !important;
-        margin: 2px 8px !important;
-        padding: 9px 14px !important;
-        font-size: 13.5px !important;
-        font-weight: 500 !important;
-        transition: background .18s, color .18s, border-color .18s !important;
-        border-left: 3px solid transparent !important;
-        display: flex !important;
-        align-items: center !important;
-        gap: 6px !important;
-        }
+            /* ---- Menu item enhancements ---- */
+            .vertical-nav-menu li>a {
+                border-radius: 8px !important;
+                margin: 2px 8px !important;
+                padding: 9px 14px !important;
+                font-size: 13.5px !important;
+                font-weight: 500 !important;
+                transition: background .18s, color .18s, border-color .18s !important;
+                border-left: 3px solid transparent !important;
+                display: flex !important;
+                align-items: center !important;
+                gap: 6px !important;
+            }
 
-        .vertical-nav-menu li>a:hover {
-        background: #e8f0fe !important;
-        color: #1a73e8 !important;
-        text-decoration: none !important;
-        border-left-color: #1a73e8 !important;
-        }
+            .vertical-nav-menu li>a:hover {
+                background: #e8f0fe !important;
+                color: #1a73e8 !important;
+                text-decoration: none !important;
+                border-left-color: #1a73e8 !important;
+            }
 
-        .vertical-nav-menu li>a:hover .nav-icon {
-        color: #1a73e8 !important;
-        opacity: 1 !important;
-        }
+            .vertical-nav-menu li>a:hover .nav-icon {
+                color: #1a73e8 !important;
+                opacity: 1 !important;
+            }
 
-        /* Active item */
-        .vertical-nav-menu li.mm-active>a,
-        .vertical-nav-menu li>a.sb-active {
-        background: #e8f0fe !important;
-        color: #1558b0 !important;
-        font-weight: 700 !important;
-        border-left-color: #1a73e8 !important;
-        }
+            /* Active item */
+            .vertical-nav-menu li.mm-active>a,
+            .vertical-nav-menu li>a.sb-active {
+                background: #e8f0fe !important;
+                color: #1558b0 !important;
+                font-weight: 700 !important;
+                border-left-color: #1a73e8 !important;
+            }
 
-        .vertical-nav-menu li.mm-active>a .nav-icon,
-        .vertical-nav-menu li>a.sb-active .nav-icon {
-        color: #1a73e8 !important;
-        opacity: 1 !important;
-        }
+            .vertical-nav-menu li.mm-active>a .nav-icon,
+            .vertical-nav-menu li>a.sb-active .nav-icon {
+                color: #1a73e8 !important;
+                opacity: 1 !important;
+            }
 
-        /* Section headings */
-        .app-sidebar__heading {
-        font-size: 10.5px !important;
-        font-weight: 800 !important;
-        letter-spacing: 1.2px !important;
-        color: #9aaec1 !important;
-        padding: 16px 18px 4px !important;
-        margin-top: 4px !important;
-        }
+            /* Section headings */
+            .app-sidebar__heading {
+                font-size: 10.5px !important;
+                font-weight: 800 !important;
+                letter-spacing: 1.2px !important;
+                color: #9aaec1 !important;
+                padding: 16px 18px 4px !important;
+                margin-top: 4px !important;
+            }
 
-        /* Sub-menu items */
-        .vertical-nav-menu ul a {
-        font-size: 13px !important;
-        padding: 8px 14px 8px 42px !important;
-        color: #555 !important;
-        border-left: 3px solid transparent !important;
-        margin: 1px 8px !important;
-        border-radius: 6px !important;
-        display: block !important;
-        }
+            /* Sub-menu items */
+            .vertical-nav-menu ul a {
+                font-size: 13px !important;
+                padding: 8px 14px 8px 42px !important;
+                color: #555 !important;
+                border-left: 3px solid transparent !important;
+                margin: 1px 8px !important;
+                border-radius: 6px !important;
+                display: block !important;
+            }
 
-        .vertical-nav-menu ul a:hover {
-        background: #e8f0fe !important;
-        color: #1a73e8 !important;
-        border-left-color: #1a73e8 !important;
-        }
+            .vertical-nav-menu ul a:hover {
+                background: #e8f0fe !important;
+                color: #1a73e8 !important;
+                border-left-color: #1a73e8 !important;
+            }
 
-        /* Caret icon trong dropdown */
-        .metismenu-state-icon {
-        margin-left: auto !important;
-        font-size: 13px !important;
-        }
+            /* Caret icon trong dropdown */
+            .metismenu-state-icon {
+                margin-left: auto !important;
+                font-size: 13px !important;
+            }
 
-        .app-header > .app-header__logo .logo-src {
-        background: url(/Content/assets/images/logo.png) no-repeat center / contain !important;
-        height: 42px !important;
-        width: 160px !important;
-        }
+            .app-header>.app-header__logo .logo-src {
+                background: url(/Content/assets/images/logo.png) no-repeat center / contain !important;
+                height: 42px !important;
+                width: 160px !important;
+            }
     </style>
 </head>
 
@@ -190,7 +190,9 @@
     <div class="app-container app-theme-white body-tabs-shadow fixed-sidebar fixed-header sidebar-hidden">
         <div class="app-header header-shadow">
             <div class="app-header__logo">
-                <div class="logo-src"></div>
+                <a asp-controller="Home" asp-action="Index" style="display:block;text-decoration:none">
+                    <div class="logo-src"></div>
+                </a>
                 <div class="header__pane ml-auto">
                     <div>
                         <button type="button" class="close-sidebar-btn btn btn-link px-2" data-class="sidebar-hidden"
@@ -218,7 +220,16 @@
             <div class="app-header__content">
                 <div class="header-slogan">
                     <div class="widget-content">
-                        @* <div class="slogan">TRI THỨC LÀ SỨC MẠNH</div> *@
+                        <a asp-controller="Home" asp-action="Index"
+                           class="btn btn-sm mr-1"
+                           style="color:#05418A;font-weight:600;border:1px solid #05418A;border-radius:6px;padding:5px 14px;text-decoration:none">
+                            <i class="fa fa-home mr-1"></i> Trang chủ
+                        </a>
+                        <a asp-controller="XepHangCaNhan" asp-action="Index"
+                           class="btn btn-sm"
+                           style="color:#05418A;font-weight:600;border:1px solid #05418A;border-radius:6px;padding:5px 14px;text-decoration:none">
+                            <i class="fa fa-trophy mr-1"></i> Xếp hạng cá nhân
+                        </a>
                     </div>
                 </div>
                 <div class="app-header-right">
@@ -240,17 +251,17 @@
                                                    asp-action="ChangePassword">Đổi mật khẩu</a>
                                             </div>
                                             <script>
-                                                function logoutAndClearStorage() {
-                                                var unfinishedIDLH = localStorage.getItem("IDLH");
-                                                var unfinishedIDNV = localStorage.getItem("IDNV");
-                                                var IDNV = "@Auth.ID";
-                                                if (unfinishedIDLH && IDNV == unfinishedIDNV) {
-                                                alert('Bạn cần hoàn thành bài đang thi trước khi đăng xuất !');
-                                                } else {
-                                                localStorage.clear();
-                                                window.location.href = '/Login/Logout';
-                                                }
-                                                }
+                                                                                        function logoutAndClearStorage() {
+                                                                                            var unfinishedIDLH = localStorage.getItem("IDLH");
+                                                                                            var unfinishedIDNV = localStorage.getItem("IDNV");
+                                                                                            var IDNV = "@Auth.ID";
+                                                                                            if (unfinishedIDLH && IDNV == unfinishedIDNV) {
+                                                                                                alert('Bạn cần hoàn thành bài đang thi trước khi đăng xuất !');
+                                                                                            } else {
+                                                                                                localStorage.clear();
+                                                                                                window.location.href = '/Login/Logout';
+                                                                                            }
+                                                                                        }
                                             </script>
                                         </div>
                                     </div>
@@ -343,14 +354,20 @@
                                     </li>
                                     showQuanTri = 1;
                                 }
-                                @if (ListControll.Contains("XepHangCaNhan") || true)
-                                {
-                                    <li>
-                                        <a asp-controller="XepHangCaNhan" asp-action="Index">
-                                            <i class="nav-icon fa fa-user"></i>Xếp hạng cá nhân
-                                        </a>
-                                    </li>
+
+                                @{
+                                    bool showXepHang = ListControll.Contains("XepHangCaNhan") ||
+                            ListControll.Contains("XepHangTapThe");
                                 }
+                                @if (showXepHang)
+                                {
+                                    <li class="app-sidebar__heading">Xếp hạng</li>
+                                }
+                                <li>
+                                    <a asp-controller="XepHangCaNhan" asp-action="Index">
+                                        <i class="nav-icon fa fa-user"></i>Xếp hạng cá nhân
+                                    </a>
+                                </li>
                                 @if (ListControll.Contains("XepHangTapThe"))
                                 {
                                     <li>
@@ -369,28 +386,49 @@
                                     showQuanTri = 1;
                                 } *@
 
-                                @if (User.Identity!.IsAuthenticated && Auth.IDQuyen == 1)
+                                @{
+                                    bool showHocVu = ListControll.Contains("ManageETContent") ||
+                            ListControll.Contains("ManageClass");
+                                    bool showCauHoi = ListControll.Contains("Question") ||
+                            ListControll.Contains("ManageTestExam");
+                                }
+                                @if (showHocVu)
                                 {
                                     <li class="app-sidebar__heading">Quản lý Học Vụ</li>
+                                }
+                                @if (ListControll.Contains("ManageETContent"))
+                                {
                                     <li>
                                         <a asp-controller="ManageETContent" asp-action="Index">
                                             <i class="nav-icon fa fa-folder-open-o"></i>
                                             Quản lý NDĐT
                                         </a>
                                     </li>
+                                }
+                                @if (ListControll.Contains("ManageClass"))
+                                {
                                     <li>
                                         <a asp-controller="ManageClass" asp-action="Index" asp-route-IDPB="@Auth.IDPhongban">
                                             <i class="nav-icon fa fa-list-alt"></i>
                                             Quản lý Chủ đề thi
                                         </a>
                                     </li>
+                                }
+                                @if (showCauHoi)
+                                {
                                     <li class="app-sidebar__heading">Quản lý câu hỏi đề thi</li>
+                                }
+                                @if (ListControll.Contains("Question"))
+                                {
                                     <li>
                                         <a asp-controller="Question" asp-action="Index" asp-route-IDND="1">
                                             <i class="nav-icon fa fa-question-circle-o"></i>
                                             Ngân hàng câu hỏi
                                         </a>
                                     </li>
+                                }
+                                @if (ListControll.Contains("ManageTestExam"))
+                                {
                                     <li>
                                         <a asp-controller="ManageTestExam" asp-action="Index" asp-route-IDND="1">
                                             <i class="nav-icon fa fa-file-text-o"></i>
@@ -447,7 +485,7 @@
             </style>
         } *@
         <script>
-            @* $(function () {
+                @* $(function () {
             @if (Auth.IDQuyen != 1)
             {
             <text>
@@ -458,62 +496,62 @@
             }); *@
         </script>
         <script>
-            $(document).ready(function () {
-            if (@showQuanTriKNL == 1) { $("#QuanTriKNL").css("display", "block"); }
-            if (@showKNL        == 1) { $("#KNL").css("display", "block"); }
-            if (@showQuanTri    == 1) { $("#QuanTri").css("display", "block"); }
-            if (@showQTriKNL    == 1) { $("#QTriKNL").css("display", "block"); }
-            if (@showQTriHV     == 1) { $("#QTriHV").css("display", "block"); }
-            if (@showQTriCHDT   == 1) { $("#QTriCHDT").css("display", "block"); }
+                    $(document).ready(function () {
+                        if (@showQuanTriKNL == 1) { $("#QuanTriKNL").css("display", "block"); }
+                        if (@showKNL        == 1) { $("#KNL").css("display", "block"); }
+                        if (@showQuanTri    == 1) { $("#QuanTri").css("display", "block"); }
+                        if (@showQTriKNL    == 1) { $("#QTriKNL").css("display", "block"); }
+                        if (@showQTriHV     == 1) { $("#QTriHV").css("display", "block"); }
+                        if (@showQTriCHDT   == 1) { $("#QTriCHDT").css("display", "block"); }
 
-            // Active menu item theo URL hiện tại
-            var cur = window.location.pathname.toLowerCase().replace(/\/index$/, '').replace(/\/$/, '') || '/';
-            $('.vertical-nav-menu a[href]').each(function () {
-            var href = ($(this).attr('href') || '').toLowerCase().replace(/\/index$/, '').replace(/\/$/, '');
-            if (!href || href === '#') return;
-            if (cur === href || cur.startsWith(href + '/') || cur.startsWith(href + '?')) {
-            $(this).addClass('sb-active');
-            $(this).closest('li').addClass('mm-active');
-            // Mở parent submenu nếu là sub-item
-            $(this).closest('ul.collapse, ul:not(.vertical-nav-menu)').prev('a').addClass('sb-active');
-            $(this).closest('ul.collapse, ul:not(.vertical-nav-menu)').parent('li').addClass('mm-active');
-            }
-            });
+                        // Active menu item theo URL hiện tại
+                        var cur = window.location.pathname.toLowerCase().replace(/\/index$/, '').replace(/\/$/, '') || '/';
+                        $('.vertical-nav-menu a[href]').each(function () {
+                            var href = ($(this).attr('href') || '').toLowerCase().replace(/\/index$/, '').replace(/\/$/, '');
+                            if (!href || href === '#') return;
+                            if (cur === href || cur.startsWith(href + '/') || cur.startsWith(href + '?')) {
+                                $(this).addClass('sb-active');
+                                $(this).closest('li').addClass('mm-active');
+                                // Mở parent submenu nếu là sub-item
+                                $(this).closest('ul.collapse, ul:not(.vertical-nav-menu)').prev('a').addClass('sb-active');
+                                $(this).closest('ul.collapse, ul:not(.vertical-nav-menu)').parent('li').addClass('mm-active');
+                            }
+                        });
 
-            });
+                    });
         </script>
 
         <script>
-            $(function () {
-                var sidebarStateKey = 'heThongThiDQ.sidebar-hidden';
-                var $container = $('.app-container');
-                var $toggleButtons = $('.close-sidebar-btn');
+                $(function () {
+                    var sidebarStateKey = 'heThongThiDQ.sidebar-hidden';
+                    var $container = $('.app-container');
+                    var $toggleButtons = $('.close-sidebar-btn');
 
-                function syncToggleButtonState(isHidden) {
-                    $toggleButtons.each(function () {
-                        $(this).toggleClass('is-active', !isHidden);
-                    });
-                }
+                    function syncToggleButtonState(isHidden) {
+                        $toggleButtons.each(function () {
+                            $(this).toggleClass('is-active', !isHidden);
+                        });
+                    }
 
-                function applySidebarState(isHidden) {
-                    $container.toggleClass('sidebar-hidden', isHidden);
-                    syncToggleButtonState(isHidden);
-                }
+                    function applySidebarState(isHidden) {
+                        $container.toggleClass('sidebar-hidden', isHidden);
+                        syncToggleButtonState(isHidden);
+                    }
 
-                var storedState = localStorage.getItem(sidebarStateKey);
-                if (storedState !== null) {
-                    applySidebarState(storedState === 'true');
-                } else {
-                    syncToggleButtonState($container.hasClass('sidebar-hidden'));
-                }
-
-                $toggleButtons.off('click.sidebarState').on('click.sidebarState', function () {
-                    window.setTimeout(function () {
-                        localStorage.setItem(sidebarStateKey, $container.hasClass('sidebar-hidden'));
+                    var storedState = localStorage.getItem(sidebarStateKey);
+                    if (storedState !== null) {
+                        applySidebarState(storedState === 'true');
+                    } else {
                         syncToggleButtonState($container.hasClass('sidebar-hidden'));
-                    }, 0);
+                    }
+
+                    $toggleButtons.off('click.sidebarState').on('click.sidebarState', function () {
+                        window.setTimeout(function () {
+                            localStorage.setItem(sidebarStateKey, $container.hasClass('sidebar-hidden'));
+                            syncToggleButtonState($container.hasClass('sidebar-hidden'));
+                        }, 0);
+                    });
                 });
-            });
         </script>
 
         @await RenderSectionAsync("Scripts", required: false)

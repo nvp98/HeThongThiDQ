@@ -3,366 +3,942 @@
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
-<div class="app-main__outer">
-<div class="app-main__inner pb-4">
-
-<!-- ══ BANNER ══════════════════════════════════════════════════════════════ -->
-<div class="rk-banner">
-    <div class="rk-banner-left">
-        <div class="rk-banner-icon"><i class="fa fa-trophy"></i></div>
-        <div>
-            <div class="rk-banner-title">XẾP HẠNG CÁ NHÂN</div>
-            <div class="rk-banner-sub">Hội thi tìm hiểu về văn hóa lịch sử Q-Day 2026</div>
-        </div>
-    </div>
-    <a asp-controller="XepHangTapThe" asp-action="Index" class="rk-switch-btn">
-        <i class="fa fa-users"></i>&nbsp; Xem xếp hạng tập thể &rarr;
-    </a>
-</div>
-
-<!-- ══ STAT CARDS ══════════════════════════════════════════════════════════ -->
-<div class="rk-stat-cards mb-4">
-    <div class="rk-sc rk-sc-blue">
-        <div class="rk-sc-ico"><i class="fa fa-users"></i></div>
-        <div><div class="rk-sc-num" id="sNguoi">--</div><div class="rk-sc-lbl">Thí sinh tham gia</div></div>
-    </div>
-    <div class="rk-sc rk-sc-teal">
-        <div class="rk-sc-ico"><i class="fa fa-building"></i></div>
-        <div><div class="rk-sc-num" id="sDonVi">--</div><div class="rk-sc-lbl">Đơn vị tham gia</div></div>
-    </div>
-    <div class="rk-sc rk-sc-amber">
-        <div class="rk-sc-ico"><i class="fa fa-pencil-square-o"></i></div>
-        <div><div class="rk-sc-num" id="sLuot">--</div><div class="rk-sc-lbl">Lượt tham gia thi</div></div>
-    </div>
-    <div class="rk-sc rk-sc-green">
-        <div class="rk-sc-ico"><i class="fa fa-check-circle"></i></div>
-        <div><div class="rk-sc-num" id="sHT">--</div><div class="rk-sc-lbl">Lượt hoàn thành</div></div>
-    </div>
-</div>
-
-<!-- ══ PODIUM ══════════════════════════════════════════════════════════════ -->
-<div id="podiumWrap" class="mb-4"></div>
-
-<!-- ══ FILTER ══════════════════════════════════════════════════════════════ -->
-<div class="rk-filter-card mb-4">
-    <div class="rk-filter-hd"><i class="fa fa-filter"></i> Bộ lọc dữ liệu</div>
-    <div class="rk-filter-row">
-        <select id="filterLopHoc" class="rk-select">
-            <option value="">📋 Tất cả khóa thi</option>
-            @foreach (var lh in (ViewBag.LopHocList as IEnumerable<dynamic> ?? []))
-            {
-                <option value="@lh.Idlh">@lh.TenLh</option>
-            }
-        </select>
-        <select id="filterPhongBan" class="rk-select">
-            <option value="">🏢 Tất cả phòng ban</option>
-            @foreach (var pb in (ViewBag.PhongBanList as IEnumerable<dynamic> ?? []))
-            {
-                <option value="@pb.IdphongBan">@pb.TenPhongBan</option>
-            }
-        </select>
-        <div class="rk-search-box">
-            <i class="fa fa-search"></i>
-            <input id="txtSearch" placeholder="Tìm mã NV hoặc họ tên..." autocomplete="off" />
-            <button id="btnClear" class="rk-clear-btn" style="display:none"><i class="fa fa-times"></i></button>
-        </div>
-        <div class="rk-filter-right">
-            <span class="rk-count-badge" id="badgeTotal" style="display:none"></span>
-            <button class="rk-btn-refresh" id="btnLoad"><i class="fa fa-refresh"></i> Làm mới</button>
-        </div>
-    </div>
-</div>
-
-<!-- ══ TABLE ═══════════════════════════════════════════════════════════════ -->
-<div class="rk-card">
-    <div class="rk-card-hd">
-        <span><i class="fa fa-list-ol"></i>&nbsp; Bảng xếp hạng cá nhân</span>
-        <span id="badgeTotal2" class="rk-count-badge" style="display:none"></span>
-    </div>
-    <div class="table-responsive">
-        <table class="rk-table">
-            <thead>
-                <tr>
-                    <th style="width:56px" class="text-center">Hạng</th>
-                    <th style="min-width:220px">Thí sinh</th>
-                    <th style="min-width:160px">Đơn vị / Phòng ban</th>
-                    <th style="width:110px" class="text-center">Điểm cao nhất</th>
-                    <th style="width:90px"  class="text-center">Điểm TB</th>
-                    <th style="width:90px"  class="text-center">Số lần thi</th>
-                    <th style="width:155px" class="text-center">Tỉ lệ đạt</th>
-                    <th style="width:90px"  class="text-center">Thời gian</th>
-                </tr>
-            </thead>
-            <tbody id="tblBody">
-                <tr><td colspan="8" class="rk-loading"><i class="fa fa-spinner fa-spin"></i> Đang tải dữ liệu...</td></tr>
-            </tbody>
-        </table>
-    </div>
-</div>
-
-</div>
-<div class="app-wrapper-footer"><div class="app-footer"><div class="app-footer__inner"></div></div></div>
-
-<!-- ══ BXH ÔN LUYỆN ════════════════════════════════════════════════════════ -->
-<div class="rk-card mt-4" id="bxhOnLuyenCard">
-    <div class="rk-card-hd" id="bxhOlToggle" style="cursor:pointer;user-select:none;">
-        <span>
-            <i class="fa fa-book" style="color:#43a047;margin-right:6px;"></i>
-            Bảng xếp hạng ôn luyện
-            <span id="bxhOlBadge" class="rk-count-badge ml-2" style="display:none;background:#e8f5e9;color:#2e7d32;"></span>
-        </span>
-        <i class="fa fa-chevron-down" id="bxhOlChevron" style="color:#6b7280;transition:transform .25s;"></i>
-    </div>
-    <div id="bxhOlBody">
-        <div class="table-responsive">
-            <table class="rk-table">
-                <thead>
-                    <tr>
-                        <th style="width:56px" class="text-center">Hạng</th>
-                        <th style="min-width:220px">Thí sinh</th>
-                        <th style="min-width:160px">Đơn vị / Phòng ban</th>
-                        <th style="width:120px" class="text-center">Tổng điểm</th>
-                        <th style="width:120px" class="text-center">Tổng thời gian</th>
-                        <th style="width:90px"  class="text-center">Số lượt</th>
-                    </tr>
-                </thead>
-                <tbody id="bxhOlBody2">
-                    <tr><td colspan="6" class="rk-loading"><i class="fa fa-spinner fa-spin"></i> Đang tải...</td></tr>
-                </tbody>
-            </table>
-        </div>
-    </div>
-</div>
-<!-- Hàng thứ hạng bản thân (luôn hiển thị) -->
-<div id="myRankCard" class="mt-3" style="display:none;">
-    <div class="rk-card" style="border-left:4px solid #1a73e8;">
-        <div class="rk-card-hd" style="background:#e8f0fe;">
-            <span style="color:#1558b0;font-weight:700;">
-                <i class="fa fa-user-circle" style="margin-right:6px;"></i>
-                Thứ hạng của bạn trong ôn luyện
-            </span>
-        </div>
-        <div class="table-responsive">
-            <table class="rk-table">
-                <thead>
-                    <tr>
-                        <th style="width:56px" class="text-center">Hạng</th>
-                        <th>Họ và Tên</th>
-                        <th>Đơn vị</th>
-                        <th class="text-center">Tổng điểm</th>
-                        <th class="text-center">Tổng thời gian</th>
-                        <th class="text-center">Số lượt</th>
-                    </tr>
-                </thead>
-                <tbody id="myRankRow"></tbody>
-            </table>
-        </div>
-    </div>
-</div>
-
-</div>
-</div>
-
-@Html.Partial("~/Views/XepHang/_XepHangStyle.cshtml")
 <style>
-.rk-table { width:100%; border-collapse:collapse; font-size:.875rem; }
-.rk-table thead th {
-    padding:11px 14px; background:#1e3a6e; color:#fff;
-    font-size:.71rem; font-weight:700; text-transform:uppercase;
-    letter-spacing:.6px; white-space:nowrap; border:none;
-}
-.rk-table tbody tr { border-bottom:1px solid #f1f5f9; transition:background .12s; }
-.rk-table tbody tr:hover td { background:#f0f7ff !important; }
-.rk-table tbody td { padding:11px 14px; vertical-align:middle; }
-.rk-table tr.rk-gold   td { background:#fffbeb; }
-.rk-table tr.rk-silver td { background:#f8fafc; }
-.rk-table tr.rk-bronze td { background:#fff7f0; }
+    .cn-page {
+        min-height: calc(100vh - 60px);
+        padding: 20px 24px 32px;
+        position: relative;
+        isolation: isolate;
+        overflow: hidden;
+        box-sizing: border-box;
+    }
 
-.rk-avatar {
-    width:36px; height:36px; border-radius:50%; flex-shrink:0;
-    display:inline-flex; align-items:center; justify-content:center;
-    font-weight:700; font-size:.78rem; color:#fff;
-}
-.rk-name-cell { display:flex; align-items:center; gap:10px; }
-.rk-name { font-weight:600; color:#111; font-size:.9rem; }
-.rk-code { font-size:.74rem; color:#6b7280; }
+    /* Nền chủ đạo hệ thống, cố định theo khung nhìn (dưới header 60px) */
+    .cn-page::before,
+    .cn-page::after {
+        content: '';
+        position: fixed;
+        top: 60px;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        z-index: -1;
+        pointer-events: none;
+    }
 
-.rk-score-big { font-size:1.2rem; font-weight:800; color:#1e3a6e; }
-.rk-score-avg { font-size:.88rem; color:#6b7280; }
+    .cn-page::before {
+        background: url('/Content/assets/images/bg4_tachnen.jpg') center / cover no-repeat;
+    }
 
-.rk-rate-col { display:flex; flex-direction:column; gap:3px; }
-.rk-mini-bar { height:7px; border-radius:4px; background:#e5e7eb; overflow:hidden; }
-.rk-mini-fill { height:100%; border-radius:4px; }
-.rk-rate-nums { display:flex; justify-content:space-between; font-size:.72rem; }
+    .cn-page::after {
+        background: linear-gradient(180deg, rgba(236, 244, 255, .62) 0%, rgba(220, 234, 255, .45) 100%);
+    }
 
-.rk-time-badge {
-    display:inline-block; background:#f1f5f9; border-radius:6px;
-    padding:3px 9px; font-size:.78rem; font-family:monospace; color:#374151;
-}
+    /* ---- Header ---- */
+    .cn-head {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: start;
+        gap: 16px;
+    }
+
+    .cn-title {
+        grid-column: 2;
+        text-align: center;
+    }
+
+    .cn-title-main {
+        font-size: 36px;
+        font-weight: 900;
+        line-height: 1.1;
+        letter-spacing: .5px;
+        text-transform: uppercase;
+        background: linear-gradient(180deg, #0076CE 0%, #00529C 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+        filter: drop-shadow(0 2px 0 #fff) drop-shadow(0 3px 4px rgba(0, 82, 156, .25));
+    }
+
+    .cn-tools {
+        grid-column: 3;
+        justify-self: end;
+        padding-top: 8px;
+    }
+
+    .cn-link {
+        font-size: 12.5px;
+        font-weight: 700;
+        color: #00529C;
+        text-decoration: none;
+    }
+
+    .cn-link:hover {
+        text-decoration: underline;
+        color: #00529C;
+    }
+
+    /* ---- Tabs ---- */
+    .cn-tabs {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        margin: 14px 0 4px;
+        flex-wrap: wrap;
+    }
+
+    .cn-tab {
+        padding: 9px 32px;
+        border: 2px solid #00529C;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, .75);
+        color: #00529C;
+        font-weight: 700;
+        font-size: 14px;
+        cursor: pointer;
+        transition: all .2s;
+    }
+
+    .cn-tab:hover {
+        background: rgba(255, 255, 255, .92);
+        box-shadow: 0 2px 8px rgba(0, 82, 156, .18);
+    }
+
+    .cn-tab.active {
+        background: #00529C;
+        color: #fff;
+        box-shadow: 0 3px 12px rgba(0, 82, 156, .3);
+        border-color: transparent;
+    }
+
+    /* ---- Filter bar ---- */
+    .cn-filter {
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin: 10px 0 6px;
+    }
+
+    .cn-filter input[type="search"],
+    .cn-filter input[type="date"],
+    .cn-filter input[type="week"],
+    .cn-filter select {
+        height: 36px;
+        padding: 0 14px;
+        border: 1.5px solid #b8c4e2;
+        border-radius: 20px;
+        font-size: 13.5px;
+        background: rgba(255, 255, 255, .88);
+        color: #00529C;
+        outline: none;
+        transition: border-color .2s, background .2s;
+        box-shadow: 0 1px 4px rgba(0, 82, 156, .08);
+    }
+
+    .cn-filter input[type="search"] {
+        min-width: 220px;
+    }
+
+    .cn-filter input[type="date"],
+    .cn-filter input[type="week"] {
+        min-width: 160px;
+        cursor: pointer;
+    }
+
+    .cn-filter select {
+        min-width: 180px;
+        cursor: pointer;
+    }
+
+    .cn-filter input[type="search"]:focus,
+    .cn-filter input[type="date"]:focus,
+    .cn-filter input[type="week"]:focus,
+    .cn-filter select:focus {
+        border-color: #00529C;
+        background: #fff;
+    }
+
+    /* ---- Podium ---- */
+    .cn-podium {
+        display: grid;
+        grid-template-columns: 1fr 1.18fr 1fr;
+        align-items: end;
+        max-width: 1180px;
+        margin: 4px auto -2%;
+    }
+
+    .cn-pd {
+        position: relative;
+        aspect-ratio: 3 / 2;
+        container-type: inline-size;
+    }
+
+    /* Ảnh bục canhan_*.png (tách nền từ bản .jpg); số hạng đã có sẵn trên huy chương */
+    .cn-pd::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        background: var(--img) center / contain no-repeat;
+    }
+
+    /* --it/--ib: mép trên (dưới huy chương) và mép dưới của ô kính; --ix: lề hai bên ô kính */
+    .cn-pd-1 {
+        --img: url('/Content/assets/images/canhan_vang.png');
+        --it: 33%;
+        --ib: 39.5%;
+        --ix: 21%;
+    }
+
+    .cn-pd-2 {
+        --img: url('/Content/assets/images/canhan_bac.png');
+        --it: 37%;
+        --ib: 37%;
+        --ix: 18.5%;
+    }
+
+    .cn-pd-3 {
+        --img: url('/Content/assets/images/canhan_dong.png');
+        --it: 34.5%;
+        --ib: 40%;
+        --ix: 18.5%;
+    }
+
+    .cn-pd-2,
+    .cn-pd-3 {
+        margin-bottom: 1%;
+    }
+
+    .cn-pd-rank {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
+    }
+
+    .cn-pd-info {
+        position: absolute;
+        left: var(--ix);
+        right: var(--ix);
+        top: var(--it);
+        bottom: var(--ib);
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .cn-pd-info>* {
+        flex-shrink: 0;
+    }
+
+    .cn-pd {
+        --s: .86;
+        /* hệ số cỡ chữ trên bục cho vừa ô kính */
+    }
+
+    .cn-pd.cn-pd-2,
+    .cn-pd.cn-pd-3 {
+        --s: .8;
+    }
+
+    @@media (max-width: 640px) {
+
+        .cn-pd.cn-pd-2,
+        .cn-pd.cn-pd-3 {
+            --s: .86;
+        }
+    }
+
+    .cn-pd-name,
+    .cn-pd-unit {
+        font-weight: 900;
+        color: #00529C;
+        text-transform: uppercase;
+        line-height: 1.45;
+        /* đủ chỗ cho dấu tiếng Việt viết hoa (Ễ, Ố...) */
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .cn-pd-name {
+        font-size: calc(4.6cqw * var(--s, 1));
+    }
+
+    .cn-pd-unit {
+        font-size: calc(3.3cqw * var(--s, 1));
+        font-weight: 800;
+        color: #00529C;
+    }
+
+    .cn-pd-stats {
+        margin-top: calc(2.4cqw * var(--s, 1));
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .cn-pd-stats>div+div {
+        border-left: 2px solid rgba(0, 82, 156, .35);
+    }
+
+    .cn-pd-lbl {
+        font-size: calc(2.3cqw * var(--s, 1));
+        font-weight: 700;
+        color: #4b5575;
+        text-transform: uppercase;
+        white-space: nowrap;
+    }
+
+    .cn-pd-val {
+        font-size: calc(5.4cqw * var(--s, 1));
+        font-weight: 900;
+        color: #00529C;
+        line-height: 1.1;
+    }
+
+    /* ---- Bảng ---- */
+    .cn-card {
+        position: relative;
+        max-width: 1180px;
+        margin: 0 auto;
+        background: rgba(255, 255, 255, .92);
+        border-radius: 14px;
+        box-shadow: 0 8px 28px rgba(0, 82, 156, .14);
+        padding: 8px;
+    }
+
+    .cn-table-wrap {
+        overflow-x: auto;
+    }
+
+    .cn-table {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+        font-size: 14px;
+    }
+
+    .cn-table thead th {
+        background: #00529C;
+        color: #fff;
+        font-weight: 800;
+        font-size: 13px;
+        text-transform: uppercase;
+        text-align: center;
+        padding: 12px 14px;
+        white-space: nowrap;
+        border-right: 1px solid rgba(255, 255, 255, .15);
+    }
+
+    .cn-table thead th:first-child {
+        border-radius: 10px 0 0 10px;
+    }
+
+    .cn-table thead th:last-child {
+        border-radius: 0 10px 10px 0;
+        border-right: none;
+    }
+
+    .cn-table tbody td {
+        padding: 8px 14px;
+        border-bottom: 1px solid #e3eaf7;
+        border-right: 1px solid #e3eaf7;
+        vertical-align: middle;
+        text-align: center;
+    }
+
+    .cn-table tbody td:last-child {
+        border-right: none;
+    }
+
+    .cn-table tbody tr:nth-child(even) td {
+        background: #f3f7fe;
+    }
+
+    .cn-table tbody tr:hover td {
+        background: #e8f0fe;
+    }
+
+    .cn-table tr.r1 td {
+        background: #fff5dc;
+    }
+
+    .cn-table tr.r2 td {
+        background: #eef3fc;
+    }
+
+    .cn-table tr.r3 td {
+        background: #fcece3;
+    }
+
+    .cn-table tr.me td {
+        background: #dbe8ff !important;
+        font-weight: 700;
+    }
+
+    .cn-table td.cn-name,
+    .cn-table td.cn-unit {
+        text-align: left;
+    }
+
+    .cn-name-main {
+        font-weight: 700;
+        color: #00529C;
+    }
+
+    .cn-name-sub {
+        font-size: 11.5px;
+        color: #8a93a8;
+    }
+
+    .cn-me-badge {
+        display: inline-block;
+        margin-left: 6px;
+        padding: 1px 7px;
+        border-radius: 8px;
+        background: #1a73e8;
+        color: #fff;
+        font-size: 10px;
+        font-weight: 700;
+        vertical-align: middle;
+    }
+
+    .cn-unit {
+        color: #374151;
+    }
+
+    .cn-rank {
+        width: 26px;
+        height: 26px;
+        border-radius: 50%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 15px;
+        font-weight: 800;
+        color: #00529C;
+    }
+
+    .cn-rank.m1 {
+        background: radial-gradient(circle at 35% 30%, #fff3b0, #f5b301 60%, #b87a00);
+        color: #6b4300;
+        box-shadow: 0 0 0 2px #f7d56a;
+        font-size: 13px;
+    }
+
+    .cn-rank.m2 {
+        background: radial-gradient(circle at 35% 30%, #ffffff, #b9c3d6 60%, #7a869e);
+        color: #2b3550;
+        box-shadow: 0 0 0 2px #d3dae8;
+        font-size: 13px;
+    }
+
+    .cn-rank.m3 {
+        background: radial-gradient(circle at 35% 30%, #ffe0cc, #d9804a 60%, #9a4a1c);
+        color: #fff;
+        box-shadow: 0 0 0 2px #eab08e;
+        font-size: 13px;
+    }
+
+    .cn-score {
+        font-weight: 800;
+        color: #00529C;
+        font-size: 15px;
+    }
+
+    .cn-score-sub {
+        color: #8a93a8;
+        font-weight: 400;
+        font-size: 12px;
+    }
+
+    .cn-time {
+        font-weight: 700;
+        color: #00529C;
+        font-variant-numeric: tabular-nums;
+    }
+
+    .cn-gap td {
+        background: #f8fafc !important;
+        color: #9aa3b5;
+        padding: 2px !important;
+        letter-spacing: 4px;
+    }
+
+    .cn-empty {
+        color: #8a93a8;
+        padding: 32px 12px !important;
+    }
+
+    @@media (max-width: 991px) {
+        .cn-head {
+            grid-template-columns: 1fr;
+        }
+
+        .cn-title,
+        .cn-tools {
+            grid-column: 1;
+        }
+
+        .cn-tools {
+            justify-self: center;
+            padding-top: 0;
+        }
+
+        .cn-title-main {
+            font-size: 28px;
+        }
+    }
+
+    @@media (max-width: 640px) {
+        .cn-page {
+            padding: 16px 12px 24px;
+        }
+
+        .cn-page::before {
+            background-image: url('/Content/assets/images/bg4_mobile.jpg');
+        }
+
+        .cn-podium {
+            grid-template-columns: 1fr;
+            max-width: 420px;
+            margin-bottom: 8px;
+        }
+
+        .cn-pd-1 {
+            order: -1;
+        }
+
+        .cn-tab {
+            padding: 8px 20px;
+        }
+    }
+
+    /* ---- Phân trang ---- */
+    .cn-pager {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 12px 8px 6px;
+    }
+
+    .cn-pager .pg-btn {
+        min-width: 34px;
+        height: 34px;
+        padding: 0 10px;
+        border: 1.5px solid #b8c4e2;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, .88);
+        color: #00529C;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+        transition: all .18s;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .cn-pager .pg-btn:hover:not(:disabled) {
+        background: #e8f0fe;
+        border-color: #00529C;
+    }
+
+    .cn-pager .pg-btn.active {
+        background: #00529C;
+        color: #fff;
+        border-color: transparent;
+    }
+
+    .cn-pager .pg-btn:disabled {
+        opacity: .38;
+        cursor: default;
+    }
+
+    .cn-pager .pg-info {
+        font-size: 12.5px;
+        color: #6b7a99;
+        padding: 0 6px;
+    }
 </style>
 
+<div class="app-main__outer">
+    <div class="app-main__inner" style="padding:0;">
+        <div class="cn-page">
+
+            <div class="cn-head">
+                <div class="cn-title">
+                    <div class="cn-title-main">Bảng xếp hạng cá nhân</div>
+                </div>
+            </div>
+
+            <div class="cn-tabs" role="tablist">
+                <button type="button" class="cn-tab active" role="tab" data-loai="onluyen">
+                    <i class="fa fa-book"></i> Ôn luyện
+                </button>
+                <button type="button" class="cn-tab" role="tab" data-loai="onluyen-ngay">
+                    <i class="fa fa-calendar"></i> Theo ngày
+                </button>
+                <button type="button" class="cn-tab" role="tab" data-loai="onluyen-tuan">
+                    <i class="fa fa-calendar-o"></i> Theo tuần
+                </button>
+                <button type="button" class="cn-tab" role="tab" data-loai="thi">
+                    <i class="fa fa-flag-checkered"></i> Thi chính thức
+                </button>
+            </div>
+
+            <div class="cn-filter">
+                <select id="selLop" style="display:none" title="Lớp thi chính thức"></select>
+                <input type="date"   id="selNgay" style="display:none" title="Chọn ngày">
+                <input type="week"   id="selTuan" style="display:none" title="Chọn tuần">
+                <input type="search" id="srchName" placeholder="Tìm tên / mã nhân viên..." autocomplete="off">
+                <select id="selPB">
+                    <option value="">— Tất cả đơn vị —</option>
+                </select>
+            </div>
+
+            <div class="cn-podium" id="podium"></div>
+
+            <div class="cn-card">
+                <div class="cn-table-wrap">
+                    <table class="cn-table">
+                        <thead id="tblHead"></thead>
+                        <tbody id="tblBody"></tbody>
+                    </table>
+                </div>
+                <div id="pager" class="cn-pager"></div>
+            </div>
+
+        </div>
+    </div>
+</div>
+
 <script>
-var _aC=['#6366f1','#8b5cf6','#06b6d4','#10b981','#f59e0b','#ef4444','#ec4899','#14b8a6','#f97316','#3b82f6'];
-function avatarColor(n){ var s=0; for(var i=0;i<(n||'').length;i++) s+=n.charCodeAt(i); return _aC[s%_aC.length]; }
-function initials(n){
-    if(!n) return '?';
-    var p=n.trim().split(' ');
-    return p.length>=2?(p[0][0]+p[p.length-1][0]).toUpperCase():p[0].slice(0,2).toUpperCase();
-}
+    (function () {
+        var MY_NVID = @((int)(ViewBag.MyNVID ?? 0));
+        var PAGE_SIZE = 20;
+        var loai = 'onluyen';
+        var reqSeq = 0;
+        var allRankData = [];
+        var filteredData = [];
+        var currentPage = 1;
+        var filterTimer;
+        var lopThi = null;    // lớp thi chính thức đang xem (null = mới nhất)
+        var selNgay = null;   // "yyyy-MM-dd"
+        var selTuan = null;   // "yyyy-Www"
 
-function loadStats(){
-    $.get('/XepHangCaNhan/GetStats',{idLH:$('#filterLopHoc').val()},function(d){
-        animCount('sNguoi',d.tongNguoi);
-        animCount('sDonVi',d.tongDonVi);
-        animCount('sLuot', d.tongLuotThi);
-        animCount('sHT',   d.tongHoanThanh);
-    });
-}
+        function esc(s) { return $('<div>').text(s || '').html(); }
 
-function load(){
-    var p={idLH:$('#filterLopHoc').val(), idPB:$('#filterPhongBan').val(), search:$('#txtSearch').val()};
-    $('#tblBody').html('<tr><td colspan="8" class="rk-loading"><i class="fa fa-spinner fa-spin"></i> Đang tải...</td></tr>');
-    $('#podiumWrap').empty();
-    $.get('/XepHangCaNhan/GetData',p,function(data){
-        if(!Array.isArray(data)||!data.length){
-            $('#tblBody').html('<tr><td colspan="8" class="rk-loading"><i class="fa fa-inbox fa-lg"></i><br>Không có dữ liệu phù hợp</td></tr>');
-            $('#badgeTotal,#badgeTotal2').hide(); return;
+        function pad2(n) { return (n < 10 ? '0' : '') + n; }
+
+        function fmtTime(sec) {
+            sec = Math.max(0, sec || 0);
+            var h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60), s = sec % 60;
+            var ss = (s < 10 ? '0' : '') + s;
+            if (h > 0) return h + ':' + (m < 10 ? '0' : '') + m + ':' + ss;
+            return m + ':' + ss;
         }
-        var label=fmt(data.length)+' thí sinh';
-        $('#badgeTotal').text(label).show();
-        $('#badgeTotal2').text(label).show();
 
-        renderPodium(data);
-        var rows='';
-        data.forEach(function(d){
-            var cls=d.rank===1?'rk-gold':d.rank===2?'rk-silver':d.rank===3?'rk-bronze':'';
-            var bc=rateColor(d.tiLeDat||0);
-            var av=avatarColor(d.hoTen);
-            rows+='<tr class="'+cls+'">'+
-                '<td class="text-center">'+rankBadge(d.rank)+'</td>'+
-                '<td><div class="rk-name-cell">'+
-                    '<div class="rk-avatar" style="background:'+av+'">'+initials(d.hoTen)+'</div>'+
-                    '<div><div class="rk-name">'+(d.hoTen||'')+'</div>'+
-                    '<div class="rk-code">'+(d.maNv||'')+'</div></div></div></td>'+
-                '<td><span style="font-size:.82rem;color:#6b7280">'+(d.phongBan||'—')+'</span></td>'+
-                '<td class="text-center"><span class="rk-score-big">'+d.diemCaoNhat+'</span></td>'+
-                '<td class="text-center"><span class="rk-score-avg">'+d.diemTrungBinh+'</span></td>'+
-                '<td class="text-center"><span class="badge badge-light" style="font-size:.82rem">'+d.soLanThi+' lần</span></td>'+
-                '<td>'+
-                    '<div class="rk-rate-col">'+
-                    '<div class="rk-mini-bar"><div class="rk-mini-fill" style="width:'+(d.tiLeDat||0)+'%;background:'+bc+'"></div></div>'+
-                    '<div class="rk-rate-nums">'+
-                        '<span style="font-weight:700;color:'+bc+'">'+(d.tiLeDat||0)+'%</span>'+
-                        '<span style="color:#9ca3af">'+d.soLanDat+'/'+d.soLanThi+' lần đạt</span>'+
-                    '</div></div>'+
-                '</td>'+
-                '<td class="text-center"><span class="rk-time-badge">'+(d.thoiGian||'--')+'</span></td>'+
+        function fmtDiem(d) {
+            if (!d) return '—';
+            return (Math.round(d * 100) / 100).toLocaleString('vi-VN', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+        }
+
+        function fmtNgayGio(s) {
+            if (!s) return '';
+            var d = new Date(s);
+            return pad2(d.getHours()) + ':' + pad2(d.getMinutes()) + ':' + pad2(d.getSeconds()) + ' ' +
+                pad2(d.getDate()) + '/' + pad2(d.getMonth() + 1) + '/' + d.getFullYear();
+        }
+
+        function getTodayStr() {
+            var d = new Date();
+            return d.getFullYear() + '-' + pad2(d.getMonth() + 1) + '-' + pad2(d.getDate());
+        }
+
+        function getCurrentWeekStr() {
+            var d = new Date();
+            var dow = d.getDay() || 7; // Mon=1 … Sun=7
+            var monday = new Date(d);
+            monday.setDate(d.getDate() - dow + 1);
+            var year = monday.getFullYear();
+            var jan4 = new Date(year, 0, 4);
+            var janDow = jan4.getDay() || 7;
+            var week1Mon = new Date(jan4);
+            week1Mon.setDate(jan4.getDate() - janDow + 1);
+            var weekNum = Math.round((monday - week1Mon) / (7 * 24 * 3600 * 1000)) + 1;
+            return year + '-W' + (weekNum < 10 ? '0' : '') + weekNum;
+        }
+
+        function isOnLuyen() { return loai === 'onluyen' || loai === 'onluyen-ngay' || loai === 'onluyen-tuan'; }
+
+        function colCount() {
+            if (loai === 'thi') return 8;
+            if (loai === 'onluyen') return 6;   // +1 cột thời điểm hoàn thành ôn luyện
+            return 5;                            // onluyen-ngay / onluyen-tuan
+        }
+
+        function renderHeader() {
+            var base =
+                '<tr>' +
+                '<th style="width:80px">Hạng</th>' +
+                '<th style="min-width:220px">Họ và tên</th>' +
+                '<th style="min-width:200px">Đơn vị</th>';
+
+            if (loai === 'thi') {
+                base +=
+                    '<th style="width:120px">Điểm bài thi<br><small style="font-weight:400;opacity:.8">(tối đa 30)</small></th>' +
+                    '<th style="width:140px">Thời gian<br><small style="font-weight:400;opacity:.8">làm bài</small></th>' +
+                    '<th style="width:170px">Thời điểm<br><small style="font-weight:400;opacity:.8">hoàn thành ôn luyện</small></th>';
+            }
+
+            if (loai === 'onluyen') {
+                base += '<th style="width:190px">Thời điểm<br><small style="font-weight:400;opacity:.8">hoàn thành ôn luyện</small></th>';
+            }
+
+            base +=
+                '<th style="width:130px">Điểm ôn luyện</th>' +
+                '<th style="width:140px">Số đề ôn luyện<br><small style="font-weight:400;opacity:.8">hoàn thành</small></th>' +
                 '</tr>';
-        });
-        $('#tblBody').html(rows);
-    });
-}
-
-function renderPodium(data){
-    var icons={1:'🥇',2:'🥈',3:'🥉'};
-    var html='<div class="rk-podium">';
-    [2,1,3].forEach(function(r){
-        var d=data.find(function(x){return x.rank===r;}); if(!d) return;
-        var av=avatarColor(d.hoTen);
-        html+='<div class="rk-pod rk-pod-'+r+'">'+
-            '<div class="rk-pod-avatar" style="background:'+av+'">'+initials(d.hoTen)+'</div>'+
-            '<div class="rk-pod-icon">'+icons[r]+'</div>'+
-            '<div class="rk-pod-name">'+(d.hoTen||'')+'</div>'+
-            '<div class="rk-pod-unit">'+(d.phongBan||'')+'</div>'+
-            '<div class="rk-pod-score">'+d.diemCaoNhat+'<span style="font-size:.7rem;color:#6b7280;font-weight:400"> điểm</span></div>'+
-            '<div class="rk-pod-base rk-base-'+r+'">Hạng '+r+'</div>'+
-            '</div>';
-    });
-    html+='</div>';
-    $('#podiumWrap').html(html);
-}
-
-$(document).ready(function(){
-    loadStats(); load();
-    $('#btnLoad').on('click',function(){ loadStats(); load(); });
-    $('#filterLopHoc').on('change',function(){ loadStats(); load(); });
-    $('#filterPhongBan').on('change',load);
-    var st;
-    $('#txtSearch').on('input',function(){
-        $('#btnClear').toggle(!!$(this).val());
-        clearTimeout(st); st=setTimeout(load,300);
-    });
-    $('#btnClear').on('click',function(){ $('#txtSearch').val('').trigger('input'); });
-
-    // BXH ôn luyện
-    loadBxhOnLuyen();
-    $('#bxhOlToggle').on('click', function(){
-        $('#bxhOlBody').slideToggle(250, function(){
-            $('#bxhOlChevron').css('transform', $('#bxhOlBody').is(':visible') ? '' : 'rotate(-90deg)');
-        });
-    });
-});
-
-function loadBxhOnLuyen(){
-    $.get('/XepHangCaNhan/GetBxhOnLuyen', function(data){
-        var ranked = data.Ranked;
-        if(!ranked || !ranked.length){
-            $('#bxhOlBody2').html('<tr><td colspan="6" class="rk-loading"><i class="fa fa-inbox fa-lg"></i><br>Chưa có dữ liệu ôn luyện</td></tr>');
-            return;
+            $('#tblHead').html(base);
         }
-        $('#bxhOlBadge').text(ranked.length + ' người').show();
 
-        var SHOW_TOP = 50, myEntry = null;
-        for(var i=0;i<ranked.length;i++){ if(ranked[i].IsCurrent){ myEntry=ranked[i]; break; } }
-        var myInTop = myEntry && myEntry.Rank <= SHOW_TOP;
+        function renderPodium(data) {
+            var html = '';
+            [2, 1, 3].forEach(function (r) {
+                var d = data[r - 1];
+                if (!d) { html += '<div></div>'; return; }
+                var stat1, stat2;
+                if (isOnLuyen()) {
+                    stat1 = '<div><div class="cn-pd-lbl">Điểm ôn luyện</div><div class="cn-pd-val">' + fmtDiem(d.DiemOnLuyen) + '</div></div>';
+                    stat2 = '<div><div class="cn-pd-lbl">Số đề hoàn thành</div><div class="cn-pd-val">' + (d.SoDeOnLuyenHoanThanh || 0) + '</div></div>';
+                } else {
+                    if (!d.DaThi) { html += '<div></div>'; return; }
+                    stat1 = '<div><div class="cn-pd-lbl">Điểm bài thi</div><div class="cn-pd-val">' + d.SoCauDung + '/' + (d.TongSoCau || 30) + '</div></div>';
+                    stat2 = '<div><div class="cn-pd-lbl">Thời gian</div><div class="cn-pd-val">' + fmtTime(d.ThoiGianSec) + '</div></div>';
+                }
+                html +=
+                    '<div class="cn-pd cn-pd-' + r + '">' +
+                    '<div class="cn-pd-rank">' + (d.Rank || r) + '</div>' +
+                    '<div class="cn-pd-info">' +
+                    '<div class="cn-pd-name" title="' + esc(d.HoTen) + '">' + esc(d.HoTen) + '</div>' +
+                    '<div class="cn-pd-unit" title="' + esc(d.TenPB) + '">' + esc(d.TenPB || '—') + '</div>' +
+                    '<div class="cn-pd-stats">' + stat1 + stat2 + '</div>' +
+                    '</div></div>';
+            });
+            $('#podium').html(html);
+        }
 
-        var rows = '';
-        ranked.slice(0, SHOW_TOP).forEach(function(r){
-            rows += bxhOlRow(r);
+        function row(d) {
+            var top = d.Rank > 0 && d.Rank <= 3;
+            var me = d.NVID === MY_NVID;
+            var cls = (top ? 'r' + d.Rank : '') + (me ? ' me' : '');
+            var cells =
+                '<td><span class="cn-rank' + (top ? ' m' + d.Rank : '') + '">' + (d.Rank || '—') + '</span></td>' +
+                '<td class="cn-name"><div class="cn-name-main">' + esc(d.HoTen) + (me ? '<span class="cn-me-badge">Bạn</span>' : '') + '</div>' +
+                '<div class="cn-name-sub">' + esc(d.MaNV) + '</div></td>' +
+                '<td class="cn-unit">' + esc(d.TenPB || '—') + '</td>';
+
+            if (loai === 'thi') {
+                var thiScore = d.DaThi
+                    ? '<span class="cn-score">' + d.SoCauDung + '</span><span class="cn-score-sub"> / ' + (d.TongSoCau || 30) + '</span>'
+                    : '<span class="cn-score-sub">Chưa thi</span>';
+                var thiTime = d.DaThi
+                    ? '<span class="cn-time">' + fmtTime(d.ThoiGianSec) + '</span>'
+                    : '<span class="cn-score-sub">—</span>';
+                var olTime = d.HoanThanhOnLuyen
+                    ? '<span class="cn-time">' + fmtNgayGio(d.HoanThanhOnLuyen) + '</span>'
+                    : '<span class="cn-score-sub">Chưa hoàn thành</span>';
+                cells += '<td>' + thiScore + '</td><td>' + thiTime + '</td><td>' + olTime + '</td>';
+            }
+
+            if (loai === 'onluyen') {
+                var olTime = d.HoanThanhOnLuyen
+                    ? '<span class="cn-time">' + fmtNgayGio(d.HoanThanhOnLuyen) + '</span>'
+                    : '<span class="cn-score-sub">Chưa hoàn thành</span>';
+                cells += '<td>' + olTime + '</td>';
+            }
+
+            cells +=
+                '<td><span class="cn-score">' + fmtDiem(d.DiemOnLuyen) + '</span></td>' +
+                '<td><span class="cn-score">' + (d.SoDeOnLuyenHoanThanh || 0) + '</span></td>';
+            return '<tr class="' + cls + '">' + cells + '</tr>';
+        }
+
+        function renderTable(data) {
+            var cols = colCount();
+            if (!data.length) {
+                $('#tblBody').html('<tr><td colspan="' + cols + '" class="cn-empty"><i class="fa fa-inbox fa-lg"></i><br>Chưa có dữ liệu xếp hạng</td></tr>');
+                $('#pager').empty();
+                return;
+            }
+            var totalPages = Math.ceil(data.length / PAGE_SIZE);
+            if (currentPage > totalPages) currentPage = totalPages;
+            var start = (currentPage - 1) * PAGE_SIZE;
+            var pageRows = data.slice(start, start + PAGE_SIZE);
+            $('#tblBody').html(pageRows.map(row).join(''));
+            renderPager(data.length, totalPages);
+        }
+
+        function renderPager(total, totalPages) {
+            if (totalPages <= 1) { $('#pager').empty(); return; }
+            var p = currentPage;
+            var html = '';
+
+            html += '<button class="pg-btn" ' + (p <= 1 ? 'disabled' : '') + ' data-p="' + (p - 1) + '">&#8249;</button>';
+
+            var pages = pagesToShow(p, totalPages);
+            var prev = null;
+            pages.forEach(function (n) {
+                if (prev !== null && n - prev > 1) html += '<span class="pg-info">…</span>';
+                html += '<button class="pg-btn' + (n === p ? ' active' : '') + '" data-p="' + n + '">' + n + '</button>';
+                prev = n;
+            });
+
+            html += '<button class="pg-btn" ' + (p >= totalPages ? 'disabled' : '') + ' data-p="' + (p + 1) + '">&#8250;</button>';
+            html += '<span class="pg-info">' + total + ' người / ' + totalPages + ' trang</span>';
+            $('#pager').html(html);
+        }
+
+        function pagesToShow(cur, total) {
+            var pages = [], delta = 2;
+            for (var i = 1; i <= total; i++) {
+                if (i === 1 || i === total || (i >= cur - delta && i <= cur + delta)) pages.push(i);
+            }
+            return pages;
+        }
+
+        function buildPBDropdown(data) {
+            var pbs = [];
+            data.forEach(function (r) { if (r.TenPB && pbs.indexOf(r.TenPB) < 0) pbs.push(r.TenPB); });
+            pbs.sort();
+            var opts = '<option value="">— Tất cả đơn vị —</option>';
+            pbs.forEach(function (pb) { opts += '<option value="' + esc(pb) + '">' + esc(pb) + '</option>'; });
+            $('#selPB').html(opts);
+        }
+
+        function applyFilter(resetPage) {
+            var q = $('#srchName').val().trim().toLowerCase();
+            var pb = $('#selPB').val();
+            filteredData = allRankData.filter(function (r) {
+                var matchText = !q || (r.HoTen || '').toLowerCase().indexOf(q) >= 0 || (r.MaNV || '').toLowerCase().indexOf(q) >= 0;
+                var matchPB = !pb || r.TenPB === pb;
+                return matchText && matchPB;
+            });
+            if (resetPage) currentPage = 1;
+            renderTable(filteredData);
+        }
+
+        function toggleFilters() {
+            var isThi  = loai === 'thi';
+            var isNgay = loai === 'onluyen-ngay';
+            var isTuan = loai === 'onluyen-tuan';
+            $('#selLop').toggle(isThi && !!$('#selLop').data('many'));
+            $('#selNgay').toggle(isNgay);
+            $('#selTuan').toggle(isTuan);
+        }
+
+        function load() {
+            var seq = ++reqSeq;
+            allRankData = [];
+            filteredData = [];
+            currentPage = 1;
+            $('#podium').empty();
+            $('#pager').empty();
+            renderHeader();
+            $('#tblBody').html('<tr><td colspan="' + colCount() + '" class="cn-empty"><i class="fa fa-spinner fa-spin"></i> Đang tải dữ liệu...</td></tr>');
+
+            var params = { loai: loai };
+            if (loai === 'thi' && lopThi) params.idlh = lopThi;
+            if (loai === 'onluyen-ngay') params.ngay = selNgay || getTodayStr();
+            if (loai === 'onluyen-tuan') params.tuan = selTuan || getCurrentWeekStr();
+
+            $.getJSON('/XepHangCaNhan/GetBangXepHang', params, function (data) {
+                if (seq !== reqSeq) return;
+                allRankData = Array.isArray(data) ? data : [];
+                buildPBDropdown(allRankData);
+                renderPodium(allRankData);
+                applyFilter(true);
+            }).fail(function () {
+                if (seq !== reqSeq) return;
+                $('#tblBody').html('<tr><td colspan="' + colCount() + '" class="cn-empty">Không tải được dữ liệu, vui lòng thử lại.</td></tr>');
+            });
+        }
+
+        // Danh sách lớp thi chính thức — chỉ hiện ô chọn khi có từ 2 lớp trở lên
+        function loadLopThi() {
+            $.getJSON('/XepHangCaNhan/GetLopThi', function (list) {
+                if (!Array.isArray(list) || !list.length) return;
+                lopThi = list[0].Idlh;
+                $('#selLop').html(list.map(function (l) {
+                    return '<option value="' + l.Idlh + '">' + esc(l.TenLH) + '</option>';
+                }).join('')).data('many', list.length > 1);
+                toggleFilters();
+            });
+        }
+
+        $(function () {
+            // Khởi tạo giá trị mặc định cho bộ lọc ngày / tuần
+            $('#selNgay').val(getTodayStr());
+            $('#selTuan').val(getCurrentWeekStr());
+            selNgay = getTodayStr();
+            selTuan = getCurrentWeekStr();
+
+            loadLopThi();
+
+            $('#selLop').on('change', function () {
+                lopThi = parseInt($(this).val()) || null;
+                $('#srchName').val('');
+                load();
+            });
+
+            $('#selNgay').on('change', function () {
+                selNgay = $(this).val() || getTodayStr();
+                $('#srchName').val('');
+                load();
+            });
+
+            $('#selTuan').on('change', function () {
+                selTuan = $(this).val() || getCurrentWeekStr();
+                $('#srchName').val('');
+                load();
+            });
+
+            if (location.hash === '#thi') {
+                loai = 'thi';
+                $('.cn-tab').removeClass('active').filter('[data-loai="thi"]').addClass('active');
+            }
+            toggleFilters();
+            load();
+
+            $('.cn-tab').on('click', function () {
+                if ($(this).hasClass('active')) return;
+                $('.cn-tab').removeClass('active');
+                $(this).addClass('active');
+                loai = $(this).data('loai');
+                history.replaceState(null, '', loai === 'thi' ? '#thi' : location.pathname + location.search);
+                toggleFilters();
+                $('#srchName').val('');
+                $('#selPB').html('<option value="">— Tất cả đơn vị —</option>');
+                load();
+            });
+
+            $('#srchName').on('input', function () {
+                clearTimeout(filterTimer);
+                filterTimer = setTimeout(function () { applyFilter(true); }, 250);
+            });
+            $('#selPB').on('change', function () { applyFilter(true); });
+
+            // Phân trang
+            $(document).on('click', '#pager .pg-btn:not(:disabled):not(.active)', function () {
+                currentPage = parseInt($(this).data('p'));
+                renderTable(filteredData);
+                $('.cn-card')[0].scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
         });
-        if(myEntry && !myInTop){
-            rows += '<tr><td colspan="6" class="text-center text-muted py-1" style="background:#f8fafc;font-size:.8rem">• • •</td></tr>';
-            rows += bxhOlRow(myEntry);
-        }
-        $('#bxhOlBody2').html(rows);
-
-        // Luôn hiển thị hàng cá nhân phía dưới
-        if(myEntry){
-            $('#myRankRow').html(bxhOlRow(myEntry));
-            $('#myRankCard').show();
-        }
-    }).fail(function(){
-        $('#bxhOlBody2').html('<tr><td colspan="6" class="rk-loading text-danger"><i class="fa fa-exclamation-triangle"></i> Lỗi tải dữ liệu</td></tr>');
-    });
-}
-
-function bxhOlRow(r){
-    var medal = r.Rank===1 ? '<i class="fa fa-trophy" style="color:#ffd700;margin-right:3px;"></i>'
-              : r.Rank===2 ? '<i class="fa fa-trophy" style="color:#c0c0c0;margin-right:3px;"></i>'
-              : r.Rank===3 ? '<i class="fa fa-trophy" style="color:#cd7f32;margin-right:3px;"></i>'
-              : '';
-    var rowStyle = r.IsCurrent ? 'style="background:#e8f0fe !important;font-weight:700;"' : '';
-    var badge = r.IsCurrent ? ' <span class="badge badge-primary" style="font-size:9px;vertical-align:middle;">Bạn</span>' : '';
-    var av = avatarColor(r.HoTen);
-    var init = initials(r.HoTen);
-    return '<tr '+rowStyle+'>'
-        +'<td class="text-center"><strong>'+medal+r.Rank+'</strong></td>'
-        +'<td><div class="rk-name-cell">'
-            +'<div class="rk-avatar" style="background:'+av+';width:32px;height:32px;font-size:.7rem;">'+init+'</div>'
-            +'<div><div class="rk-name">'+r.HoTen+badge+'</div>'
-            +'<div class="rk-code">'+r.MaNV+'</div></div>'
-        +'</div></td>'
-        +'<td><span style="font-size:.82rem;color:#6b7280">'+r.TenPB+'</span></td>'
-        +'<td class="text-center"><strong style="color:#1558b0;font-size:1.05rem;">'+r.TongDiem.toFixed(1)+'</strong></td>'
-        +'<td class="text-center"><span class="rk-time-badge">'+fmtOlSec(r.TongThoiGian)+'</span></td>'
-        +'<td class="text-center"><span class="badge badge-light" style="font-size:.82rem;">'+r.SoLanThi+' lượt</span></td>'
-        +'</tr>';
-}
-
-function fmtOlSec(s){
-    var h=Math.floor(s/3600), m=Math.floor((s%3600)/60), sec=s%60;
-    if(h>0) return pad2(h)+':'+pad2(m)+':'+pad2(sec);
-    return pad2(m)+':'+pad2(sec);
-}
-function pad2(n){ return n<10?'0'+n:''+n; }
+    })();
 </script>

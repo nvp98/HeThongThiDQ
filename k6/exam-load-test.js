@@ -22,8 +22,9 @@ const users = new SharedArray("users", function () {
 const BASE_URL = "https://qday.hoaphatdungquat.vn";
 
 // ── Custom metrics ────────────────────────────────────────────────────────────
-const mLogin = new Trend("dur_login_ms", true);
-const mLoad = new Trend("dur_exam_load_ms", true);
+const mLogin = new Trend("dur_login_ms", true); // POST LoginUser (không redirect)
+const mEclassroom = new Trend("dur_eclassroom_ms", true); // GET EClassroom/Index (riêng biệt)
+const mLoad = new Trend("dur_exam_load_ms", true); // GET STest/Index
 const mAutosave = new Trend("dur_autosave_ms", true);
 const mSubmit = new Trend("dur_submit_ms", true);
 const rSuccess = new Rate("exam_success_rate");
@@ -44,7 +45,8 @@ const THRESHOLDS = {
   http_req_duration: ["p(95)<5000"],
   http_req_failed: ["rate<0.10"],
   exam_success_rate: ["rate>0.85"],
-  dur_login_ms: ["p(95)<3000"],
+  dur_login_ms: ["p(95)<3000"], // LoginUser controller (xác thực)
+  dur_eclassroom_ms: ["p(95)<2000"], // EClassroom/Index (data load)
   dur_submit_ms: ["p(95)<6000"],
 };
 
@@ -136,14 +138,14 @@ export default function () {
 
   // ── 1. Login ──────────────────────────────────────────────────────────────
   group("1_login", function () {
-    // Lấy trang login để parse CSRF token (nếu app bật antiforgery)
     const loginPage = http.get(`${BASE_URL}/Login`, {
       tags: { step: "login_page" },
     });
     const csrf = parseCsrf(loginPage.body || "");
 
+    // 1a. POST login — KHÔNG follow redirect, chỉ đo thời gian xác thực thuần
     const t0 = Date.now();
-    const res = http.post(
+    const loginRes = http.post(
       `${BASE_URL}/Login/LoginUser`,
       {
         SoDienThoai: user.username,
@@ -151,27 +153,42 @@ export default function () {
         __RequestVerificationToken: csrf,
       },
       {
-        redirects: 10,
+        redirects: 0, // không redirect — chỉ đo login controller
         tags: { step: "login_post" },
       },
     );
     mLogin.add(Date.now() - t0);
 
-    // Login thành công nếu không bị redirect về trang Login
-    const finalUrl = res.url || "";
-    const isOnLogin = finalUrl.includes("/Login");
-    loggedIn = res.status === 200 && !isOnLogin;
+    // Login controller trả 302 redirect về EClassroom
+    const redirectOk = loginRes.status === 302 || loginRes.status === 301;
+    if (!redirectOk) {
+      console.error(
+        `VU${__VU} [${user.username}] LOGIN THẤT BẠI` +
+          ` | status=${loginRes.status}` +
+          ` | body=${(loginRes.body || "").substring(0, 200).replace(/\s+/g, " ")}`,
+      );
+      loggedIn = false;
+      check(loginRes, { login_success: () => false });
+      return;
+    }
+
+    // 1b. GET EClassroom/Index — đo riêng để biết data load chậm cỡ nào
+    const t1 = Date.now();
+    const ecRes = http.get(`${BASE_URL}/EClassroom/Index`, {
+      tags: { step: "eclassroom_index" },
+    });
+    mEclassroom.add(Date.now() - t1);
+
+    const finalUrl = ecRes.url || "";
+    loggedIn = ecRes.status === 200 && !finalUrl.includes("/Login");
 
     if (!loggedIn) {
       console.error(
-        `VU${__VU} [${user.username}] LOGIN THẤT BẠI` +
-          ` | status=${res.status}` +
-          ` | url=${finalUrl}` +
-          ` | body_snippet=${(res.body || "").substring(0, 200).replace(/\s+/g, " ")}`,
+        `VU${__VU} [${user.username}] ECLASSROOM THẤT BẠI` +
+          ` | status=${ecRes.status} | url=${finalUrl}`,
       );
     }
-
-    check(res, { login_success: () => loggedIn });
+    check(ecRes, { login_success: () => loggedIn });
   });
 
   if (!loggedIn) {
@@ -385,7 +402,8 @@ export function handleSummary(data) {
     `║  Tỉ lệ thành công    : ${successPct.padEnd(18)}║`,
     `║  HTTP lỗi            : ${fmt(get("http_req_failed", "rate"), "%").padEnd(18)}║`,
     "╠══════════════════════════════════════════╣",
-    `║  Login p95           : ${fmt(get("dur_login_ms", "p(95)"), "ms").padEnd(18)}║`,
+    `║  Login (auth) p95    : ${fmt(get("dur_login_ms", "p(95)"), "ms").padEnd(18)}║`,
+    `║  EClassroom p95      : ${fmt(get("dur_eclassroom_ms", "p(95)"), "ms").padEnd(18)}║`,
     `║  Load đề p95         : ${fmt(get("dur_exam_load_ms", "p(95)"), "ms").padEnd(18)}║`,
     `║  AutoSave p95        : ${fmt(get("dur_autosave_ms", "p(95)"), "ms").padEnd(18)}║`,
     `║  Nộp bài p95         : ${fmt(get("dur_submit_ms", "p(95)"), "ms").padEnd(18)}║`,
