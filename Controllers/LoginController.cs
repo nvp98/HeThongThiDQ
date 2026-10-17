@@ -160,7 +160,7 @@ namespace HeThongThiDQ.Controllers
                     catch { }
 
                     TempData["ClearLocalStorage"] = true;
-                    return RedirectToAction("Index", "EClassroom");
+                    return RedirectToAction("Index", "Home");
                 }
                 else
                 {

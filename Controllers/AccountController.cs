@@ -361,7 +361,7 @@ namespace HeThongThiDQ.Controllers
                     return RedirectToAction("Index");
                 }
 
-                var prefixes = new[] { "HPDQ", "HMN", "RAY" };
+                var prefixes = new[] { "HPDQ", "RAY" };
 
                 var hpdqList = listNV
                     .Where(x => !string.IsNullOrEmpty(x.manv)

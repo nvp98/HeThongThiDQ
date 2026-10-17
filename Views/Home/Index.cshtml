@@ -10,375 +10,471 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600&display=swap" rel="stylesheet">
+    <link
+    href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:ital,wght@@0,400;0,500;0,600;0,700;0,800;1,400;1,500;1,600&display=swap"
+    rel="stylesheet">
     <style>
-        :root {
-            --qd-navy: #0b2a6f;
-            --qd-blue: #0a4fd6;
-            --qd-btn: #1d3f8f;
-            --qd-orange: #f59e0b;
-            --qd-text: #4a5a7a;
-            --qd-bg: url('/Content/assets/images/chaomung_qday.jpg');
-            /* Đơn vị co giãn: lấy cạnh nhỏ hơn (theo tỉ lệ ảnh 2560 x 1441) để chữ luôn nằm gọn trong khung */
-            --s: min(1vw, calc(1vh * 2560 / 1441));
-        }
-
-        html, body {
-            margin: 0;
-            font-family: 'Be Vietnam Pro', sans-serif;
-            color: var(--qd-navy);
-            /* Màu trùng phần chân ảnh nền, lấp chỗ trống khi màn hình cao hơn ảnh */
-            background: #e4effc;
-        }
-
-        a { text-decoration: none; }
-
-        /*
-         * Ảnh nền vừa khít màn hình (100% x 100%), không cắt, không cuộn.
-         * Vị trí nội dung tính theo % nên luôn khớp với các khung có sẵn trong ảnh.
-         */
-        .qd-stage {
-            position: fixed;
-            inset: 0;
-            background: var(--qd-bg) no-repeat center / 100% 100%;
-        }
-
-        @@media (min-width: 768px) {
-            html, body {
-                height: 100%;
-                overflow: hidden;
+            :root {
+                --qd-navy: #0b2a6f;
+                --qd-blue: #0a4fd6;
+                --qd-btn: #1d3f8f;
+                --qd-orange: #f59e0b;
+                --qd-text: #4a5a7a;
+                --qd-bg: url('/Content/assets/images/chaomung_qday.jpg');
+                /* Đơn vị co giãn: lấy cạnh nhỏ hơn (theo tỉ lệ ảnh 2560 x 1441) để chữ luôn nằm gọn trong khung */
+                --s: min(1vw, calc(1vh * 2560 / 1441));
             }
-        }
 
-        /* ===== Header (cố định trên cùng màn hình) ===== */
-        .qd-header {
-            position: fixed;
-            top: clamp(8px, 1.5vh, 20px);
-            left: 8.6vw;
-            width: 79.8vw;
-            height: 7.8vh;
-            display: flex;
-            align-items: stretch;
-            background: #fff;
-            border: 1px solid #b9cdf3;
-            border-radius: calc(var(--s) * 1.4);
-            box-shadow: 0 calc(var(--s) * .3) calc(var(--s) * 1.2) rgba(11, 42, 111, .15);
-            z-index: 10;
-        }
+            html,
+            body {
+                margin: 0;
+                font-family: 'Be Vietnam Pro', sans-serif;
+                color: var(--qd-navy);
+                /* Màu trùng phần chân ảnh nền, lấp chỗ trống khi màn hình cao hơn ảnh */
+                background: #e4effc;
+            }
 
-        .qd-logo {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 18.5%;
-            padding: 0 calc(var(--s) * 1.2);
-            border-right: calc(var(--s) * .25) solid var(--qd-btn);
-        }
+            a {
+                text-decoration: none;
+            }
 
-        .qd-logo img {
-            max-width: 100%;
-            max-height: 80%;
-        }
+            /*
+                         * Ảnh nền vừa khít màn hình (100% x 100%), không cắt, không cuộn.
+                         * Vị trí nội dung tính theo % nên luôn khớp với các khung có sẵn trong ảnh.
+                         */
+            .qd-stage {
+                position: fixed;
+                inset: 0;
+                background: var(--qd-bg) no-repeat center / 100% 100%;
+            }
 
-        .qd-nav {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: calc(var(--s) * 2.4);
-            margin: 0;
-            padding: 0 calc(var(--s) * 2);
-            list-style: none;
-        }
+            @@media (min-width: 768px) {
 
-        .qd-nav a {
-            display: flex;
-            align-items: center;
-            gap: calc(var(--s) * .6);
-            color: var(--qd-navy);
-            font-size: clamp(12px, calc(var(--s) * 1.15), 22px);
-            font-weight: 600;
-            white-space: nowrap;
-        }
+                html,
+                body {
+                    height: 100%;
+                    overflow: hidden;
+                }
+            }
 
-        .qd-nav a i { font-size: 1.5em; }
-        .qd-nav a:hover { color: var(--qd-blue); }
-        .qd-nav a.active span { text-decoration: underline; text-underline-offset: .35em; }
-
-        .qd-toggler { display: none; }
-
-        /* ===== Khung thời gian (khớp khung lớn trong ảnh) ===== */
-        .qd-timeline {
-            position: absolute;
-            top: 54%;
-            left: 4.15%;
-            width: 91.65%;
-            height: 17.6%;
-            display: flex;
-        }
-
-        .qd-phase {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            gap: calc(var(--s) * 1.4);
-            padding: calc(var(--s) * 1) calc(var(--s) * 2) calc(var(--s) * 1) calc(var(--s) * 3.5);
-        }
-
-        .qd-phase + .qd-phase {
-            border-left: calc(var(--s) * .15) solid #4f86d9;
-            margin: calc(var(--s) * 1.2) 0;
-            padding-left: calc(var(--s) * 1.4);
-        }
-
-        .qd-phase-icon {
-            flex: 0 0 auto;
-            font-size: calc(var(--s) * 5.2);
-            line-height: 1;
-            color: #1d4fa8;
-        }
-
-        .qd-phase-body {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .qd-phase-title {
-            font-size: clamp(10px, calc(var(--s) * 1.1), 22px);
-            font-weight: 800;
-            color: var(--qd-navy);
-            text-transform: uppercase;
-            margin: 0;
-        }
-
-        .qd-phase-title .date {
-            font-size: 1.35em;
-            color: var(--qd-orange);
-            margin-left: calc(var(--s) * .8);
-        }
-
-        .qd-phase-desc {
-            font-size: clamp(9px, calc(var(--s) * .85), 17px);
-            font-style: italic;
-            color: var(--qd-text);
-            text-align: justify;
-            line-height: 1.35;
-            margin: calc(var(--s) * .5) 0 calc(var(--s) * .9);
-        }
-
-        .qd-btn {
-            align-self: center;
-            display: inline-flex;
-            align-items: center;
-            gap: calc(var(--s) * 1);
-            padding: calc(var(--s) * .45) calc(var(--s) * 2);
-            background: var(--qd-btn);
-            color: #fff;
-            font-size: clamp(10px, calc(var(--s) * .95), 19px);
-            font-weight: 500;
-            text-transform: uppercase;
-            border-radius: calc(var(--s) * 3);
-            box-shadow: 0 calc(var(--s) * .3) calc(var(--s) * .8) rgba(29, 63, 143, .35);
-            transition: .2s;
-        }
-
-        .qd-btn i { font-size: 1.5em; transition: .2s; }
-        .qd-btn:hover { background: var(--qd-blue); color: #fff; }
-        .qd-btn:hover i { transform: translateX(calc(var(--s) * .3)); }
-
-        /* ===== 4 thẻ chức năng (khớp 4 khung nhỏ trong ảnh) ===== */
-        .qd-cards {
-            position: absolute;
-            top: 73.2%;
-            left: 4.15%;
-            width: 91.65%;
-            height: 16%;
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: calc(var(--s) * .9);
-        }
-
-        .qd-card {
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            border-radius: calc(var(--s) * .6);
-            transition: .2s;
-        }
-
-        .qd-card:hover {
-            transform: translateY(calc(var(--s) * -.3));
-            box-shadow: 0 calc(var(--s) * .6) calc(var(--s) * 1.6) rgba(11, 42, 111, .18);
-        }
-
-        .qd-card-title {
-            height: 48%;
-            display: flex;
-            align-items: center;
-            padding: 0 calc(var(--s) * 2.4);
-            font-size: clamp(11px, calc(var(--s) * 1.3), 26px);
-            font-weight: 700;
-            color: var(--qd-navy);
-            text-transform: uppercase;
-            margin: 0;
-        }
-
-        .qd-card-title.has-icon {
-            padding-right: calc(var(--s) * 4.6);
-            font-size: clamp(10px, calc(var(--s) * 1.15), 23px);
-        }
-
-        .qd-card-icon {
-            position: absolute;
-            top: calc(var(--s) * 1.6);
-            right: calc(var(--s) * 1.6);
-            font-size: calc(var(--s) * 2.2);
-            color: #fff;
-        }
-
-        .qd-card-desc {
-            padding: calc(var(--s) * .6) calc(var(--s) * 2.4) 0 calc(var(--s) * 1.9);
-            font-size: clamp(9px, calc(var(--s) * .95), 19px);
-            font-weight: 600;
-            font-style: italic;
-            color: var(--qd-navy);
-            line-height: 1.4;
-            margin: 0;
-        }
-
-        /* ===== Mobile: xếp dọc, vẫn dùng cùng ảnh nền ===== */
-        @@media (max-width: 767.98px) {
+            /* ===== Header (cố định trên cùng màn hình) ===== */
             .qd-header {
-                position: sticky;
-                top: 0; left: auto;
-                width: 100%;
-                height: auto;
-                flex-wrap: wrap;
-                border: none;
-                border-radius: 0;
+                position: fixed;
+                top: clamp(8px, 1.5vh, 20px);
+                left: 8.6vw;
+                width: 79.8vw;
+                height: 7.8vh;
+                display: flex;
+                align-items: stretch;
+                background: #fff;
+                border: 1px solid #b9cdf3;
+                border-radius: calc(var(--s) * 1.4);
+                box-shadow: 0 calc(var(--s) * .3) calc(var(--s) * 1.2) rgba(11, 42, 111, .15);
+                z-index: 10;
             }
 
             .qd-logo {
-                width: auto;
-                flex: 1;
-                justify-content: flex-start;
-                padding: 8px 16px;
-                border-right: none;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 18.5%;
+                padding: 0 calc(var(--s) * 1.2);
+                border-right: calc(var(--s) * .25) solid var(--qd-btn);
             }
 
-            .qd-logo img { height: 40px; max-height: none; }
-
-            .qd-toggler {
-                display: block;
-                align-self: center;
-                margin-right: 10px;
-                border: none;
-                background: none;
-                font-size: 28px;
-                color: var(--qd-navy);
+            .qd-logo img {
+                max-width: 100%;
+                max-height: 80%;
             }
 
             .qd-nav {
+                flex: 1;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                gap: calc(var(--s) * 2.4);
+                margin: 0;
+                padding: 0 calc(var(--s) * 2);
+                list-style: none;
+            }
+
+            .qd-nav a {
+                display: flex;
+                align-items: center;
+                gap: calc(var(--s) * .6);
+                color: var(--qd-navy);
+                font-size: clamp(12px, calc(var(--s) * 1.15), 22px);
+                font-weight: 600;
+                white-space: nowrap;
+            }
+
+            .qd-nav a i {
+                font-size: 1.5em;
+            }
+
+            .qd-nav a:hover {
+                color: var(--qd-blue);
+            }
+
+            .qd-nav a.active span {
+                text-decoration: underline;
+                text-underline-offset: .35em;
+            }
+
+            .qd-toggler {
                 display: none;
-                flex-basis: 100%;
-                flex-direction: column;
-                align-items: flex-start;
-                gap: 0;
-                padding: 0 16px 8px;
-                border-top: 1px solid #e3ebf8;
             }
 
-            .qd-nav.open { display: flex; }
-            .qd-nav li { width: 100%; }
-            .qd-nav a { font-size: 15px; padding: 10px 0; }
-
-            .qd-stage {
-                position: relative;
-                inset: auto;
-                width: 100%;
-                height: auto;
-                background: none;
-                padding-bottom: calc(100vw * 3921 / 6968 * .095);
-            }
-
-            /* Phần banner phía trên của ảnh nền */
-            .qd-stage::before {
-                content: "";
-                display: block;
-                height: calc(100vw * 3921 / 6968 * .535);
-                background: var(--qd-bg) no-repeat top center / 100% auto;
-            }
-
-            /* Dải slogan phía dưới của ảnh nền */
-            .qd-stage::after {
-                content: "";
-                position: absolute;
-                left: 0; right: 0; bottom: 0;
-                height: calc(100vw * 3921 / 6968 * .095);
-                background: var(--qd-bg) no-repeat bottom center / 100% auto;
-            }
-
-            .qd-timeline, .qd-cards {
-                position: static;
-                width: calc(100% - 24px);
-                height: auto;
-                margin: 0 12px;
-            }
-
+            /* ===== Khung thời gian (khớp khung lớn trong ảnh) ===== */
             .qd-timeline {
+                position: absolute;
+                top: 54%;
+                left: 4.15%;
+                width: 91.65%;
+                height: 17.6%;
+                display: flex;
+            }
+
+            .qd-phase {
+                flex: 1;
+                display: flex;
+                align-items: center;
+                gap: calc(var(--s) * 1.4);
+                padding: calc(var(--s) * 1) calc(var(--s) * 2) calc(var(--s) * 1) calc(var(--s) * 3.5);
+            }
+
+            .qd-phase+.qd-phase {
+                border-left: calc(var(--s) * .15) solid #4f86d9;
+                margin: calc(var(--s) * 1.2) 0;
+                padding-left: calc(var(--s) * 1.4);
+            }
+
+            .qd-phase-icon {
+                flex: 0 0 auto;
+                font-size: calc(var(--s) * 5.2);
+                line-height: 1;
+                color: #1d4fa8;
+            }
+
+            .qd-phase-body {
+                flex: 1;
+                display: flex;
                 flex-direction: column;
-                background: linear-gradient(135deg, #fff 0%, #dceaff 100%);
-                border-radius: 12px;
-                box-shadow: 0 6px 18px rgba(11, 42, 111, .12);
             }
 
-            .qd-phase { padding: 16px; gap: 14px; align-items: flex-start; }
-            .qd-phase + .qd-phase {
-                border-left: none;
-                border-top: 1px solid #4f86d9;
-                margin: 0 16px;
-                padding: 16px 0;
+            .qd-phase-title {
+                font-size: clamp(10px, calc(var(--s) * 1.1), 22px);
+                font-weight: 800;
+                color: var(--qd-navy);
+                text-transform: uppercase;
+                margin: 0;
             }
 
-            .qd-phase-icon { font-size: 44px; }
-            .qd-phase-title { font-size: 13px; }
-            .qd-phase-title .date { display: block; margin: 2px 0 0; font-size: 16px; }
-            .qd-phase-desc { font-size: 12px; margin: 6px 0 12px; }
-            .qd-btn { font-size: 12px; padding: 7px 20px; gap: 8px; border-radius: 20px; }
+            .qd-phase-title .date {
+                font-size: 1.35em;
+                color: var(--qd-orange);
+                margin-left: calc(var(--s) * .8);
+            }
 
+            .qd-phase-desc {
+                font-size: clamp(9px, calc(var(--s) * .85), 17px);
+                font-style: italic;
+                color: var(--qd-text);
+                text-align: justify;
+                line-height: 1.35;
+                margin: calc(var(--s) * .5) 0 calc(var(--s) * .9);
+            }
+
+            .qd-btn {
+                align-self: center;
+                display: inline-flex;
+                align-items: center;
+                gap: calc(var(--s) * 1);
+                padding: calc(var(--s) * .45) calc(var(--s) * 2);
+                background: var(--qd-btn);
+                color: #fff;
+                font-size: clamp(10px, calc(var(--s) * .95), 19px);
+                font-weight: 500;
+                text-transform: uppercase;
+                border-radius: calc(var(--s) * 3);
+                box-shadow: 0 calc(var(--s) * .3) calc(var(--s) * .8) rgba(29, 63, 143, .35);
+                transition: .2s;
+            }
+
+            .qd-btn i {
+                font-size: 1.5em;
+                transition: .2s;
+            }
+
+            .qd-btn:hover {
+                background: var(--qd-blue);
+                color: #fff;
+            }
+
+            .qd-btn:hover i {
+                transform: translateX(calc(var(--s) * .3));
+            }
+
+            /* ===== 4 thẻ chức năng (khớp 4 khung nhỏ trong ảnh) ===== */
             .qd-cards {
-                grid-template-columns: 1fr 1fr;
-                gap: 12px;
-                margin-top: 16px;
-                margin-bottom: 16px;
+                position: absolute;
+                top: 73.2%;
+                left: 4.15%;
+                width: 91.65%;
+                height: 16%;
+                display: grid;
+                grid-template-columns: repeat(4, 1fr);
+                gap: calc(var(--s) * .9);
             }
 
             .qd-card {
-                background: #fff;
-                border-radius: 10px;
-                overflow: hidden;
-                box-shadow: 0 4px 12px rgba(11, 42, 111, .1);
-                min-height: 120px;
+                position: relative;
+                display: flex;
+                flex-direction: column;
+                border-radius: calc(var(--s) * .6);
+                transition: .2s;
             }
 
-            .qd-card-title,
+            .qd-card:hover {
+                transform: translateY(calc(var(--s) * -.3));
+                box-shadow: 0 calc(var(--s) * .6) calc(var(--s) * 1.6) rgba(11, 42, 111, .18);
+            }
+
+            .qd-card-title {
+                height: 48%;
+                display: flex;
+                align-items: center;
+                padding: 0 calc(var(--s) * 2.4);
+                font-size: clamp(11px, calc(var(--s) * 1.3), 26px);
+                font-weight: 700;
+                color: var(--qd-navy);
+                text-transform: uppercase;
+                margin: 0;
+            }
+
             .qd-card-title.has-icon {
-                height: auto;
-                min-height: 52px;
-                padding: 10px 12px;
-                font-size: 13px;
-                background: linear-gradient(180deg, #2f7be6 0%, #a9cdfa 100%);
+                padding-right: calc(var(--s) * 4.6);
+                font-size: clamp(10px, calc(var(--s) * 1.15), 23px);
             }
 
-            .qd-card-title.has-icon { padding-right: 40px; }
-            .qd-card-icon { top: 10px; right: 10px; font-size: 18px; }
-            .qd-card-desc { padding: 10px 12px; font-size: 12px; }
-        }
+            .qd-card-icon {
+                position: absolute;
+                top: calc(var(--s) * 1.6);
+                right: calc(var(--s) * 1.6);
+                font-size: calc(var(--s) * 2.2);
+                color: #fff;
+            }
 
-        @@media (max-width: 420px) {
-            .qd-cards { grid-template-columns: 1fr; }
-        }
+            .qd-card-desc {
+                padding: calc(var(--s) * .6) calc(var(--s) * 2.4) 0 calc(var(--s) * 1.9);
+                font-size: clamp(9px, calc(var(--s) * .95), 19px);
+                font-weight: 600;
+                font-style: italic;
+                color: var(--qd-navy);
+                line-height: 1.4;
+                margin: 0;
+            }
+
+            .qd-card-link {
+                margin-top: auto;
+                padding: calc(var(--s) * .5) calc(var(--s) * 1.9) calc(var(--s) * .8);
+                font-size: clamp(8px, calc(var(--s) * .88), 16px);
+                font-weight: 700;
+                color: var(--qd-navy);
+                opacity: .65;
+                letter-spacing: .02em;
+            }
+
+            .qd-card:hover .qd-card-link {
+                opacity: 1;
+            }
+
+            /* ===== Mobile: xếp dọc, vẫn dùng cùng ảnh nền ===== */
+            @@media (max-width: 767.98px) {
+                .qd-header {
+                    position: sticky;
+                    top: 0;
+                    left: auto;
+                    width: 100%;
+                    height: auto;
+                    flex-wrap: wrap;
+                    border: none;
+                    border-radius: 0;
+                }
+
+                .qd-logo {
+                    width: auto;
+                    flex: 1;
+                    justify-content: flex-start;
+                    padding: 8px 16px;
+                    border-right: none;
+                }
+
+                .qd-logo img {
+                    height: 40px;
+                    max-height: none;
+                }
+
+                .qd-toggler {
+                    display: block;
+                    align-self: center;
+                    margin-right: 10px;
+                    border: none;
+                    background: none;
+                    font-size: 28px;
+                    color: var(--qd-navy);
+                }
+
+                .qd-nav {
+                    display: none;
+                    flex-basis: 100%;
+                    flex-direction: column;
+                    align-items: flex-start;
+                    gap: 0;
+                    padding: 0 16px 8px;
+                    border-top: 1px solid #e3ebf8;
+                }
+
+                .qd-nav.open {
+                    display: flex;
+                }
+
+                .qd-nav li {
+                    width: 100%;
+                }
+
+                .qd-nav a {
+                    font-size: 15px;
+                    padding: 10px 0;
+                }
+
+                .qd-stage {
+                    position: relative;
+                    inset: auto;
+                    width: 100%;
+                    height: auto;
+                    background: none;
+                    padding-bottom: calc(100vw * 3921 / 6968 * .095);
+                }
+
+                /* Phần banner phía trên của ảnh nền */
+                .qd-stage::before {
+                    content: "";
+                    display: block;
+                    height: calc(100vw * 3921 / 6968 * .535);
+                    background: var(--qd-bg) no-repeat top center / 100% auto;
+                }
+
+                /* Dải slogan phía dưới của ảnh nền */
+                .qd-stage::after {
+                    content: "";
+                    position: absolute;
+                    left: 0;
+                    right: 0;
+                    bottom: 0;
+                    height: calc(100vw * 3921 / 6968 * .095);
+                    background: var(--qd-bg) no-repeat bottom center / 100% auto;
+                }
+
+                .qd-timeline,
+                .qd-cards {
+                    position: static;
+                    width: calc(100% - 24px);
+                    height: auto;
+                    margin: 0 12px;
+                }
+
+                .qd-timeline {
+                    flex-direction: column;
+                    background: linear-gradient(135deg, #fff 0%, #dceaff 100%);
+                    border-radius: 12px;
+                    box-shadow: 0 6px 18px rgba(11, 42, 111, .12);
+                }
+
+                .qd-phase {
+                    padding: 16px;
+                    gap: 14px;
+                    align-items: flex-start;
+                }
+
+                .qd-phase+.qd-phase {
+                    border-left: none;
+                    border-top: 1px solid #4f86d9;
+                    margin: 0 16px;
+                    padding: 16px 0;
+                }
+
+                .qd-phase-icon {
+                    font-size: 44px;
+                }
+
+                .qd-phase-title {
+                    font-size: 13px;
+                }
+
+                .qd-phase-title .date {
+                    display: block;
+                    margin: 2px 0 0;
+                    font-size: 16px;
+                }
+
+                .qd-phase-desc {
+                    font-size: 12px;
+                    margin: 6px 0 12px;
+                }
+
+                .qd-btn {
+                    font-size: 12px;
+                    padding: 7px 20px;
+                    gap: 8px;
+                    border-radius: 20px;
+                }
+
+                .qd-cards {
+                    grid-template-columns: 1fr 1fr;
+                    gap: 12px;
+                    margin-top: 16px;
+                    margin-bottom: 16px;
+                }
+
+                .qd-card {
+                    background: #fff;
+                    border-radius: 10px;
+                    overflow: hidden;
+                    box-shadow: 0 4px 12px rgba(11, 42, 111, .1);
+                    min-height: 120px;
+                }
+
+                .qd-card-title,
+                .qd-card-title.has-icon {
+                    height: auto;
+                    min-height: 52px;
+                    padding: 10px 12px;
+                    font-size: 13px;
+                    background: linear-gradient(180deg, #2f7be6 0%, #a9cdfa 100%);
+                }
+
+                .qd-card-title.has-icon {
+                    padding-right: 40px;
+                }
+
+                .qd-card-icon {
+                    top: 10px;
+                    right: 10px;
+                    font-size: 18px;
+                }
+
+                .qd-card-desc {
+                    padding: 10px 12px;
+                    font-size: 12px;
+                }
+            }
+
+            @@media (max-width: 420px) {
+                .qd-cards {
+                    grid-template-columns: 1fr;
+                }
+            }
     </style>
 </head>
 
@@ -417,37 +513,44 @@
             <div class="qd-phase">
                 <i class="bi bi-stopwatch qd-phase-icon"></i>
                 <div class="qd-phase-body">
-                    <h2 class="qd-phase-title">Thời gian thi chính thức <span class="date">11/11/2026 - 15/11/2026</span></h2>
-                    <p class="qd-phase-desc">
-                        Thời gian thi chính thức được diễn ra trong vòng 05 ngày kể từ ngày 11/11/2026 đến hết ngày 15/11/2026.
-                        CBNV chỉ được tham gia bài thi chính thức khi đã hoàn thành Bộ đề ôn tập trên hệ thống E-learning.
-                    </p>
-                    <a href="/STest" class="qd-btn">Vào thi chính thức <i class="bi bi-arrow-right"></i></a>
+                    <h2 class="qd-phase-title">Thời gian thi chính thức <span class="date">11/11/2026 -
+                        15/11/2026</span></h2>
+                        <p class="qd-phase-desc">
+                            Thời gian thi chính thức được diễn ra trong vòng 05 ngày kể từ ngày 11/11/2026 đến hết ngày
+                            15/11/2026.
+                            CBNV chỉ được tham gia bài thi chính thức khi đã hoàn thành Bộ đề ôn tập trên hệ thống
+                            E-learning.
+                        </p>
+                        <a href="/STest" class="qd-btn">Vào thi chính thức <i class="bi bi-arrow-right"></i></a>
+                    </div>
                 </div>
-            </div>
-        </section>
+            </section>
 
-        <!-- Thẻ chức năng -->
-        <section class="qd-cards">
-            <a class="qd-card" href="/Home/FAQ">
-                <h3 class="qd-card-title">Thể lệ - QA</h3>
-                <p class="qd-card-desc">Thể lệ chi tiết và giải đáp thắc mắc</p>
-            </a>
-            <a class="qd-card" href="/EClassroom">
-                <h3 class="qd-card-title">Học tập - Ôn luyện</h3>
-                <p class="qd-card-desc">Kho tri thức và 15 bộ đề ôn luyện</p>
-            </a>
-            <a class="qd-card" href="/STest">
-                <h3 class="qd-card-title">Vòng thi chính thức</h3>
-                <p class="qd-card-desc">Thông tin và hướng dẫn tham gia thi chính thức</p>
-            </a>
-            <a class="qd-card" href="/XepHangCaNhan">
-                <h3 class="qd-card-title has-icon">Kết quả - Bản xếp hạng</h3>
-                <i class="bi bi-bar-chart-steps qd-card-icon"></i>
-                <p class="qd-card-desc">Cập nhật kết quả và bảng xếp hạng</p>
-            </a>
-        </section>
-    </div>
-</body>
+            <!-- Thẻ chức năng -->
+            <section class="qd-cards">
+                <a class="qd-card" href="/Home/FAQ">
+                    <h3 class="qd-card-title">Thể lệ - QA</h3>
+                    <p class="qd-card-desc">Thể lệ chi tiết và giải đáp thắc mắc</p>
+                    <span class="qd-card-link">Xem chi tiết &rsaquo;</span>
+                </a>
+                <a class="qd-card" href="/EClassroom">
+                    <h3 class="qd-card-title">Học tập - Ôn luyện</h3>
+                    <p class="qd-card-desc">Kho tri thức và 15 bộ đề ôn luyện</p>
+                    <span class="qd-card-link">Xem chi tiết &rsaquo;</span>
+                </a>
+                <a class="qd-card" href="/STest">
+                    <h3 class="qd-card-title">Vòng thi chính thức</h3>
+                    <p class="qd-card-desc" style="padding-left: 8px;">Thông tin và hướng dẫn tham gia thi chính thức</p>
+                    <span class="qd-card-link">Xem chi tiết &rsaquo;</span>
+                </a>
+                <a class="qd-card" href="/XepHangCaNhan">
+                    <h3 class="qd-card-title has-icon">Kết quả - Bản xếp hạng</h3>
+                    <i class="bi bi-bar-chart-steps qd-card-icon"></i>
+                    <p class="qd-card-desc">Cập nhật kết quả và bảng xếp hạng</p>
+                    <span class="qd-card-link">Xem chi tiết &rsaquo;</span>
+                </a>
+            </section>
+        </div>
+    </body>
 
 </html>
